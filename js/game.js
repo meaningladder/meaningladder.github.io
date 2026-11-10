@@ -153,6 +153,34 @@ function render(...nodes) {
   window.scrollTo(0, 0);
 }
 
+// ------------------------------------------------------------ day chips
+const weekdayIndex = (dateStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).getDay(); // 0 = Sunday
+};
+
+// One day in the week strip or the archive calendar: a link if that game is
+// out, otherwise a disabled placeholder. Solved days carry their medal.
+function dayChip(date, config, results, t, { weekdayLabel = false } = {}) {
+  const num = gameNumberOrNull(date, config);
+  const playable = num !== null && date <= t;
+  const r = results[date];
+  const inProgress = !r && store.get(`game:${date}`);
+  const cls = ["chip", date === t && "today", r?.status === "won" && "won",
+    ((r && r.status !== "won") || inProgress) && "played"].filter(Boolean).join(" ");
+  const state = r?.status === "won" ? `, solved, ${medalFor(r.steps, r.par).label}`
+    : r?.status === "gaveUp" ? ", gave up" : inProgress ? ", in progress" : "";
+  const label = `${longDate(date)}${num ? `, game ${num}` : ""}${state}`;
+  const inner = [
+    weekdayLabel ? fmt(date, { weekday: "narrow" }) : null,
+    h("b", {}, Number(date.slice(8))),
+    h("span", { class: "chip-mark" }, r?.status === "won" ? medalBadge(medalFor(r.steps, r.par).id, "xs") : null),
+  ];
+  return playable
+    ? h("a", { class: cls, href: `#/game/${num}`, "aria-label": label }, inner)
+    : h("button", { class: cls, disabled: true, "aria-label": `${label} (not available)` }, inner);
+}
+
 // ------------------------------------------------------------ home screen
 async function showHome() {
   document.title = "Meaning Ladder";
@@ -170,33 +198,20 @@ async function showHome() {
     ? h("p", { class: "note with-badge" }, medalBadge(rtMedal.id, "sm"),
         `Solved in ${rt.steps} steps. ${rtMedal.id === "finished" ? "Finished!" : `${rtMedal.label} medal.`}`)
     : rt?.status === "gaveUp" ? h("p", { class: "note" }, "You gave up on this one.")
-    : todayState ? h("p", { class: "note" }, `In progress: ${todayState.path.length - 1} steps so far.`) : null;
+    : todayState ? h("p", { class: "note" }, `In progress: ${todayState.path.length - 1} step${todayState.path.length === 2 ? "" : "s"} so far.`) : null;
 
   // Week strip: Sunday..Saturday of the current week.
-  const [y, mo, d] = t.split("-").map(Number);
-  const sunday = addDays(t, -new Date(y, mo - 1, d).getDay());
-  const chips = Array.from({ length: 7 }, (_, i) => {
-    const date = addDays(sunday, i);
-    const num = gameNumberOrNull(date, config);
-    const playable = num !== null && date <= t;
-    const r = results[date];
-    const cls = ["chip", date === t && "today", r?.status === "won" && "won",
-      r && r.status !== "won" && "played", store.get(`game:${date}`) && !r && "played"]
-      .filter(Boolean).join(" ");
-    const label = `${longDate(date)}${num ? `, game ${num}` : ""}${r?.status === "won" ? ", solved" : ""}`;
-    const inner = [fmt(date, { weekday: "narrow" }), h("b", {}, Number(date.slice(8))),
-      h("span", { class: "chip-mark" }, r?.status === "won" ? medalBadge(medalFor(r.steps, r.par).id, "xs") : null)];
-    return h("li", {}, playable
-      ? h("a", { class: cls, href: `#/game/${num}`, "aria-label": label }, inner)
-      : h("button", { class: cls, disabled: true, "aria-label": `${label} (not available)` }, inner));
-  });
+  const sunday = addDays(t, -weekdayIndex(t));
+  const chips = Array.from({ length: 7 }, (_, i) =>
+    h("li", {}, dayChip(addDays(sunday, i), config, results, t, { weekdayLabel: true })));
 
   const daily = h("section", { class: "card", "aria-labelledby": "daily-title" },
     h("div", { class: "card-row" },
       h("div", {},
         h("h2", { id: "daily-title" }, n ? `Daily ladder #${n}` : "Daily ladder"),
         h("p", { class: "sub" }, longDate(t))),
-      n ? h("a", { class: "btn", href: `#/game/${n}` }, results[t] ? "View" : todayState ? "Resume" : "Play")
+      n ? h("a", { class: "btn", href: `#/game/${n}`, "aria-label": `${results[t] ? "View" : todayState ? "Resume" : "Play"} today's ladder` },
+            results[t] ? "View" : todayState ? "Resume" : "Play")
         : h("button", { class: "btn", disabled: true }, "Play")),
     !n && h("p", { class: "note" },
       `Game #1 arrives on ${longDate(config.launchDate)}. Try a practice ladder meanwhile!`),
@@ -208,7 +223,8 @@ async function showHome() {
       h("div", {},
         h("h2", { id: "practice-title" }, "Practice"),
         h("p", { class: "sub" }, "Unlimited random ladders. No streaks at stake.")),
-      h("a", { class: "btn", href: "#/practice" }, store.get("practice")?.status === "playing" ? "Resume" : "Play")));
+      h("a", { class: "btn", href: "#/practice", "aria-label": `${store.get("practice")?.status === "playing" ? "Resume" : "Play"} a practice ladder` },
+        store.get("practice")?.status === "playing" ? "Resume" : "Play")));
 
   render(
     h("header", { class: "home-head" },
@@ -228,27 +244,41 @@ async function showHome() {
 
 // ------------------------------------------------------------ archive screen
 async function showArchive() {
-  document.title = "Previous games · Meaning Ladder";
+  document.title = "Previous games \u00b7 Meaning Ladder";
   const token = routeToken;
   const config = await loadConfig();
   if (token !== routeToken) return;
   const t = today();
-  const last = gameNumberOrNull(t, config) ?? 0;
   const results = getResults();
-  const items = [];
-  for (let n = last; n >= 1; n--) {
-    const date = dateOfGame(n, config);
-    const r = results[date];
-    const mark = r?.status === "won"
-      ? h("span", { class: "with-badge" }, medalBadge(medalFor(r.steps, r.par).id, "sm"), `${r.steps} steps`)
-      : h("span", {}, r?.status === "gaveUp" ? "Gave up" : store.get(`game:${date}`) ? "In progress" : "Not played");
-    items.push(h("li", {}, h("a", { href: `#/game/${n}` },
-      h("span", {}, `#${n} · ${shortDate(date)}`), mark)));
+  if (gameNumberOrNull(t, config) === null) {
+    render(topbar("Previous games"),
+      h("p", { class: "boot" }, `No games yet. Game #1 is on ${longDate(config.launchDate)}.`));
+    return;
   }
-  render(
-    topbar("Previous games"),
-    items.length ? h("ol", { class: "archive" }, items)
-      : h("p", { class: "boot" }, `No games yet. Game #1 is on ${longDate(config.launchDate)}.`));
+
+  // Newest month first. Each month is a 7-column calendar of day chips.
+  const months = [];
+  let cursor = `${t.slice(0, 7)}-01`;
+  const firstMonth = `${config.launchDate.slice(0, 7)}-01`;
+  while (cursor >= firstMonth) {
+    const [y, m] = cursor.split("-").map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const dates = Array.from({ length: daysInMonth }, (_, i) => addDays(cursor, i));
+    const released = dates.filter((d) => d >= config.launchDate && d <= t);
+    const solved = released.filter((d) => results[d]?.status === "won").length;
+    const offset = weekdayIndex(cursor);
+    months.push(h("section", { class: "month", "aria-label": fmt(cursor, { month: "long", year: "numeric" }) },
+      h("div", { class: "month-head" },
+        h("h2", {}, fmt(cursor, { month: "long", year: "numeric" })),
+        h("p", { class: "sub" }, `${solved} of ${released.length} solved`)),
+      h("div", { class: "week weekdays", "aria-hidden": "true" },
+        ["S", "M", "T", "W", "T", "F", "S"].map((d) => h("span", {}, d))),
+      h("ol", { class: "week" },
+        Array.from({ length: offset }, () => h("li", { class: "pad", "aria-hidden": "true" })),
+        dates.map((d) => h("li", {}, dayChip(d, config, results, t))))));
+    cursor = addDays(cursor, -1).slice(0, 7) + "-01";
+  }
+  render(topbar("Previous games"), ...months);
 }
 
 function topbar(title, menu = null) {
@@ -478,7 +508,7 @@ function playView(ladder, state, saveKey, date) {
     const steps = state.path.length - 1;
     const current = state.path[state.path.length - 1];
     const playing = state.status === "playing";
-    const when = state.kind === "daily" ? `#${puzzle.gameNumber} · ${shortDate(date)}` : "Practice";
+    const when = state.kind === "daily" ? `Game ${puzzle.gameNumber}, ${shortDate(date)}` : "Practice";
     status.textContent = `${when} · Steps: ${steps} · Par: ${puzzle.par}`;
 
     input.placeholder = `Next step from ${current}`;
@@ -536,7 +566,7 @@ function playView(ladder, state, saveKey, date) {
       medalBadge(won ? medal.id : "gaveUp", "lg"),
       h("h2", {}, won ? (medal.id === "finished" ? "You made it!" : `${medal.label}!`) : "Here's one way up"),
       h("p", { class: "result" }, won
-        ? `${steps} step${steps === 1 ? "" : "s"} · par ${puzzle.par}${state.hints ? ` · ${state.hints} hint${state.hints === 1 ? "" : "s"}` : ""}`
+        ? `${steps} step${steps === 1 ? "" : "s"}, par ${puzzle.par}.${state.hints ? ` ${state.hints} hint${state.hints === 1 ? "" : "s"} used.` : ""}`
         : `You stopped after ${steps} step${steps === 1 ? "" : "s"}. Par was ${puzzle.par}.`),
       h("p", { class: "route" },
         won && state.path.join() === route.join() ? "You found the most direct route: "
