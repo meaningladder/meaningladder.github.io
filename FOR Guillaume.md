@@ -245,6 +245,39 @@ A checklist written by someone else finds the stuff you've stopped seeing.
 
 ---
 
+## The security pass
+
+A static game sounds like it has nothing to attack, but the moving parts are
+the GitHub Actions (they hold your OpenAI key and can push to the repo) and
+the AI text that ends up on the page. What we checked and fixed:
+
+- **Script injection in Actions.** The manual `date` input was pasted into a
+  shell line unquoted, so `2026-11-16 --out /somewhere` would have smuggled in
+  an extra argument. Now the date must match `YYYY-MM-DD` and arguments go in
+  a quoted bash array. We proved it by attacking our own workflow: rejected.
+- **Pinned actions.** `actions/checkout@v7` is a tag, and tags can be moved to
+  different code. Every action is now pinned to a full commit SHA, and
+  Dependabot proposes updates. (This is how real supply-chain attacks spread:
+  a popular action's tag gets repointed.)
+- **Least privilege.** `permissions: {}` at the top of each workflow; each job
+  asks only for what it needs. The key is visible to exactly one step, after
+  `pip install`, so a malicious package install script can't read it.
+- **Content-Security-Policy.** The page may only load code, styles, fonts and
+  data from its own origin. That's possible because the earlier design pass
+  removed the Google Fonts dependency, so security and design helped each other.
+- **XSS check.** We fed the site a booby-trapped puzzle file (`<img onerror>`,
+  `<script>`) and it rendered as plain text, because the UI builds DOM nodes
+  with `textContent` instead of `innerHTML`. AI-written themes/teasers are
+  also checked server-side (plain text, length, no links, blocklist).
+- **Already in place:** GitHub secret scanning + push protection, HTTPS
+  enforced, no secrets anywhere in git history.
+
+Things only you can do: put a monthly spending cap on the OpenAI project that
+owns the key, and if the key ever leaks, revoke it at OpenAI first, then run
+`gh secret set OPENAI_API_KEY` with a new one.
+
+---
+
 ## Your to-do list before launch (Monday 2026-11-16)
 
 1. **Add the API key secret.** Run `gh secret set OPENAI_API_KEY -R NKGuillaume/meaning-ladder`
