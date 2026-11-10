@@ -12,6 +12,7 @@ import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   medalFor, routeToGoal, shareText,
 } from "./logic.js";
+import { ICONS as PHOSPHOR } from "./icons.js";
 import { gameNumber } from "./seeded.js";
 
 const app = document.getElementById("app");
@@ -38,17 +39,22 @@ function h(tag, props = {}, ...children) {
   return el;
 }
 
-const ICONS = {
-  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
-  dots: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
-  logo: '<svg viewBox="0 0 52 52" aria-hidden="true"><rect width="52" height="52" rx="14" fill="var(--accent)"/><path d="M17 42V10M35 42V10" stroke="var(--accent-text)" stroke-width="3.5" stroke-linecap="round"/><path d="M17 34h18" stroke="var(--far)" stroke-width="4" stroke-linecap="round"/><path d="M17 26h18" stroke="var(--mid)" stroke-width="4" stroke-linecap="round"/><path d="M17 18h18" stroke="var(--near)" stroke-width="4" stroke-linecap="round"/></svg>',
-};
+// The logo is the one custom mark (a plain geometric ladder in our palette).
+// Every UI glyph comes from the Phosphor icon library (js/icons.js).
+const LOGO = '<svg viewBox="0 0 52 52" aria-hidden="true"><rect width="52" height="52" rx="14" fill="var(--accent)"/><path d="M17 42V10M35 42V10" stroke="var(--accent-text)" stroke-width="3.5" stroke-linecap="round"/><path d="M17 34h18" stroke="var(--far)" stroke-width="4" stroke-linecap="round"/><path d="M17 26h18" stroke="var(--mid)" stroke-width="4" stroke-linecap="round"/><path d="M17 18h18" stroke="var(--near)" stroke-width="4" stroke-linecap="round"/></svg>';
 function icon(name, cls) {
   const tpl = document.createElement("template");
-  tpl.innerHTML = ICONS[name]; // our own constant SVG markup, never user text
+  tpl.innerHTML = name === "logo" ? LOGO : PHOSPHOR[name]; // constant markup, never user text
   const svg = tpl.content.firstElementChild;
   if (cls) svg.setAttribute("class", cls);
   return svg;
+}
+
+// Medal badge: a Phosphor glyph on a tinted disc. Emoji medals look different
+// on every OS (and sometimes not at all), so the UI draws its own.
+function medalBadge(medalId, size = "lg") {
+  const glyph = { finished: "flag-checkered", gaveUp: "compass" }[medalId] ?? "medal";
+  return h("span", { class: `medal-badge medal-${medalId} size-${size}`, "aria-hidden": "true" }, icon(glyph));
 }
 
 // ------------------------------------------------------------ dates
@@ -122,7 +128,7 @@ function statsRow(s) {
     stat(s.played, "Played"),
     stat(`${s.winPct}%`, "Win %"),
     stat(s.currentStreak, "Streak"),
-    stat(s.avgOverPar == null ? "–" : `+${s.avgOverPar.toFixed(1)}`, "Avg over par"));
+    stat(s.avgOverPar == null ? "-" : `+${s.avgOverPar.toFixed(1)}`, "Avg over par"));
 }
 
 // ------------------------------------------------------------ router
@@ -158,10 +164,13 @@ async function showHome() {
   const n = gameNumberOrNull(t, config);
   const results = getResults();
   const todayState = store.get(`game:${t}`);
-  const statusText = results[t]?.status === "won"
-    ? `Solved in ${results[t].steps} · ${medalFor(results[t].steps, results[t].par).emoji}`
-    : results[t]?.status === "gaveUp" ? "You gave up on this one."
-    : todayState ? `In progress · ${todayState.path.length - 1} steps so far` : null;
+  const rt = results[t];
+  const rtMedal = rt?.status === "won" ? medalFor(rt.steps, rt.par) : null;
+  const status = rtMedal
+    ? h("p", { class: "note with-badge" }, medalBadge(rtMedal.id, "sm"),
+        `Solved in ${rt.steps} steps. ${rtMedal.id === "finished" ? "Finished!" : `${rtMedal.label} medal.`}`)
+    : rt?.status === "gaveUp" ? h("p", { class: "note" }, "You gave up on this one.")
+    : todayState ? h("p", { class: "note" }, `In progress: ${todayState.path.length - 1} steps so far.`) : null;
 
   // Week strip: Sunday..Saturday of the current week.
   const [y, mo, d] = t.split("-").map(Number);
@@ -176,7 +185,7 @@ async function showHome() {
       .filter(Boolean).join(" ");
     const label = `${longDate(date)}${num ? `, game ${num}` : ""}${r?.status === "won" ? ", solved" : ""}`;
     const inner = [fmt(date, { weekday: "narrow" }), h("b", {}, Number(date.slice(8))),
-      h("span", { class: "chip-dot" }, r?.status === "won" ? medalFor(r.steps, r.par).emoji : "")];
+      h("span", { class: "chip-mark" }, r?.status === "won" ? medalBadge(medalFor(r.steps, r.par).id, "xs") : null)];
     return h("li", {}, playable
       ? h("a", { class: cls, href: `#/game/${num}`, "aria-label": label }, inner)
       : h("button", { class: cls, disabled: true, "aria-label": `${label} (not available)` }, inner));
@@ -191,7 +200,7 @@ async function showHome() {
         : h("button", { class: "btn", disabled: true }, "Play")),
     !n && h("p", { class: "note" },
       `Game #1 arrives on ${longDate(config.launchDate)}. Try a practice ladder meanwhile!`),
-    statusText && h("p", { class: "note" }, statusText),
+    status,
     h("ol", { class: "week", "aria-label": "This week" }, chips));
 
   const practice = h("section", { class: "card", "aria-labelledby": "practice-title" },
@@ -230,10 +239,11 @@ async function showArchive() {
   for (let n = last; n >= 1; n--) {
     const date = dateOfGame(n, config);
     const r = results[date];
-    const mark = r?.status === "won" ? `${r.steps} steps ${medalFor(r.steps, r.par).emoji}`
-      : r?.status === "gaveUp" ? "gave up" : store.get(`game:${date}`) ? "in progress" : "–";
+    const mark = r?.status === "won"
+      ? h("span", { class: "with-badge" }, medalBadge(medalFor(r.steps, r.par).id, "sm"), `${r.steps} steps`)
+      : h("span", {}, r?.status === "gaveUp" ? "Gave up" : store.get(`game:${date}`) ? "In progress" : "Not played");
     items.push(h("li", {}, h("a", { href: `#/game/${n}` },
-      h("span", {}, `#${n} · ${shortDate(date)}`), h("span", {}, mark))));
+      h("span", {}, `#${n} · ${shortDate(date)}`), mark)));
   }
   render(
     topbar("Previous games"),
@@ -243,7 +253,7 @@ async function showArchive() {
 
 function topbar(title, menu = null) {
   return h("header", { class: "topbar" },
-    h("a", { class: "icon-btn", href: "#/", "aria-label": "Back to home" }, icon("back")),
+    h("a", { class: "icon-btn", href: "#/", "aria-label": "Back to home" }, icon("arrow-left")),
     h("h1", {}, title),
     menu ?? h("span"));
 }
@@ -253,9 +263,20 @@ function newState(kind, puzzle) {
   return { kind, puzzle, path: [puzzle.start], hints: 0, hint: null, status: "playing" };
 }
 
+// Placeholder shaped like the game screen, shown while the 4.7 MB map downloads.
+function skeleton() {
+  return h("div", { class: "skeleton", role: "status" },
+    h("span", { class: "visually-hidden" }, "Loading the word map"),
+    h("div", { class: "sk sk-line" }),
+    h("div", { class: "sk sk-pills" }),
+    h("div", { class: "sk sk-input" }),
+    [62, 44, 30].map((w) => h("div", { class: "sk sk-bar", style: `--w:${w}%` })),
+    h("p", { class: "sk-note", "aria-hidden": "true" }, "Loading the word map"));
+}
+
 async function showGame(kind, n) {
   const token = routeToken;
-  render(topbar("meaning ladder"), h("p", { class: "boot", role: "status" }, "Loading the word map…"));
+  render(topbar("meaning ladder"), skeleton());
 
   let ladder;
   try {
@@ -273,7 +294,7 @@ async function showGame(kind, n) {
   if (kind === "daily") {
     date = dateOfGame(n, config);
     if (n < 1 || date > today()) {
-      render(topbar("meaning ladder"), h("p", { class: "boot" }, "That game isn't out yet. No peeking! 🙂"));
+      render(topbar("meaning ladder"), h("p", { class: "boot" }, `That game isn't out yet. It unlocks on ${longDate(date)}.`));
       return;
     }
     saveKey = `game:${date}`;
@@ -314,7 +335,7 @@ function playView(ladder, state, saveKey, date) {
 
   // ---- static parts
   const menuBtn = h("button", { class: "icon-btn", "aria-label": "Menu", "aria-haspopup": "true",
-    "aria-expanded": "false", "aria-controls": "game-menu" }, icon("dots"));
+    "aria-expanded": "false", "aria-controls": "game-menu" }, icon("dots-three"));
   const menu = h("div", { class: "menu", id: "game-menu", role: "menu", hidden: true });
   const menuWrap = h("div", { class: "menu-wrap" }, menuBtn, menu);
 
@@ -373,6 +394,9 @@ function playView(ladder, state, saveKey, date) {
     if (!res.ok) {
       error = res.error;         // keep the typed text so a typo is easy to fix
       update();
+      form.classList.remove("shake");
+      void form.offsetWidth;     // restart the animation even on repeated errors
+      form.classList.add("shake");
       input.select();
       return;
     }
@@ -440,7 +464,7 @@ function playView(ladder, state, saveKey, date) {
   function bar(word, { latest = false, isStart = false, enter = false } = {}) {
     const d = stepsTo(word);
     const { tone, fill } = closeness(d);
-    const num = d === 0 ? "goal" : d < 0 ? "–" : d;
+    const num = d === 0 ? "goal" : d < 0 ? "no route" : d;
     return h("li", {
       class: `bar tone-${tone}${latest ? " latest" : ""}${enter ? " enter" : ""}`,
       style: `--fill:${fill}%`,
@@ -467,7 +491,7 @@ function playView(ladder, state, saveKey, date) {
     // Feedback slot: exactly one thing.
     if (!playing) feedback.replaceChildren();
     else if (error) feedback.replaceChildren(h("p", { class: "error" }, error));
-    else if (state.hint?.word === current) feedback.replaceChildren(h("p", { class: "hintline" }, "💡 ", state.hint.text));
+    else if (state.hint?.word === current) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), state.hint.text));
     else if (steps > 0) feedback.replaceChildren(h("ol", { class: "path", style: "margin:0" }, bar(current, { latest: true })));
     else feedback.replaceChildren(h("p", { class: "muted" }, `Type a word close in meaning to ${puzzle.start}.`));
 
@@ -490,7 +514,7 @@ function playView(ladder, state, saveKey, date) {
     const medal = won ? medalFor(steps, puzzle.par) : null;
     const route = routeToGoal(ladder.neighbors, dist, ladder.index.get(puzzle.start)).map((i) => ladder.words[i]);
     const toast = h("p", { class: "toast", role: "status" });
-    const shareBtn = h("button", { class: "btn", onClick: () => share(toast) }, "Share result");
+    const shareBtn = h("button", { class: "btn", onClick: () => share(toast) }, icon("share-network", "btn-icon"), "Share result");
 
     const countdown = h("p", { class: "countdown" });
     if (state.kind === "daily") {
@@ -509,7 +533,7 @@ function playView(ladder, state, saveKey, date) {
     }
 
     win.replaceChildren(...[ // .filter(Boolean): replaceChildren(null) would print "null"
-      h("div", { class: "medal", "aria-hidden": "true" }, won ? medal.emoji : "🧭"),
+      medalBadge(won ? medal.id : "gaveUp", "lg"),
       h("h2", {}, won ? (medal.id === "finished" ? "You made it!" : `${medal.label}!`) : "Here's one way up"),
       h("p", { class: "result" }, won
         ? `${steps} step${steps === 1 ? "" : "s"} · par ${puzzle.par}${state.hints ? ` · ${state.hints} hint${state.hints === 1 ? "" : "s"}` : ""}`
@@ -522,7 +546,7 @@ function playView(ladder, state, saveKey, date) {
       h("div", { class: "btn-row" },
         shareBtn,
         state.kind === "practice"
-          ? h("button", { class: "btn btn-quiet", onClick: newPractice }, "Play another")
+          ? h("button", { class: "btn btn-quiet", onClick: newPractice }, icon("arrow-clockwise", "btn-icon"), "Play another")
           : h("a", { class: "btn btn-quiet", href: "#/" }, "Home")),
       toast,
       state.kind === "daily" ? countdown : null,

@@ -214,6 +214,37 @@ that reach it), and the weekday bands were **calibrated from percentiles** of
 
 ---
 
+## The design pass (after everything "worked")
+
+Once the game was functionally done, I ran the frontend through a design
+checklist. The interesting part is what it caught that "it works" didn't:
+
+- **Hand-drawn icons and emoji as UI.** The back arrow and menu dots were
+  SVG paths I'd sketched, and the medals were emoji, which render differently
+  on Windows, macOS and Android (and sometimes as blank boxes). They're now
+  glyphs copied verbatim from the Phosphor icon library, plus a small medal
+  badge component with gold/silver/bronze tokens that pass contrast in both
+  themes. Emoji survive only in the share text, where your spec asked for them.
+- **A third-party font request on every visit.** Nunito came from Google
+  Fonts; it's now a single 39 KB self-hosted file with `font-display: swap`.
+  That's one less DNS lookup and no visitor IPs sent to a third party.
+- **"Loading..." for a 4.7 MB download.** On a slow phone that's seconds of
+  blank screen. A skeleton shaped like the real game screen makes the wait
+  read as "almost there" instead of "broken".
+- **Five different corner radii.** 8, 10, 12, 14 and 6 px had crept in. Now
+  there's one documented rule: controls 8 px, containers 12 px, pills round.
+- **Motion with a reason.** Exactly three animations, each one justified:
+  a short shake when a word is rejected (feedback), the win card rising in
+  (a state change), the new bar sliding in (where your eye should go).
+  All of them switch off under `prefers-reduced-motion`.
+- **Copy bugs.** "A expert one." (the practice teaser) and dash characters
+  used as placeholders ("Not played" and "no route" now say what they mean).
+
+The lesson: "functionally correct" and "finished" are different milestones.
+A checklist written by someone else finds the stuff you've stopped seeing.
+
+---
+
 ## Your to-do list before launch (Monday 2026-11-16)
 
 1. **Add the API key secret.** Run `gh secret set OPENAI_API_KEY -R NKGuillaume/meaning-ladder`

@@ -1,5 +1,19 @@
 /* Meaning Ladder: warm, soft, low-contrast. All colors are tokens, so dark
-   mode only has to redefine the tokens, never the components. */
+   mode only has to redefine the tokens, never the components.
+
+   Shape rule (one system, used everywhere):
+     controls (buttons, inputs, bars, chips, menu items)  --r-control   8px
+     containers (cards, dialogs, menus)                   --r-container 12px
+     word pills and medal badges                          fully round        */
+
+/* Self-hosted Nunito (variable weight, SIL OFL): no third-party font request. */
+@font-face {
+  font-family: "Nunito";
+  src: url("assets/fonts/nunito-latin-wght.woff2") format("woff2");
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --bg: #f8f3ea;          /* cream page */
@@ -18,7 +32,11 @@
   --error: #b4473d;
   --focus: #a65f42;
   --shadow: 0 1px 2px rgb(80 60 40 / 0.06), 0 4px 16px rgb(80 60 40 / 0.06);
-  --radius: 8px;
+  --r-control: 8px;
+  --r-container: 12px;
+  --gold-bg: #f3dc96;  --gold-fg: #7a5a0c;
+  --silver-bg: #e2e2e6; --silver-fg: #565a63;
+  --bronze-bg: #efcdb6; --bronze-fg: #84482a;
   --col: 360px;
   --font: "Nunito", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
@@ -42,6 +60,9 @@
     --error: #f0928a;
     --focus: #e39573;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+    --gold-bg: #5b4a17;  --gold-fg: #f4d77e;
+    --silver-bg: #44464c; --silver-fg: #dcdde2;
+    --bronze-bg: #5a3826; --bronze-fg: #efb995;
     color-scheme: dark;
   }
 }
@@ -91,7 +112,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 44px; padding: 0 18px;
-  border: 1px solid transparent; border-radius: var(--radius);
+  border: 1px solid transparent; border-radius: var(--r-control);
   font-weight: 700; text-decoration: none;
   background: var(--accent); color: var(--accent-text);
   transition: transform 120ms ease, filter 120ms ease;
@@ -126,7 +147,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .tagline { color: var(--muted); margin-top: 4px; }
 
 .card {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-container);
   padding: 18px; box-shadow: var(--shadow); margin-bottom: 14px;
 }
 .card-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -137,7 +158,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .week { list-style: none; padding: 0; margin: 16px 0 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .chip {
   width: 100%; aspect-ratio: 1 / 1.15; display: grid; place-content: center; gap: 0;
-  border: 1px solid var(--line); border-radius: var(--radius); background: transparent;
+  border: 1px solid var(--line); border-radius: var(--r-control); background: transparent;
   font-size: 0.72rem; color: var(--muted); padding: 0; line-height: 1.15; text-decoration: none;
 }
 .chip b { font-size: 1rem; color: var(--text); font-weight: 700; }
@@ -145,7 +166,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .chip.won { background: var(--near); border-color: transparent; }
 .chip.today { border: 2px solid var(--strong); }
 .chip:disabled, .chip[aria-disabled="true"] { opacity: 0.4; cursor: default; }
-.chip-dot { font-size: 0.7rem; height: 0.9em; }
+.chip-mark { height: 16px; display: grid; place-items: center; }
 
 .home-foot { display: flex; justify-content: center; gap: 18px; margin-top: 10px; }
 
@@ -172,7 +193,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .guess input {
   width: 100%; min-height: 54px; padding: 0 16px;
   font: inherit; font-size: 1.15rem; font-weight: 600; color: var(--text);
-  background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-control);
   outline: none;
 }
 .guess input:focus { border-color: var(--strong); }
@@ -187,7 +208,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .bar {
   --tone: var(--far);
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  min-height: 42px; padding: 0 14px; border-radius: var(--radius);
+  min-height: 42px; padding: 0 14px; border-radius: var(--r-control);
   border: 1px solid transparent; font-weight: 700;
   background: linear-gradient(to right, var(--tone) var(--fill, 0%), var(--track) var(--fill, 0%));
 }
@@ -207,18 +228,19 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .menu-wrap { position: relative; }
 .menu {
   position: absolute; right: 0; top: 44px; z-index: 10; min-width: 190px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-container);
   box-shadow: var(--shadow); padding: 6px; display: grid;
 }
 .menu[hidden] { display: none; }
 .menu button {
-  text-align: left; background: none; border: 0; border-radius: 6px; padding: 10px 12px; font-weight: 600;
+  text-align: left; background: none; border: 0; border-radius: var(--r-control); padding: 10px 12px; font-weight: 600;
 }
 .menu button:hover:not(:disabled), .menu button:focus-visible { background: var(--track); outline: none; }
 
 /* ------------------------------------------------------------ win panel */
 .win { text-align: center; padding: 20px 16px; }
-.win .medal { font-size: 2.8rem; line-height: 1; }
+.win .medal-badge { margin: 0 auto; }
+.win { animation: rise 320ms cubic-bezier(0.16, 1, 0.3, 1); }
 .win h2 { font-size: 1.3rem; margin-top: 6px; font-weight: 800; }
 .win .result { color: var(--muted); margin-top: 4px; }
 .win .route { margin-top: 12px; font-size: 0.92rem; }
@@ -229,13 +251,14 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 16px; }
 .stat b { display: block; font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .stat span { font-size: 0.72rem; color: var(--muted); }
-.toast { min-height: 1.4em; margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
+.toast { margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
+.toast:empty { display: none; }
 
 /* ------------------------------------------------------------ archive */
 .archive { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
 .archive a {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
-  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-control);
   background: var(--surface); text-decoration: none; font-weight: 600;
 }
 .archive a span:last-child { color: var(--muted); }
@@ -243,7 +266,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 /* ------------------------------------------------------------ dialogs */
 dialog {
   width: min(92vw, 400px); max-height: 85dvh; padding: 22px;
-  border: 1px solid var(--line); border-radius: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-container);
   background: var(--surface); color: var(--text); box-shadow: var(--shadow);
 }
 dialog::backdrop { background: rgb(30 22 15 / 0.45); }
@@ -251,6 +274,50 @@ dialog h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 12px; }
 dialog ul { padding-left: 1.1em; margin: 0; display: grid; gap: 8px; }
 dialog .example { margin: 12px 0; display: grid; gap: 5px; }
 dialog .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+/* ------------------------------------------------------------ icons & medals */
+.inline-icon { width: 1.05em; height: 1.05em; vertical-align: -0.16em; margin-right: 6px; color: var(--accent); }
+.btn-icon { width: 18px; height: 18px; flex: none; }
+.icon-btn svg { width: 22px; height: 22px; }
+
+.medal-badge {
+  display: inline-grid; place-items: center; border-radius: 999px; flex: none;
+  background: var(--track); color: var(--text);
+}
+.medal-badge svg { width: 58%; height: 58%; }
+.medal-badge.size-lg { width: 64px; height: 64px; }
+.medal-badge.size-sm { width: 24px; height: 24px; }
+.medal-badge.size-xs { width: 16px; height: 16px; }
+.medal-gold   { background: var(--gold-bg);   color: var(--gold-fg); }
+.medal-silver { background: var(--silver-bg); color: var(--silver-fg); }
+.medal-bronze { background: var(--bronze-bg); color: var(--bronze-fg); }
+.medal-gaveUp { color: var(--muted); }
+.with-badge { display: inline-flex; align-items: center; gap: 8px; }
+.chip.won .medal-badge { box-shadow: 0 0 0 1.5px var(--surface); }
+
+/* ------------------------------------------------------------ loading skeleton */
+.skeleton { display: grid; gap: 10px; padding-top: 6px; }
+.sk { background: var(--track); border-radius: var(--r-control); position: relative; overflow: hidden; }
+.sk::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
+  transform: translateX(-100%); animation: shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-color-scheme: dark) { .sk::after { background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent); } }
+.sk-line { height: 14px; width: 60%; margin: 0 auto; }
+.sk-pills { height: 34px; width: 70%; margin: 6px auto 8px; border-radius: 999px; }
+.sk-input { height: 54px; }
+.sk-bar { height: 42px; width: var(--w); }
+.sk-bar:first-of-type { margin-top: 18px; }
+.sk-note { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+
+@keyframes shimmer { to { transform: translateX(100%); } }
+@keyframes rise { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@keyframes shake {
+  20% { transform: translateX(-5px); } 40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+}
+.guess.shake { animation: shake 260ms ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

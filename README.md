@@ -73,4 +73,6 @@ Changes go into new `_v2` files plus a `graphVersion` bump in
 
 - Word vectors: [GloVe](https://nlp.stanford.edu/projects/glove/) (Wikipedia + Gigaword, 300d), via gensim.
 - Dictionary checks: [WordNet](https://wordnet.princeton.edu/) via NLTK.
+- Icons: [Phosphor](https://phosphoricons.com/) (bold), MIT, copied into `js/icons.js`.
+- Font: [Nunito](https://github.com/googlefonts/nunito), SIL OFL 1.1, self-hosted from Fontsource.
 - Blocklist: [LDNOOBW](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words) (CC BY 4.0).

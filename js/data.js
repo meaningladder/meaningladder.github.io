@@ -70,7 +70,7 @@ export function makePracticePuzzle(ladder) {
   const s = seededPuzzle(ladder, `practice-${seed}`, band);
   return {
     date: null, gameNumber: null, start: s.start, goal: s.goal, par: s.par,
-    theme: "Practice ladder", teaser: `A ${band.label} one.`, source: "practice",
+    theme: "Practice ladder", teaser: `Difficulty: ${band.label}.`, source: "practice",
     graphVersion: ladder.config.graphVersion, difficulty: band.label,
   };
 }
