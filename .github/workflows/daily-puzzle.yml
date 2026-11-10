@@ -21,6 +21,10 @@ on:
         description: "Skip OpenAI and use the seeded pick"
         type: boolean
         default: false
+      dry_run:
+        description: "Print the puzzle(s) only: write and commit nothing"
+        type: boolean
+        default: false
 
 # Never let two runs race to push puzzle files.
 concurrency:
@@ -52,13 +56,16 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           INPUT_DATE: ${{ inputs.date }}
           INPUT_NO_AI: ${{ inputs.no_ai }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args="--ahead 3"
           if [ -n "$INPUT_DATE" ]; then args="--date $INPUT_DATE"; fi
           if [ "$INPUT_NO_AI" = "true" ]; then args="$args --no-ai"; fi
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args="$args --dry-run"; fi
           python scripts/generate_puzzle.py $args
 
       - name: Commit new puzzles
+        if: ${{ !inputs.dry_run }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -76,6 +83,7 @@ jobs:
   # (GitHub prevents accidental loops), so we deploy the site explicitly here.
   deploy:
     needs: generate
+    if: ${{ !inputs.dry_run }}
     permissions:
       pages: write
       id-token: write
