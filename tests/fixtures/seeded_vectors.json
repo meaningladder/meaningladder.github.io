@@ -1,0 +1,150 @@
+{
+  "fnv1a32": {
+    "": 2166136261,
+    "a": 3826002220,
+    "foobar": 3214735720,
+    "2026-11-12#0": 1002709355,
+    "2026-11-12#1": 985931736,
+    "sample#2026-11-12": 3380855961,
+    "h\u00e9llo": 1252296000
+  },
+  "mulberry32": {
+    "0": [
+      0.26642920868471265,
+      0.0003297457005828619,
+      0.2232720274478197,
+      0.1462021479383111,
+      0.46732782293111086
+    ],
+    "1": [
+      0.6270739405881613,
+      0.002735721180215478,
+      0.5274470399599522,
+      0.9810509674716741,
+      0.9683778982143849
+    ],
+    "42": [
+      0.6011037519201636,
+      0.44829055899754167,
+      0.8524657934904099,
+      0.6697340414393693,
+      0.17481389874592423
+    ],
+    "3735928559": [
+      0.9413696140982211,
+      0.26719574979506433,
+      0.772033357527107,
+      0.35816076025366783,
+      0.47554167779162526
+    ],
+    "4294967295": [
+      0.8964226141106337,
+      0.189478256739676,
+      0.7156526781618595,
+      0.9440599093213677,
+      0.8452364315744489
+    ]
+  },
+  "puzzles": [
+    {
+      "date": "2026-11-16",
+      "gameNumber": 1,
+      "weekday": "monday",
+      "start": "origin",
+      "goal": "artist",
+      "par": 3,
+      "routes": 87,
+      "attempt": 1
+    },
+    {
+      "date": "2026-11-17",
+      "gameNumber": 2,
+      "weekday": "tuesday",
+      "start": "dance",
+      "goal": "barn",
+      "par": 3,
+      "routes": 17,
+      "attempt": 0
+    },
+    {
+      "date": "2026-11-18",
+      "gameNumber": 3,
+      "weekday": "wednesday",
+      "start": "lung",
+      "goal": "archive",
+      "par": 3,
+      "routes": 1,
+      "attempt": 0
+    },
+    {
+      "date": "2026-11-19",
+      "gameNumber": 4,
+      "weekday": "thursday",
+      "start": "psychologist",
+      "goal": "lining",
+      "par": 4,
+      "routes": 407,
+      "attempt": 40
+    },
+    {
+      "date": "2026-11-20",
+      "gameNumber": 5,
+      "weekday": "friday",
+      "start": "individual",
+      "goal": "mac",
+      "par": 4,
+      "routes": 238,
+      "attempt": 22
+    },
+    {
+      "date": "2026-11-21",
+      "gameNumber": 6,
+      "weekday": "saturday",
+      "start": "apparatus",
+      "goal": "ben",
+      "par": 4,
+      "routes": 64,
+      "attempt": 20
+    },
+    {
+      "date": "2026-11-22",
+      "gameNumber": 7,
+      "weekday": "sunday",
+      "start": "jimmy",
+      "goal": "sub",
+      "par": 4,
+      "routes": 23,
+      "attempt": 141
+    },
+    {
+      "date": "2027-03-14",
+      "gameNumber": 119,
+      "weekday": "sunday",
+      "start": "manual",
+      "goal": "kohl",
+      "par": 4,
+      "routes": 46,
+      "attempt": 60
+    },
+    {
+      "date": "2027-03-15",
+      "gameNumber": 120,
+      "weekday": "monday",
+      "start": "wrist",
+      "goal": "clothes",
+      "par": 3,
+      "routes": 341,
+      "attempt": 0
+    },
+    {
+      "date": "2028-02-29",
+      "gameNumber": 471,
+      "weekday": "tuesday",
+      "start": "terminus",
+      "goal": "envelope",
+      "par": 3,
+      "routes": 7,
+      "attempt": 2
+    }
+  ]
+}

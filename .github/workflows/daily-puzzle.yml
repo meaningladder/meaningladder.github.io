@@ -1,0 +1,83 @@
+# Generates upcoming daily puzzles, commits them, then redeploys the site.
+#
+# Why "today through today+3"? Players use their LOCAL date, and the earliest
+# time zone (UTC+14) starts each day 14 hours before UTC does. Generating 3 days
+# ahead covers every time zone plus one failed run of slack. Tradeoff: the next
+# few days' puzzle files are publicly readable early.
+name: Daily puzzle
+
+on:
+  schedule:
+    # 00:17 UTC daily. Not on the hour: GitHub delays (or even drops) scheduled
+    # runs during the top-of-the-hour rush.
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Generate one specific date (YYYY-MM-DD). Leave empty for today..today+3."
+        required: false
+        default: ""
+      no_ai:
+        description: "Skip OpenAI and use the seeded pick"
+        type: boolean
+        default: false
+
+# Never let two runs race to push puzzle files.
+concurrency:
+  group: daily-puzzle
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # to commit puzzles/*.json
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-ci.txt
+
+      - name: Generate puzzles
+        env:
+          # Stored ONLY as a repository secret, never in code. If it's missing,
+          # the generator falls back to seeded puzzles and logs a warning.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          INPUT_DATE: ${{ inputs.date }}
+          INPUT_NO_AI: ${{ inputs.no_ai }}
+        run: |
+          args="--ahead 3"
+          if [ -n "$INPUT_DATE" ]; then args="--date $INPUT_DATE"; fi
+          if [ "$INPUT_NO_AI" = "true" ]; then args="$args --no-ai"; fi
+          python scripts/generate_puzzle.py $args
+
+      - name: Commit new puzzles
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add puzzles/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No new puzzles to commit."
+            exit 0
+          fi
+          git commit -m "Add daily puzzles ($(date -u +%F))"
+          # Someone may have pushed while we ran: replay our commit on top.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push
+
+  # A push made with the built-in GITHUB_TOKEN does NOT trigger other workflows
+  # (GitHub prevents accidental loops), so we deploy the site explicitly here.
+  deploy:
+    needs: generate
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/pages.yml

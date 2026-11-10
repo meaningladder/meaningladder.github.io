@@ -1,0 +1,13 @@
+# Words to allow even though WordNet lacks them (modern vocabulary).
+# One per line. Only matters if the word is frequent enough in GloVe.
+selfie
+emoji
+podcast
+smartphone
+wifi
+website
+webcam
+hashtag
+online
+email
+blog

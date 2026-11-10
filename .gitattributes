@@ -1,0 +1,4 @@
+# Store text with LF in the repo (Linux CI runs the shell steps).
+* text=auto eol=lf
+# The 10 MB graph is generated data: no line diffs.
+data/*.json -diff linguist-generated

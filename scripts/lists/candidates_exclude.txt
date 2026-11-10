@@ -1,0 +1,55 @@
+# Words to drop from candidates_v1.json after manual review.
+# One per line. Rerun: python scripts/build_graph.py --candidates-only
+trump
+tung
+jean
+# Family-friendly pass (found when a practice route went curry -> ... -> insurgent).
+# These stay playable as steps; they just won't be dealt as start/goal words.
+ammunition
+artillery
+attacker
+bomb
+bomber
+bullet
+dictator
+extremist
+fighter
+grenade
+guerrilla
+gun
+gunman
+hostage
+inmate
+insurgent
+killer
+missile
+murderer
+pistol
+prisoner
+rifle
+sniper
+terrorist
+victim
+warlord
+weapon
+jail
+prison
+coffin
+cemetery
+cocaine
+heroin
+drug
+cigarette
+tobacco
+alcohol
+beer
+liquor
+casino
+# Sensitive topics (found when practice dealt "racist"). WordNet usage labels
+# were too noisy to automate this (they flag baby, key, tool), so: by hand.
+racist
+slave
+hell
+refugee
+immigrant
+widow
