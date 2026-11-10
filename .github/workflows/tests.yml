@@ -32,12 +32,11 @@ jobs:
           pip install -r requirements-ci.txt
           python -m nltk.downloader -q wordnet omw-1.4 stopwords
 
-      - name: Python tests
-        run: pytest -q
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
 
-      - name: JavaScript tests
-        run: node --test "tests/js/*.test.mjs"
+      # The same command you run locally, so the Makefile can't drift from CI.
+      # PY=python: CI installs packages globally instead of in a .venv.
+      - name: Audits + Python + JavaScript tests
+        run: make check PY=python

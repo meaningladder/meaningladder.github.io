@@ -26,6 +26,23 @@ IN THE BROWSER (index.html, style.css, js/)
   → reverse BFS from the goal gives every word's steps-to-goal
 ```
 
+## Shortcuts (Makefile)
+
+Run `make` to list everything. The ones you'll use most:
+
+| Command | What it does |
+|---|---|
+| `make setup` | Create `.venv`, install dependencies, download WordNet data |
+| `make check` | Design/security audits + all tests (exactly what CI runs) |
+| `make serve` | Play locally at http://localhost:8000 |
+| `make preview DATE=2026-11-16` | Preview an AI puzzle without saving (`NOAI=1` for the free seeded one) |
+| `make candidates` | Rebuild start/goal words after editing the exclude list |
+| `make cloud-dry-run DATE=...` | Run the daily GitHub job without saving anything |
+| `make secret-check` | Confirm the OpenAI key secret exists (names only) |
+
+On Windows, run `make` from Git Bash. Install it once with
+`winget install ezwinports.make`.
+
 ## Run it locally
 
 ```powershell
