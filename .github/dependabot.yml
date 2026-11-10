@@ -1,0 +1,12 @@
+# Weekly pull requests when a pinned GitHub Action or a Python package has an
+# update (security fixes arrive as soon as they're published).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly

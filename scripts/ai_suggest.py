@@ -5,6 +5,9 @@ in, so tests can hand it a fake and never spend money or need a key.
 """
 from __future__ import annotations
 
+import re
+from functools import lru_cache
+from pathlib import Path
 from typing import Callable
 
 from pydantic import BaseModel
@@ -12,6 +15,7 @@ from pydantic import BaseModel
 from ladder_core import Ladder, Verdict, seeded_sample, validate_pair
 
 PAIRS_PER_ROUND = 5
+MAX_THEME = 40
 MAX_TEASER = 120
 
 
@@ -40,7 +44,7 @@ Suggest {PAIRS_PER_ROUND} different (start, goal) pairs, best first. Rules:
 - Start and goal should feel far apart, but be bridgeable through a chain of
   related ideas. Prefer vivid, concrete, family-friendly words.
 - Never use any word from the "recently used" list.
-- theme: 1-4 words naming the idea that links the pair (e.g. "From sea to silicon").
+- theme: 1-4 words (max {MAX_THEME} characters, plain text) naming the idea that links the pair (e.g. "From sea to silicon").
 - teaser: one playful sentence, at most {MAX_TEASER} characters, that hints at a
   possible route WITHOUT naming any intermediate word.
 """
@@ -89,12 +93,47 @@ def ask(client, model: str, messages: list[dict]) -> Suggestions:
     return response.output_parsed
 
 
+@lru_cache(maxsize=1)
+def _blocklist() -> frozenset[str]:
+    # Read directly (not via wordfilters) so the daily job doesn't need WordNet data.
+    path = Path(__file__).resolve().parent / "lists" / "blocklist_en.txt"
+    words = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip().lower()
+        if line and not line.startswith("#") and " " not in line:
+            words.add(line)
+    return frozenset(words)
+
+
+# Plain text only: letters, digits, spaces and everyday punctuation. No markup,
+# no URLs, no control characters. The browser renders these as text anyway;
+# this is defense in depth against a model output we didn't expect.
+_SAFE_TEXT = re.compile(r"^[A-Za-z0-9 ,.!?'’\-:;&()]+$")
+
+
+def check_text(field: str, text: str, max_len: int) -> str | None:
+    """Return a rejection reason for AI-written display text, or None if OK."""
+    text = text.strip()
+    if not text:
+        return f"empty {field}"
+    if len(text) > max_len:
+        return f"{field} longer than {max_len} characters"
+    if not _SAFE_TEXT.match(text):
+        return f"{field} has characters outside plain text"
+    lowered = text.lower()
+    if "http" in lowered or "www." in lowered or ".com" in lowered:
+        return f"{field} looks like it contains a link"
+    if set(re.findall(r"[a-z]+", lowered)) & _blocklist():
+        return f"{field} contains a blocked word"
+    return None
+
+
 def check_pair(ladder: Ladder, pair: Pair, band: dict, recent: set[str]) -> Verdict:
     start, goal = pair.start.strip().lower(), pair.goal.strip().lower()
-    if not pair.theme.strip():
-        return Verdict(False, "empty theme")
-    if len(pair.teaser) > MAX_TEASER:
-        return Verdict(False, f"teaser longer than {MAX_TEASER} characters")
+    for field, text, limit in (("theme", pair.theme, MAX_THEME), ("teaser", pair.teaser, MAX_TEASER)):
+        reason = check_text(field, text, limit)
+        if reason:
+            return Verdict(False, reason)
     return validate_pair(ladder, start, goal, band, recent)
 
 

@@ -126,3 +126,35 @@ def test_cli_skips_dates_before_launch(tmp_path, capsys):
     main(["--date", "2026-11-10", "--no-ai", "--out", str(tmp_path)])
     assert "before launch" in capsys.readouterr().out
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("text, ok", [
+    ("From tides to dinner", True),
+    ("Take a salty shortcut from rolling waves to a twirl on your fork.", True),
+    ("Rock & roll: it's (mostly) fine!", True),
+    ("<img src=x onerror=alert(1)>", False),      # markup
+    ("Visit https://example.test now", False),    # link
+    ("see example.com", False),                   # link without scheme
+    ("line one\nline two", False),                # control character
+    ("x" * 121, False),                           # too long
+    ("", False),
+])
+def test_ai_display_text_is_plain_and_safe(text, ok):
+    from ai_suggest import MAX_TEASER, check_text
+
+    assert (check_text("teaser", text, MAX_TEASER) is None) is ok
+
+
+def test_ai_text_blocklist():
+    from ai_suggest import check_text
+
+    assert check_text("teaser", "A shit route to the goal.", 120) == "teaser contains a blocked word"
+
+
+def test_unsafe_ai_text_is_rejected_with_feedback(ladder, good_pair):
+    s, g = good_pair
+    evil = Suggestions(pairs=[Pair(start=s, goal=g, theme="<script>x</script>", teaser="ok")])
+    fake = FakeClient([evil, pairs((s, g))])
+    puzzle = make_puzzle(ladder, DAY, set(), lambda: fake, quiet)
+    assert puzzle["source"] == "ai" and "<" not in puzzle["theme"]
+    assert "plain text" in fake.calls[1]["input"][-1]["content"]

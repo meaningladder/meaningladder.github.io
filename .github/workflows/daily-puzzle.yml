@@ -4,6 +4,15 @@
 # time zone (UTC+14) starts each day 14 hours before UTC does. Generating 3 days
 # ahead covers every time zone plus one failed run of slack. Tradeoff: the next
 # few days' puzzle files are publicly readable early.
+#
+# Security notes:
+# - Actions are pinned to full commit SHAs (tags can be moved; SHAs can't).
+#   Dependabot (.github/dependabot.yml) proposes updates.
+# - The token has no permissions by default; each job asks for what it needs.
+# - Manual inputs are validated and passed as quoted arguments, never pasted
+#   into the shell script (that's how Actions "script injection" happens).
+# - OPENAI_API_KEY is only exposed to the one step that needs it, after
+#   dependencies are installed (install scripts never see it).
 name: Daily puzzle
 
 on:
@@ -26,6 +35,8 @@ on:
         type: boolean
         default: false
 
+permissions: {}
+
 # Never let two runs race to push puzzle files.
 concurrency:
   group: daily-puzzle
@@ -38,9 +49,9 @@ jobs:
     permissions:
       contents: write # to commit puzzles/*.json
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
           cache: pip
@@ -58,11 +69,17 @@ jobs:
           INPUT_NO_AI: ${{ inputs.no_ai }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          args="--ahead 3"
-          if [ -n "$INPUT_DATE" ]; then args="--date $INPUT_DATE"; fi
-          if [ "$INPUT_NO_AI" = "true" ]; then args="$args --no-ai"; fi
-          if [ "$INPUT_DRY_RUN" = "true" ]; then args="$args --dry-run"; fi
-          python scripts/generate_puzzle.py $args
+          args=(--ahead 3)
+          if [ -n "$INPUT_DATE" ]; then
+            if ! [[ "$INPUT_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+              echo "::error::date must look like YYYY-MM-DD"
+              exit 1
+            fi
+            args=(--date "$INPUT_DATE")
+          fi
+          if [ "$INPUT_NO_AI" = "true" ]; then args+=(--no-ai); fi
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python scripts/generate_puzzle.py "${args[@]}"
 
       - name: Commit new puzzles
         if: ${{ !inputs.dry_run }}
