@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "hard",
+  "start": "novelist",
+  "goal": "butterfly",
+  "par": 6,
+  "theme": "Pages take wing",
+  "teaser": "Some endings don't sit still long enough to be read.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 20
+}
