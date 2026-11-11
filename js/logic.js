@@ -166,31 +166,37 @@ export function addDays(dateStr, n) {
   return localDateStr(new Date(y, m - 1, d + n)); // Date handles month/year rollover
 }
 
-// A daily win only extends the streak if it was played on the day itself.
+// Results are keyed "<date>:<level>" (older saves: just "<date>").
+// The streak counts DAYS: solving any level on the day itself keeps it alive.
+// Archive plays (finished on a later date) never extend a streak.
 export function computeStats(results, today) {
-  const dates = Object.keys(results).sort();
-  const finished = dates.filter((d) => results[d].status !== "playing");
-  const wins = finished.filter((d) => results[d].status === "won");
-  const onTime = (d) => results[d]?.status === "won" && results[d].playedOn === d;
+  const dayOf = (key) => key.slice(0, 10);
+  const levelOf = (key) => key.slice(11) || null;
+  const finished = Object.entries(results).filter(([, r]) => r.status !== "playing");
+  const wins = finished.filter(([, r]) => r.status === "won");
+  const onTimeDays = new Set(wins.filter(([k, r]) => r.playedOn === dayOf(k)).map(([k]) => dayOf(k)));
 
   let current = 0;
-  let d = onTime(today) ? today : addDays(today, -1);
-  while (onTime(d)) { current++; d = addDays(d, -1); }
+  let d = onTimeDays.has(today) ? today : addDays(today, -1);
+  while (onTimeDays.has(d)) { current++; d = addDays(d, -1); }
 
   let best = 0, run = 0, prev = null;
-  for (const day of dates) {
-    run = onTime(day) && prev && addDays(prev, 1) === day && onTime(prev) ? run + 1
-        : onTime(day) ? 1 : 0;
+  for (const day of [...onTimeDays].sort()) {
+    run = prev && addDays(prev, 1) === day ? run + 1 : 1;
     best = Math.max(best, run);
     prev = day;
   }
 
-  const overPar = wins.map((x) => results[x].steps - results[x].par);
+  const solvedByLevel = { easy: 0, medium: 0, hard: 0 };
+  for (const [k] of wins) if (levelOf(k) in solvedByLevel) solvedByLevel[levelOf(k)]++;
+
+  const overPar = wins.map(([, r]) => r.steps - r.par);
   return {
     played: finished.length,
     winPct: finished.length ? Math.round((100 * wins.length) / finished.length) : 0,
     currentStreak: current,
     maxStreak: Math.max(best, current),
     avgOverPar: overPar.length ? overPar.reduce((a, b) => a + b, 0) / overPar.length : null,
+    solvedByLevel,
   };
 }

@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MASK32 = 0xFFFFFFFF
-WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+LEVELS = ("easy", "medium", "hard")  # every day has one puzzle per level
 RELAX_AFTER = 5_000  # seeded attempts before relaxing the route-count rule
 GIVE_UP_AFTER = 20_000  # an impossible band (e.g. par 6) must fail loudly, not hang
 
@@ -194,11 +194,16 @@ def game_number(day: date, launch: date) -> int:
     return n
 
 
-def band_for(day: date, config: dict) -> dict:
-    """Today's difficulty band, e.g. {"label": "easy", "par": 3, "minRoutes": 40, ...}."""
-    band = dict(config["bands"][WEEKDAYS[day.weekday()]])
-    band["weekday"] = WEEKDAYS[day.weekday()]
+def level_band(level: str, config: dict) -> dict:
+    """A level's rules, e.g. {"level": "hard", "label": "Hard", "par": 4, "minRoutes": 1, ...}."""
+    band = dict(config["levels"][level])
+    band["level"] = level
     return band
+
+
+def seed_base(date_str: str, level: str) -> str:
+    """What the seeded fallback hashes: one independent stream per date AND level."""
+    return f"{date_str}:{level}"
 
 
 # ---------------------------------------------------------------- validation
@@ -246,10 +251,11 @@ def validate_pair(
 
 
 def seeded_puzzle(ladder: Ladder, date_str: str, band: dict) -> tuple[str, str, Verdict, int]:
-    """Deterministic fallback: same date -> same puzzle, in Python and in JS.
+    """Deterministic fallback: same seed text -> same puzzle, in Python and in JS.
 
-    Try attempt 0, 1, 2...: hash "YYYY-MM-DD#attempt", seed the PRNG with it,
-    roll a start and a goal, keep the first pair that fits today's band.
+    `date_str` is the seed base, normally seed_base(date, level), e.g.
+    "2026-11-12:hard". Try attempt 0, 1, 2...: hash "<base>#attempt", seed the
+    PRNG with it, roll a start and a goal, keep the first pair that fits the band.
     """
     cands = ladder.candidates
     n = len(cands)

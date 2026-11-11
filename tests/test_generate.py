@@ -9,11 +9,12 @@ import pytest
 
 from ai_suggest import Pair, Suggestions
 from generate_puzzle import make_puzzle, recent_words, write_puzzle
-from ladder_core import band_for, load_ladder, validate_pair
+from ladder_core import level_band, load_ladder, validate_pair
 
-DAY = date(2026, 11, 17)  # a Tuesday: par 3, 6-18 routes
-SPEC_FIELDS = {"date", "gameNumber", "start", "goal", "par", "theme", "teaser",
-               "source", "graphVersion", "difficulty"}
+DAY = date(2026, 11, 17)
+LEVEL = "medium"  # par 3, 1-18 routes
+SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
+               "source", "graphVersion"}
 
 
 @pytest.fixture(scope="module")
@@ -24,7 +25,7 @@ def ladder():
 @pytest.fixture(scope="module")
 def good_pair(ladder):
     """Find a real pair that fits Tuesday's band, to feed the fake AI."""
-    band = band_for(DAY, ladder.config)
+    band = level_band(LEVEL, ladder.config)
     for s in ladder.candidates[:60]:
         for g in ladder.candidates[-60:]:
             if validate_pair(ladder, s, g, band).ok:
@@ -61,7 +62,7 @@ def test_ai_retries_with_feedback_then_succeeds(ladder, good_pair):
     s, g = good_pair
     fake = FakeClient([pairs(("ocean", "ocean"), ("notaword", "ocean")),
                        pairs((s.upper(), g))])  # also checks case-normalising
-    puzzle = make_puzzle(ladder, DAY, set(), lambda: fake, quiet)
+    puzzle = make_puzzle(ladder, DAY, LEVEL, set(), lambda: fake, quiet)
     assert puzzle["source"] == "ai"
     assert (puzzle["start"], puzzle["goal"]) == (s, g)
     assert len(fake.calls) == 2
@@ -71,7 +72,7 @@ def test_ai_retries_with_feedback_then_succeeds(ladder, good_pair):
 
 def test_ai_error_falls_back_to_seeded(ladder):
     err = openai.APIConnectionError(request=SimpleNamespace(method="POST", url="x"))
-    puzzle = make_puzzle(ladder, DAY, set(), lambda: FakeClient([err]), quiet)
+    puzzle = make_puzzle(ladder, DAY, LEVEL, set(), lambda: FakeClient([err]), quiet)
     assert puzzle["source"] == "seeded"
     assert puzzle["teaser"] == ""
 
@@ -79,22 +80,23 @@ def test_ai_error_falls_back_to_seeded(ladder):
 def test_ai_never_valid_falls_back_after_all_rounds(ladder):
     rounds = ladder.config["aiRounds"]
     fake = FakeClient([pairs(("ocean", "ocean"))] * rounds)
-    puzzle = make_puzzle(ladder, DAY, set(), lambda: fake, quiet)
+    puzzle = make_puzzle(ladder, DAY, LEVEL, set(), lambda: fake, quiet)
     assert puzzle["source"] == "seeded"
     assert len(fake.calls) == rounds
 
 
 def test_no_ai_is_seeded_and_deterministic(ladder):
-    p1 = make_puzzle(ladder, DAY, set(), None, quiet)
-    p2 = make_puzzle(ladder, DAY, set(), None, quiet)
+    p1 = make_puzzle(ladder, DAY, LEVEL, set(), None, quiet)
+    p2 = make_puzzle(ladder, DAY, LEVEL, set(), None, quiet)
     assert p1 == p2
     assert set(p1) == SPEC_FIELDS
-    assert p1["par"] == band_for(DAY, ladder.config)["par"]
+    assert p1["par"] == level_band(LEVEL, ladder.config)["par"]
+    assert p1["level"] == LEVEL
     assert p1["gameNumber"] == 8  # launch 2026-11-10 is game 1
 
 
 def test_write_never_overwrites(tmp_path, ladder):
-    puzzle = make_puzzle(ladder, DAY, set(), None, quiet)
+    puzzle = make_puzzle(ladder, DAY, LEVEL, set(), None, quiet)
     path = write_puzzle(tmp_path, puzzle)
     assert json.loads(path.read_text()) == puzzle
     with pytest.raises(FileExistsError):
@@ -103,9 +105,12 @@ def test_write_never_overwrites(tmp_path, ladder):
 
 
 def test_recent_words(tmp_path):
-    write_puzzle(tmp_path, {"date": "2026-11-15", "start": "ore", "goal": "pie"})
-    write_puzzle(tmp_path, {"date": "2026-10-01", "start": "old", "goal": "news"})
-    assert recent_words(tmp_path, date(2026, 11, 17), 30) == {"ore", "pie"}
+    write_puzzle(tmp_path, {"date": "2026-11-15", "level": "hard", "start": "ore", "goal": "pie"})
+    write_puzzle(tmp_path, {"date": "2026-11-17", "level": "easy", "start": "sun", "goal": "jam"})
+    write_puzzle(tmp_path, {"date": "2026-10-01", "start": "old", "goal": "news"})  # legacy name
+    assert (tmp_path / "2026-11-15-hard.json").exists()
+    # The same day's other levels count too, so a day's three puzzles don't repeat words.
+    assert recent_words(tmp_path, date(2026, 11, 17), 30) == {"ore", "pie", "sun", "jam"}
 
 
 def test_is_live_uses_earliest_time_zone():
@@ -155,7 +160,7 @@ def test_unsafe_ai_text_is_rejected_with_feedback(ladder, good_pair):
     s, g = good_pair
     evil = Suggestions(pairs=[Pair(start=s, goal=g, theme="<script>x</script>", teaser="ok")])
     fake = FakeClient([evil, pairs((s, g))])
-    puzzle = make_puzzle(ladder, DAY, set(), lambda: fake, quiet)
+    puzzle = make_puzzle(ladder, DAY, LEVEL, set(), lambda: fake, quiet)
     assert puzzle["source"] == "ai" and "<" not in puzzle["theme"]
     assert "plain text" in fake.calls[1]["input"][-1]["content"]
 
@@ -163,7 +168,7 @@ def test_unsafe_ai_text_is_rejected_with_feedback(ladder, good_pair):
 def test_prompt_offers_verified_pairs(ladder):
     from ai_suggest import build_request
 
-    band = band_for(date(2026, 11, 14), ladder.config)
+    band = level_band("hard", ladder.config)
     prompt = build_request(ladder, "2026-11-14", band, set())
     assert "Verified pairs" in prompt
     s, g = prompt.split("\n- ", 1)[1].split("\n")[0].split(" -> ")

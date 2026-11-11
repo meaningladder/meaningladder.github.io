@@ -7,10 +7,13 @@ import pytest
 
 from ladder_core import (
     Ladder,
-    band_for,
+    LEVELS,
+    level_band,
+    seed_base,
     bfs_routes,
     fnv1a32,
     game_number,
+    load_config,
     load_ladder,
     mulberry32,
     seeded_puzzle,
@@ -101,11 +104,15 @@ def test_game_number():
         game_number(date(2026, 11, 11), launch)
 
 
-def test_band_for_weekdays():
-    cfg = {"bands": {d: {"par": i} for i, d in enumerate(
-        ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"])}}
-    assert band_for(date(2026, 11, 16), cfg)["weekday"] == "monday"
-    assert band_for(date(2026, 11, 22), cfg)["weekday"] == "sunday"
+def test_levels_cover_easy_medium_hard():
+    cfg = load_config()
+    assert LEVELS == ("easy", "medium", "hard")
+    easy, medium, hard = (level_band(lv, cfg) for lv in LEVELS)
+    assert easy["level"] == "easy" and easy["label"] == "Easy"
+    # Easy and Medium are both 3 steps; Easy just has many more routes.
+    assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
+    assert medium["maxRoutes"] < easy["minRoutes"]
+    assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
 
 
 # ---------------------------------------------------------------- validation
@@ -139,19 +146,21 @@ def ladder():
 
 
 def test_seeded_puzzle_same_date_same_puzzle(ladder):
-    band = band_for(date(2026, 11, 17), ladder.config)
-    first = seeded_puzzle(ladder, "2026-11-17", band)
-    second = seeded_puzzle(ladder, "2026-11-17", band)
+    band = level_band("medium", ladder.config)
+    first = seeded_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
+    second = seeded_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
     assert first[:2] == second[:2]
     assert first[2].ok and first[2].par == band["par"]
+    # Each level of a day is an independent puzzle.
+    hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
+    assert hard[:2] != first[:2] and hard[2].par == 4
 
 
 def test_seeded_puzzles_match_fixture(ladder):
     fx = json.loads(FIXTURE.read_text(encoding="utf-8"))
     for p in fx["puzzles"][:3]:  # the full list runs in the JS test
-        day = date.fromisoformat(p["date"])
-        start, goal, verdict, attempt = seeded_puzzle(ladder, p["date"],
-                                                      band_for(day, ladder.config))
+        start, goal, verdict, attempt = seeded_puzzle(
+            ladder, seed_base(p["date"], p["level"]), level_band(p["level"], ladder.config))
         assert (start, goal, verdict.par, attempt) == (p["start"], p["goal"], p["par"],
                                                        p["attempt"])
 
@@ -167,10 +176,10 @@ def test_bfs_all_matches_pairwise_bfs():
 
 
 def test_shortlist_pairs_all_fit_the_band(ladder):
-    """Saturday (par 4, narrow route band) is where blind AI guesses failed."""
+    """Par-4 days are where blind AI guesses failed; the shortlist must always fit."""
     from ladder_core import shortlist
 
-    band = band_for(date(2026, 11, 14), ladder.config)
+    band = level_band("hard", ladder.config)
     pairs = shortlist(ladder, "2026-11-14", band, recent={"bee"})
     assert len(pairs) >= 5
     assert pairs == shortlist(ladder, "2026-11-14", band, recent={"bee"})  # deterministic

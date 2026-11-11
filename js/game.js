@@ -2,19 +2,20 @@
 //
 // Routes live in the URL hash so the static site needs no server:
 //   #/            home
-//   #/game/12     daily game #12 (today or an earlier one)
-//   #/practice    unlimited random ladders
+//   #/game/12/hard    daily game #12 at one level (easy, medium, hard)
+//   #/game/12         -> the first level of #12 you haven't finished
+//   #/practice/easy   unlimited random ladders at a level
 //   #/archive     previous games
 // For testing: ?today=YYYY-MM-DD pretends it's that date (local view only).
 
-import { loadConfig, loadDailyPuzzle, loadLadder, makePracticePuzzle, store } from "./data.js";
+import { loadConfig, loadDailyPuzzle, loadLadder, makePracticePuzzle, migrateStorage, store } from "./data.js";
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   nearMissText, normalize,
   medalFor, routeToGoal, shareText,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
-import { gameNumber } from "./seeded.js";
+import { LEVELS, gameNumber } from "./seeded.js";
 
 const app = document.getElementById("app");
 
@@ -72,14 +73,38 @@ function gameNumberOrNull(dateStr, config) {
 const dateOfGame = (n, config) => addDays(config.launchDate, n - 1);
 
 // ------------------------------------------------------------ saved results
+const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
+const resultKey = (date, level) => `${date}:${level}`;
 const getResults = () => store.get("results", {});
 function saveResult(date, state) {
   const results = getResults();
-  results[date] = {
+  results[resultKey(date, state.puzzle.level)] = {
     status: state.status, steps: state.path.length - 1, par: state.puzzle.par,
     hints: state.hints, playedOn: today(),
   };
   store.set("results", results);
+}
+
+// One entry per level for a day: its saved result and whether it's in progress.
+function dayLevels(date, results) {
+  return LEVELS.map((level) => {
+    const r = results[resultKey(date, level)];
+    return { level, r, inProgress: !r && Boolean(store.get(`game:${date}:${level}`)) };
+  });
+}
+
+// The best medal earned on any level that day (fewest steps over par), or null.
+function bestMedal(levels) {
+  const wins = levels.filter((x) => x.r?.status === "won");
+  if (!wins.length) return null;
+  const best = wins.reduce((a, b) => (b.r.steps - b.r.par < a.r.steps - a.r.par ? b : a));
+  return medalFor(best.r.steps, best.r.par);
+}
+
+// The first level of a day that isn't finished yet (where a plain #/game/N goes).
+function nextLevel(date, results, after = null) {
+  const order = after ? [...LEVELS.slice(LEVELS.indexOf(after) + 1), ...LEVELS] : LEVELS;
+  return order.find((lv) => lv !== after && !results[resultKey(date, lv)]) ?? null;
 }
 
 // ------------------------------------------------------------ dialogs
@@ -108,12 +133,13 @@ function showHelp() {
   openDialog("How to play", h("div", {},
     h("ul", {},
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), " word, one word at a time."),
+      h("li", {}, "Every day has three ladders: ", h("b", {}, "Easy"), ", ", h("b", {}, "Medium"), " and ", h("b", {}, "Hard"), ". Solve any of them to keep your streak."),
       h("li", {}, "Each step must be one of the previous word's 100 closest words in meaning."),
       h("li", {}, "The number on each bar is how many steps that word is from the goal: green is 1, yellow is 2, pink is 3 or more."),
       h("li", {}, h("b", {}, "Par"), " is the fewest steps possible. Match it for gold, one over for silver, two over for bronze."),
       h("li", {}, "If a word is rejected, we tell you how close it was: close, warm or far."),
       h("li", {}, "Stuck? Use Undo or Hint, or give up from the ⋯ menu."),
-      h("li", {}, "A new ladder arrives every day at midnight, your time.")),
+      h("li", {}, "New ladders arrive every day at midnight, your time.")),
     h("p", { class: "sub", style: "margin-top:12px" }, "Example: ocean → computer"),
     h("ol", { class: "example path" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3)))
   );
@@ -121,7 +147,10 @@ function showHelp() {
 
 function showStats() {
   const s = computeStats(getResults(), today());
-  openDialog("Statistics", statsRow(s));
+  const { easy, medium, hard } = s.solvedByLevel;
+  openDialog("Statistics", h("div", {}, statsRow(s),
+    h("p", { class: "sub", style: "margin-top:14px;text-align:center" },
+      `Solved so far: ${easy} easy, ${medium} medium, ${hard} hard.`)));
 }
 
 function statsRow(s) {
@@ -144,10 +173,22 @@ function route() {
   document.querySelectorAll("dialog").forEach((d) => d.close());
   const hash = location.hash || "#/";
   let m;
-  if ((m = hash.match(/^#\/game\/(\d+)$/))) return showGame("daily", Number(m[1]));
-  if (hash === "#/practice") return showGame("practice");
+  if ((m = hash.match(/^#\/game\/(\d+)\/(easy|medium|hard)$/))) return showGame("daily", Number(m[1]), m[2]);
+  if ((m = hash.match(/^#\/game\/(\d+)$/))) return openDay(Number(m[1]));
+  if ((m = hash.match(/^#\/practice\/(easy|medium|hard)$/))) return showGame("practice", null, m[1]);
+  if (hash === "#/practice") {
+    const level = store.get("practice")?.puzzle?.level;
+    return location.replace(`#/practice/${LEVELS.includes(level) ? level : "medium"}`);
+  }
   if (hash === "#/archive") return showArchive();
   return showHome();
+}
+
+// A plain day link (old shares, the calendar) opens the first unfinished level.
+async function openDay(n) {
+  const config = await loadConfig();
+  const date = dateOfGame(n, config);
+  location.replace(`#/game/${n}/${nextLevel(date, getResults()) ?? "easy"}`);
 }
 
 function render(...nodes) {
@@ -166,17 +207,18 @@ const weekdayIndex = (dateStr) => {
 function dayChip(date, config, results, t, { weekdayLabel = false } = {}) {
   const num = gameNumberOrNull(date, config);
   const playable = num !== null && date <= t;
-  const r = results[date];
-  const inProgress = !r && store.get(`game:${date}`);
-  const cls = ["chip", date === t && "today", r?.status === "won" && "won",
-    ((r && r.status !== "won") || inProgress) && "played"].filter(Boolean).join(" ");
-  const state = r?.status === "won" ? `, solved, ${medalFor(r.steps, r.par).label}`
-    : r?.status === "gaveUp" ? ", gave up" : inProgress ? ", in progress" : "";
+  const levels = dayLevels(date, results);
+  const solved = levels.filter((x) => x.r?.status === "won").length;
+  const touched = levels.some((x) => x.r || x.inProgress);
+  const medal = bestMedal(levels);
+  const cls = ["chip", date === t && "today", solved && "won", !solved && touched && "played"]
+    .filter(Boolean).join(" ");
+  const state = solved ? `, ${solved} of 3 solved, best ${medal.label}` : touched ? ", started" : "";
   const label = `${longDate(date)}${num ? `, game ${num}` : ""}${state}`;
   const inner = [
     weekdayLabel ? fmt(date, { weekday: "narrow" }) : null,
     h("b", {}, Number(date.slice(8))),
-    h("span", { class: "chip-mark" }, r?.status === "won" ? medalBadge(medalFor(r.steps, r.par).id, "xs") : null),
+    h("span", { class: "chip-mark" }, medal ? medalBadge(medal.id, "xs") : null),
   ];
   return playable
     ? h("a", { class: cls, href: `#/game/${num}`, "aria-label": label }, inner)
@@ -193,14 +235,16 @@ async function showHome() {
   const t = today();
   const n = gameNumberOrNull(t, config);
   const results = getResults();
-  const todayState = store.get(`game:${t}`);
-  const rt = results[t];
-  const rtMedal = rt?.status === "won" ? medalFor(rt.steps, rt.par) : null;
-  const status = rtMedal
-    ? h("p", { class: "note with-badge" }, medalBadge(rtMedal.id, "sm"),
-        `Solved in ${rt.steps} steps. ${rtMedal.id === "finished" ? "Finished!" : `${rtMedal.label} medal.`}`)
-    : rt?.status === "gaveUp" ? h("p", { class: "note" }, "You gave up on this one.")
-    : todayState ? h("p", { class: "note" }, `In progress: ${todayState.path.length - 1} step${todayState.path.length === 2 ? "" : "s"} so far.`) : null;
+  // Three level buttons for today: each shows its own status.
+  const dailyLevels = n && h("div", { class: "levels", role: "group", "aria-label": "Today's ladders" },
+    dayLevels(t, results).map(({ level, r, inProgress }) => {
+      const medal = r?.status === "won" ? medalFor(r.steps, r.par) : null;
+      const status = medal ? `${r.steps} steps` : r?.status === "gaveUp" ? "Gave up" : inProgress ? "Resume" : "Play";
+      return h("a", { class: `level-btn${medal ? " solved" : ""}`, href: `#/game/${n}/${level}`,
+        "aria-label": `${LEVEL_LABEL[level]} ladder: ${medal ? `solved, ${medal.label}` : status}` },
+        h("b", {}, LEVEL_LABEL[level]),
+        h("span", { class: "with-badge" }, medal ? medalBadge(medal.id, "xs") : null, status));
+    }));
 
   // Week strip: Sunday..Saturday of the current week.
   const sunday = addDays(t, -weekdayIndex(t));
@@ -212,21 +256,23 @@ async function showHome() {
       h("div", {},
         h("h2", { id: "daily-title" }, n ? `Daily ladder #${n}` : "Daily ladder"),
         h("p", { class: "sub" }, longDate(t))),
-      n ? h("a", { class: "btn", href: `#/game/${n}`, "aria-label": `${results[t] ? "View" : todayState ? "Resume" : "Play"} today's ladder` },
-            results[t] ? "View" : todayState ? "Resume" : "Play")
-        : h("button", { class: "btn", disabled: true }, "Play")),
+      ),
     !n && h("p", { class: "note" },
-      `Game #1 arrives on ${longDate(config.launchDate)}. Try a practice ladder meanwhile!`),
-    status,
+      `Game #1 arrives on ${longDate(config.launchDate)}. Try an unlimited ladder meanwhile!`),
+    dailyLevels,
     h("ol", { class: "week", "aria-label": "This week" }, chips));
 
+  const saved = store.get("practice");
   const practice = h("section", { class: "card", "aria-labelledby": "practice-title" },
-    h("div", { class: "card-row" },
-      h("div", {},
-        h("h2", { id: "practice-title" }, "Practice"),
-        h("p", { class: "sub" }, "Unlimited random ladders. No streaks at stake.")),
-      h("a", { class: "btn", href: "#/practice", "aria-label": `${store.get("practice")?.status === "playing" ? "Resume" : "Play"} unlimited practice ladders` },
-        "Unlimited")));
+    h("h2", { id: "practice-title" }, "Unlimited"),
+    h("p", { class: "sub" }, "Random ladders, as many as you like. No streaks at stake."),
+    h("div", { class: "levels", role: "group", "aria-label": "Unlimited ladders" },
+      LEVELS.map((level) => {
+        const resume = saved?.status === "playing" && saved.puzzle?.level === level;
+        return h("a", { class: "level-btn", href: `#/practice/${level}`,
+          "aria-label": `${resume ? "Resume" : "Play"} an unlimited ${LEVEL_LABEL[level].toLowerCase()} ladder` },
+          h("b", {}, LEVEL_LABEL[level]), h("span", {}, resume ? "Resume" : "Play"));
+      })));
 
   render(
     h("header", { class: "home-head" },
@@ -267,12 +313,13 @@ async function showArchive() {
     const daysInMonth = new Date(y, m, 0).getDate();
     const dates = Array.from({ length: daysInMonth }, (_, i) => addDays(cursor, i));
     const released = dates.filter((d) => d >= config.launchDate && d <= t);
-    const solved = released.filter((d) => results[d]?.status === "won").length;
+    const solved = released.reduce((sum, d) =>
+      sum + dayLevels(d, results).filter((x) => x.r?.status === "won").length, 0);
     const offset = weekdayIndex(cursor);
     months.push(h("section", { class: "month", "aria-label": fmt(cursor, { month: "long", year: "numeric" }) },
       h("div", { class: "month-head" },
         h("h2", {}, fmt(cursor, { month: "long", year: "numeric" })),
-        h("p", { class: "sub" }, `${solved} of ${released.length} solved`)),
+        h("p", { class: "sub" }, `${solved} of ${released.length * LEVELS.length} solved`)),
       h("div", { class: "week weekdays", "aria-hidden": "true" },
         ["S", "M", "T", "W", "T", "F", "S"].map((d) => h("span", {}, d))),
       h("ol", { class: "week" },
@@ -306,7 +353,7 @@ function skeleton() {
     h("p", { class: "sk-note", "aria-hidden": "true" }, "Loading the word map"));
 }
 
-async function showGame(kind, n) {
+async function showGame(kind, n, level) {
   const token = routeToken;
   render(topbar("meaning ladder"), skeleton());
 
@@ -329,14 +376,15 @@ async function showGame(kind, n) {
       render(topbar("meaning ladder"), h("p", { class: "boot" }, `That game isn't out yet. It unlocks on ${longDate(date)}.`));
       return;
     }
-    saveKey = `game:${date}`;
+    saveKey = `game:${date}:${level}`;
     // A saved game keeps its own puzzle, so a refresh can never swap it.
-    state = store.get(saveKey) ?? newState("daily", await loadDailyPuzzle(ladder, date));
+    state = store.get(saveKey) ?? newState("daily", await loadDailyPuzzle(ladder, date, level));
   } else {
     saveKey = "practice";
     state = store.get(saveKey);
-    if (!state || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)) {
-      state = newState("practice", makePracticePuzzle(ladder));
+    if (!state || state.puzzle.level !== level
+        || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)) {
+      state = newState("practice", makePracticePuzzle(ladder, level));
     }
   }
   if (token !== routeToken) return;
@@ -355,8 +403,11 @@ function playView(ladder, state, saveKey, date) {
     console.warn(`Puzzle file says par ${puzzle.par}, but the shortest path is ${truePar}.`);
     puzzle.par = truePar;
   }
-  const label = state.kind === "daily" ? `#${puzzle.gameNumber}` : "practice";
-  document.title = `${state.kind === "daily" ? `#${puzzle.gameNumber}` : "Practice"} · Meaning Ladder`;
+  const level = puzzle.level ?? "medium";
+  const levelLabel = LEVEL_LABEL[level];
+  const label = state.kind === "daily" ? `#${puzzle.gameNumber} ${levelLabel}` : `unlimited (${level})`;
+  document.title = `${state.kind === "daily" ? `#${puzzle.gameNumber} ${levelLabel}` : `Unlimited ${levelLabel}`} · Meaning Ladder`;
+  const levelHref = (lv) => (state.kind === "daily" ? `#/game/${puzzle.gameNumber}/${lv}` : `#/practice/${lv}`);
 
   let error = null;
   let miss = null;           // near-miss feedback for the last rejected word
@@ -373,6 +424,20 @@ function playView(ladder, state, saveKey, date) {
   const menuWrap = h("div", { class: "menu-wrap" }, menuBtn, menu);
 
   const status = h("p", { class: "status" });
+  // Easy | Medium | Hard switcher; solved daily levels carry their medal.
+  // Rebuilt on every update(), so a medal appears the moment you win.
+  const switcher = h("nav", { class: "levels compact", "aria-label": "Level" });
+  function renderSwitcher() {
+    const results = state.kind === "daily" ? getResults() : {};
+    switcher.replaceChildren(...LEVELS.map((lv) => {
+      const r = results[resultKey(date, lv)];
+      const medal = r?.status === "won" ? medalFor(r.steps, r.par) : null;
+      return h("a", { class: `level-btn${lv === level ? " current" : ""}`, href: levelHref(lv),
+        "aria-current": lv === level ? "page" : null,
+        "aria-label": `${LEVEL_LABEL[lv]}${medal ? `, solved, ${medal.label}` : ""}` },
+        medal ? medalBadge(medal.id, "xs") : null, LEVEL_LABEL[lv]);
+    }));
+  }
   const theme = (puzzle.theme || puzzle.teaser) && h("p", { class: "theme" },
     h("strong", {}, puzzle.theme), puzzle.teaser ? h("span", {}, ` · ${puzzle.teaser}`) : null);
   const pills = h("div", { class: "pills", "aria-label": `From ${puzzle.start} to ${puzzle.goal}` },
@@ -390,13 +455,13 @@ function playView(ladder, state, saveKey, date) {
   const hintBtn = h("button", { class: "btn btn-quiet", onClick: hint }, "Hint");
   const actions = h("div", { class: "actions" }, undoBtn, hintBtn);
 
-  render(topbar("meaning ladder", menuWrap), status, theme, pills, win, form, feedback, list, actions);
+  render(topbar("meaning ladder", menuWrap), switcher, status, theme, pills, win, form, feedback, list, actions);
 
   // ---- menu
   const menuItems = [
     ["Hint", hint, () => state.status === "playing"],
     ["Give up", confirmGiveUp, () => state.status === "playing"],
-    ...(state.kind === "practice" ? [["New practice ladder", newPractice, () => true]] : []),
+    ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
     ["How to play", showHelp, () => true],
     ["Statistics", showStats, () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
@@ -483,8 +548,7 @@ function playView(ladder, state, saveKey, date) {
   }
 
   function confirmGiveUp() {
-    openDialog("Give up?", h("p", {}, "We'll show you one shortest route. This ends the game"
-      + (state.kind === "daily" ? " and your streak." : ".")),
+    openDialog("Give up?", h("p", {}, `We'll show you one shortest route. This ends this ${levelLabel.toLowerCase()} ladder.`),
       [["Keep playing", () => input.focus()], ["Give up", () => { finish("gaveUp"); save(); update(); }, true]]);
   }
 
@@ -516,7 +580,7 @@ function playView(ladder, state, saveKey, date) {
     const steps = state.path.length - 1;
     const current = state.path[state.path.length - 1];
     const playing = state.status === "playing";
-    const when = state.kind === "daily" ? `Game ${puzzle.gameNumber}, ${shortDate(date)}` : "Practice";
+    const when = state.kind === "daily" ? `Game ${puzzle.gameNumber}, ${shortDate(date)}` : "Unlimited";
     status.textContent = `${when} · Steps: ${steps} · Par: ${puzzle.par}`;
 
     input.placeholder = `Next step from ${current}`;
@@ -542,6 +606,7 @@ function playView(ladder, state, saveKey, date) {
     })).reverse());
     justAdded = false;
 
+    renderSwitcher();
     renderWin();
   }
 
@@ -561,10 +626,10 @@ function playView(ladder, state, saveKey, date) {
         // Real clock on purpose (even with ?today=): time to the next local midnight.
         const now = new Date();
         const ms = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
-        if (ms <= 0) { countdown.replaceChildren("A new ladder is ready! ", h("a", { href: "#/" }, "Play it")); return; }
+        if (ms <= 0) { countdown.replaceChildren("New ladders are ready! ", h("a", { href: "#/" }, "Play them")); return; }
         const s = Math.floor(ms / 1000);
         const pad = (x) => String(x).padStart(2, "0");
-        countdown.replaceChildren("Next ladder in ", h("b", {}, `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`));
+        countdown.replaceChildren("Next ladders in ", h("b", {}, `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`));
       };
       tick();
       clearInterval(countdownTimer); // never stack two timers
@@ -586,7 +651,10 @@ function playView(ladder, state, saveKey, date) {
         shareBtn,
         state.kind === "practice"
           ? h("button", { class: "btn btn-quiet", onClick: newPractice }, icon("arrow-clockwise", "btn-icon"), "Play another")
-          : h("a", { class: "btn btn-quiet", href: "#/" }, "Home")),
+          : nextLevel(date, getResults(), level)
+            ? h("a", { class: "btn btn-quiet", href: levelHref(nextLevel(date, getResults(), level)) },
+                `Play ${LEVEL_LABEL[nextLevel(date, getResults(), level)]}`)
+            : h("a", { class: "btn btn-quiet", href: "#/" }, "Home")),
       toast,
       state.kind === "daily" ? countdown : null,
       state.kind === "daily" ? statsRow(computeStats(getResults(), today())) : null,
@@ -616,5 +684,6 @@ function playView(ladder, state, saveKey, date) {
 }
 
 // ------------------------------------------------------------ start
+migrateStorage(); // one-time move of pre-levels saves to the per-level format
 window.addEventListener("hashchange", route);
 route();

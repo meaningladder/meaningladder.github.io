@@ -8,6 +8,11 @@ meaning (GloVe word embeddings). Par is the shortest possible path.
 ocean → wave → signal → network → computer
 ```
 
+Every day has **three ladders: Easy, Medium and Hard** (Easy: 3 steps with
+19+ shortest routes; Medium: 3 steps with 1-18; Hard: 4 steps). Solving any
+of them keeps your streak alive. Unlimited mode has the same three levels.
+Puzzle files are `puzzles/YYYY-MM-DD-<level>.json`.
+
 If a step is rejected, the game says how close the guess really was: **Close!**
 (2 steps from your current word), **Warm.** (3 steps), **Far.**, or **So close:**
 when the link only exists in the other direction. It never names the bridging

@@ -1,12 +1,12 @@
 {
   "date": "2026-11-14",
   "gameNumber": 5,
+  "level": "hard",
   "start": "diamond",
   "goal": "kohl",
   "par": 4,
   "theme": "Dazzle after dark",
   "teaser": "Begin with a sparkle and finish with a dramatically darker look.",
   "source": "ai",
-  "graphVersion": 1,
-  "difficulty": "very hard"
+  "graphVersion": 1
 }

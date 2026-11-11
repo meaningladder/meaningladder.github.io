@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { bandFor, bfsRoutes, fnv1a32, gameNumber, mulberry32, seededPuzzle } from "../../js/seeded.js";
+import { bfsRoutes, fnv1a32, gameNumber, levelBand, mulberry32, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -44,7 +44,7 @@ test("bfsRoutes on the tiny directed graph", () => {
   assert.deepEqual(bfsRoutes(nb, 0, 5), { par: null, routes: 0 });
 });
 
-test("seeded puzzles and game numbers match Python for every fixture date", () => {
+test("seeded puzzles and game numbers match Python for every fixture date and level", () => {
   const config = readJson("puzzle_config.json");
   const graph = readJson(`data/graph_v${config.graphVersion}.json`);
   const ladder = {
@@ -54,14 +54,13 @@ test("seeded puzzles and game numbers match Python for every fixture date", () =
     config,
   };
   for (const p of fixture.puzzles) {
-    const band = bandFor(p.date, config);
-    assert.equal(band.weekday, p.weekday, p.date);
+    const band = levelBand(p.level, config);
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
-    const got = seededPuzzle(ladder, p.date, band);
+    const got = seededPuzzle(ladder, seedBase(p.date, p.level), band);
     assert.deepEqual(
       [got.start, got.goal, got.par, got.routes, got.attempt],
       [p.start, p.goal, p.par, p.routes, p.attempt],
-      p.date,
+      `${p.date} ${p.level}`,
     );
   }
 });

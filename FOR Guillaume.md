@@ -278,6 +278,27 @@ owns the key, and if the key ever leaks, revoke it at OpenAI first, then run
 
 ---
 
+## Three levels a day
+
+The weekday curve (easy Monday ... expert Sunday) became **Easy / Medium / Hard
+every day**: same graph rules, three bands (3 steps with many routes, 3 steps
+with few, 4 steps). Design choices worth noticing:
+
+- **One file per level** (`2026-11-12-hard.json`), so "never overwrite" still
+  works file by file and a failed level doesn't block the other two.
+- **The seed includes the level** (`"2026-11-12:hard#0"`), so a day's three
+  fallback puzzles are independent; the golden fixture pins it in both languages.
+- **Same-day words count as "recent"**, so a day's three puzzles never share a word.
+- **Saved progress was migrated, not wiped.** A one-time `migrateStorage()`
+  moves old `game:<date>` saves to `game:<date>:<level>`, guessing the level
+  from the old difficulty label. A test caught that navigating to the *same*
+  URL doesn't reload the page, which is why the first migration check "failed".
+- **Deploy order mattered.** Today's new levels were already "live" in UTC+14,
+  so the code was pushed with `[skip ci]` and the puzzle job's own deploy
+  published the new frontend and the new files together: no seeded window.
+
+---
+
 ## Launch
 
 We launched on **Tuesday 2026-11-10** (moved up from the planned Monday the 16th,

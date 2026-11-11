@@ -3,7 +3,7 @@
 // If you change one side, change the other, then run both test suites:
 //   python scripts/make_fixtures.py && pytest -q && node --test tests/js/
 
-export const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+export const LEVELS = ["easy", "medium", "hard"]; // every day has one puzzle per level
 const RELAX_AFTER = 5000;
 const GIVE_UP_AFTER = 20000;
 
@@ -77,11 +77,13 @@ export function gameNumber(dateStr, launchDateStr) {
   return n;
 }
 
-export function bandFor(dateStr, config) {
-  const jsDay = new Date(utcMs(dateStr)).getUTCDay(); // 0 = Sunday
-  const weekday = WEEKDAYS[(jsDay + 6) % 7];          // Python: 0 = Monday
-  return { ...config.bands[weekday], weekday };
+export function levelBand(level, config) {
+  return { ...config.levels[level], level };
 }
+
+// What the seeded fallback hashes: one independent stream per date AND level
+// (Python: ladder_core.seed_base). e.g. "2026-11-12:hard".
+export const seedBase = (dateStr, level) => `${dateStr}:${level}`;
 
 // ------------------------------------------------------------ seeded puzzle
 // ladder = { index: Map(word -> i), neighbors, candidates (sorted), config }

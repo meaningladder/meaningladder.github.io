@@ -1,12 +1,12 @@
 {
   "date": "2026-11-11",
   "gameNumber": 2,
+  "level": "medium",
   "start": "mineral",
   "goal": "throne",
   "par": 3,
   "theme": "Buried majesty",
   "teaser": "Dig deep enough and you might find yourself fit for royalty.",
   "source": "ai",
-  "graphVersion": 1,
-  "difficulty": "tricky"
+  "graphVersion": 1
 }

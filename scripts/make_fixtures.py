@@ -6,14 +6,15 @@ implementation that the JavaScript port (js/seeded.js) must reproduce exactly.
 import json
 from datetime import date, timedelta
 
-from ladder_core import ROOT, band_for, fnv1a32, game_number, load_ladder, mulberry32, seeded_puzzle
+from ladder_core import (ROOT, LEVELS, fnv1a32, game_number, level_band, load_ladder,
+                         mulberry32, seed_base, seeded_puzzle)
 
 OUT = ROOT / "tests" / "fixtures" / "seeded_vectors.json"
 HASH_INPUTS = ["", "a", "foobar", "2026-11-12#0", "2026-11-12#1", "sample#2026-11-12", "héllo"]
 SEEDS = [0, 1, 42, 0xDEADBEEF, 0xFFFFFFFF]
-# One full week plus a DST-change week (US: 2027-03-14) and a leap day.
-DATES = [(date(2026, 11, 16) + timedelta(days=i)).isoformat() for i in range(7)] + [
-    "2027-03-14", "2027-03-15", "2028-02-29"]
+# A few ordinary days plus a DST-change day (US: 2027-03-14) and a leap day.
+DATES = [(date(2026, 11, 16) + timedelta(days=i)).isoformat() for i in range(3)] + [
+    "2027-03-14", "2028-02-29"]
 
 
 def main() -> None:
@@ -22,12 +23,13 @@ def main() -> None:
     puzzles = []
     for d in DATES:
         day = date.fromisoformat(d)
-        start, goal, verdict, attempt = seeded_puzzle(ladder, d, band_for(day, ladder.config))
-        puzzles.append({"date": d, "gameNumber": game_number(day, launch),
-                        "weekday": band_for(day, ladder.config)["weekday"],
-                        "start": start, "goal": goal, "par": verdict.par,
-                        "routes": verdict.routes, "attempt": attempt})
-        print(f"  {d}: {start} -> {goal} (par {verdict.par}, attempt {attempt})")
+        for level in LEVELS:
+            band = level_band(level, ladder.config)
+            start, goal, verdict, attempt = seeded_puzzle(ladder, seed_base(d, level), band)
+            puzzles.append({"date": d, "level": level, "gameNumber": game_number(day, launch),
+                            "start": start, "goal": goal, "par": verdict.par,
+                            "routes": verdict.routes, "attempt": attempt})
+            print(f"  {d} {level}: {start} -> {goal} (par {verdict.par}, attempt {attempt})")
 
     fixture = {
         "fnv1a32": {s: fnv1a32(s) for s in HASH_INPUTS},

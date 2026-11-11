@@ -62,11 +62,12 @@ DIFFICULTY_HINTS = {
 
 def build_request(ladder: Ladder, date_str: str, band: dict, recent: set[str]) -> str:
     # Preferred: pairs the graph has already verified for today's band.
-    pairs = shortlist(ladder, date_str, band, recent)
+    # Seed by date AND level, so a day's three shortlists start from different words.
+    pairs = shortlist(ladder, f"{date_str}:{band['level']}", band, recent)
     if len(pairs) >= PAIRS_PER_ROUND:
         listing = "\n".join(f"- {s} -> {g}" for s, g, _ in pairs)
         return (
-            f"Date: {date_str} ({band['weekday'].title()}). Difficulty: {band['label']}.\n\n"
+            f"Date: {date_str}. Level: {band['label']}.\n\n"
             f"Verified pairs (choose only from these):\n{listing}"
         )
     # Fallback: free choice from a word sample (validated afterwards as always).
@@ -74,7 +75,7 @@ def build_request(ladder: Ladder, date_str: str, band: dict, recent: set[str]) -
                            f"sample#{date_str}")
     sample = [w for w in sample if w not in recent]
     return (
-        f"Date: {date_str} ({band['weekday'].title()}). Difficulty: {band['label']}.\n"
+        f"Date: {date_str}. Level: {band['label']}.\n"
         f"{DIFFICULTY_HINTS.get(band['par'], '')}\n"
         f"{'Fewer obvious routes is better today.' if band['minRoutes'] <= 5 else ''}\n\n"
         f"Allowed words: {', '.join(sorted(sample))}\n\n"

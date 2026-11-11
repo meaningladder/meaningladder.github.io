@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { bandFor, gameNumber, seededPuzzle } from "./seeded.js";
+import { LEVELS, gameNumber, levelBand, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -37,12 +37,12 @@ export function loadLadder() {
   }));
 }
 
-// Today's puzzle file, or the identical-everywhere seeded fallback if the
-// file is missing (or can't be fetched).
-export async function loadDailyPuzzle(ladder, dateStr) {
+// One level of a day's puzzle (puzzles/YYYY-MM-DD-<level>.json), or the
+// identical-everywhere seeded fallback if the file is missing.
+export async function loadDailyPuzzle(ladder, dateStr, level) {
   const { config } = ladder;
   try {
-    const p = await getJson(`puzzles/${dateStr}.json`);
+    const p = await getJson(`puzzles/${dateStr}-${level}.json`);
     if (p.graphVersion === config.graphVersion && ladder.index.has(p.start) && ladder.index.has(p.goal)) {
       return p;
     }
@@ -50,28 +50,26 @@ export async function loadDailyPuzzle(ladder, dateStr) {
   } catch (err) {
     if (err.status !== 404) console.warn("Couldn't load puzzle file; using the seeded puzzle.", err);
   }
-  const band = bandFor(dateStr, config);
-  const s = seededPuzzle(ladder, dateStr, band);
+  const s = seededPuzzle(ladder, seedBase(dateStr, level), levelBand(level, config));
   return {
-    date: dateStr,
+    date: dateStr, level,
     gameNumber: gameNumber(dateStr, config.launchDate),
     start: s.start, goal: s.goal, par: s.par,
     theme: "Daily ladder", teaser: "",
-    source: "seeded", graphVersion: config.graphVersion, difficulty: band.label,
+    source: "seeded", graphVersion: config.graphVersion,
   };
 }
 
-// Practice: a random seed fed through the same seeded generator.
-export function makePracticePuzzle(ladder) {
+// Unlimited: a random seed fed through the same seeded generator, at the
+// level the player picked.
+export function makePracticePuzzle(ladder, level) {
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  const weekdays = Object.keys(ladder.config.bands);
-  const weekday = weekdays[seed % weekdays.length];
-  const band = { ...ladder.config.bands[weekday], weekday };
+  const band = levelBand(level, ladder.config);
   const s = seededPuzzle(ladder, `practice-${seed}`, band);
   return {
-    date: null, gameNumber: null, start: s.start, goal: s.goal, par: s.par,
-    theme: "Practice ladder", teaser: `Difficulty: ${band.label}.`, source: "practice",
-    graphVersion: ladder.config.graphVersion, difficulty: band.label,
+    date: null, gameNumber: null, level, start: s.start, goal: s.goal, par: s.par,
+    theme: "Unlimited ladder", teaser: `Level: ${band.label}.`, source: "practice",
+    graphVersion: ladder.config.graphVersion,
   };
 }
 
@@ -96,6 +94,19 @@ export const store = {
       /* not fatal */
     }
   },
+  // Every stored key (without the prefix) that starts with `start`.
+  keys(start = "") {
+    const out = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k?.startsWith(PREFIX + start)) out.push(k.slice(PREFIX.length));
+      }
+    } catch {
+      /* not fatal */
+    }
+    return out;
+  },
   remove(key) {
     try {
       localStorage.removeItem(PREFIX + key);
@@ -104,3 +115,46 @@ export const store = {
     }
   },
 };
+
+// ------------------------------------------------------------ migration
+// Before levels existed, a day had ONE puzzle, saved as "game:<date>" with a
+// result under "results[<date>]". Move them to "game:<date>:<level>" and
+// "results[<date>:<level>]", picking the level from the saved puzzle.
+const OLD_DIFFICULTY_TO_LEVEL = {
+  easy: "easy", medium: "medium", tricky: "medium",
+  hard: "hard", "very hard": "hard", expert: "hard",
+};
+
+export function levelOfOldPuzzle(puzzle) {
+  return OLD_DIFFICULTY_TO_LEVEL[puzzle?.difficulty] ?? (puzzle?.par >= 4 ? "hard" : "medium");
+}
+
+export function migrateStorage() {
+  if (store.get("schema", 1) >= 2) return;
+  const results = store.get("results", {});
+  const levelOfDate = {};
+  for (const key of store.keys("game:")) {
+    const date = key.slice("game:".length);
+    if (date.includes(":")) continue; // already per-level
+    const state = store.get(key);
+    if (state?.puzzle) {
+      const level = levelOfOldPuzzle(state.puzzle);
+      levelOfDate[date] = level;
+      store.set(`game:${date}:${level}`, { ...state, puzzle: { ...state.puzzle, level } });
+    }
+    store.remove(key);
+  }
+  for (const [key, r] of Object.entries(results)) {
+    if (key.includes(":")) continue;
+    delete results[key];
+    results[`${key}:${levelOfDate[key] ?? (r.par >= 4 ? "hard" : "medium")}`] = r;
+  }
+  store.set("results", results);
+  const practice = store.get("practice");
+  if (practice?.puzzle && !practice.puzzle.level) {
+    store.set("practice", { ...practice, puzzle: { ...practice.puzzle, level: levelOfOldPuzzle(practice.puzzle) } });
+  }
+  store.set("schema", 2);
+}
+
+export { LEVELS };

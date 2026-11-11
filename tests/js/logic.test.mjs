@@ -147,3 +147,20 @@ test("nearMissText copy: four cases, no dashes, never names a third word", () =>
     assert.ok(named.every((w) => w === "signal" || w === "keyboard"), named.join());
   }
 });
+
+test("streak counts days, not levels: any solved level keeps it alive", () => {
+  const won = (playedOn, steps = 3, par = 3) => ({ status: "won", steps, par, hints: 0, playedOn });
+  const results = {
+    "2026-11-20:easy": won("2026-11-20"),
+    "2026-11-20:hard": won("2026-11-20", 6, 4),
+    "2026-11-21:medium": won("2026-11-21"),
+    "2026-11-22:hard": { status: "gaveUp", steps: 1, par: 4, hints: 0, playedOn: "2026-11-22" },
+    "2026-11-22:easy": won("2026-11-22"),
+  };
+  const s = computeStats(results, "2026-11-22");
+  assert.equal(s.currentStreak, 3);           // 20, 21, 22 (two levels on the 20th count once)
+  assert.equal(s.maxStreak, 3);
+  assert.equal(s.played, 5);
+  assert.equal(s.winPct, 80);
+  assert.deepEqual(s.solvedByLevel, { easy: 2, medium: 1, hard: 1 });
+});
