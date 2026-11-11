@@ -2,8 +2,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  addDays, buildReverse, checkStep, closeness, computeStats, distancesToGoal,
-  localDateStr, medalFor, routeToGoal, shareText,
+  addDays, buildReverse, checkStep, closeness, computeStats, costsToGoal, distancesToGoal,
+  localDateStr, medalFor, naturalRoute, shareText, STEP_COST,
 } from "../../js/logic.js";
 
 // ocean -> wave -> signal -> network -> computer, plus a shortcut and a dead end.
@@ -37,9 +37,56 @@ test("reverse adjacency lists who points to each word", () => {
   assert.deepEqual(into(W.sea), [W.ocean]);
 });
 
-test("routeToGoal follows one shortest route", () => {
-  assert.deepEqual(routeToGoal(neighbors, dist, W.ocean).map((i) => words[i]),
+test("reverse adjacency remembers each edge's rank in the source list", () => {
+  for (let v = 0; v < words.length; v++) {
+    for (let k = reverse.offsets[v]; k < reverse.offsets[v + 1]; k++) {
+      const u = reverse.edges[k];
+      assert.equal(neighbors[u][reverse.ranks[k] - 1], v);
+    }
+  }
+});
+
+// Bellman-Ford: slow but obviously correct, to check the heap-based Dijkstra.
+function bruteCosts(nbrs, goal) {
+  const c = new Array(nbrs.length).fill(Infinity);
+  c[goal] = 0;
+  for (let round = 0; round < nbrs.length; round++) {
+    nbrs.forEach((row, u) => row.forEach((v, r) => { c[u] = Math.min(c[u], r + 1 + STEP_COST + c[v]); }));
+  }
+  return c;
+}
+
+test("costsToGoal matches a brute-force shortest-cost search", () => {
+  for (let goal = 0; goal < words.length; goal++) {
+    assert.deepEqual([...costsToGoal(reverse, words.length, goal)], bruteCosts(neighbors, goal));
+  }
+});
+
+test("naturalRoute takes the shortest route when it is also the gentlest", () => {
+  const cost = costsToGoal(reverse, words.length, W.computer);
+  assert.deepEqual(naturalRoute(neighbors, cost, W.ocean).map((i) => words[i]),
     ["ocean", "wave", "signal", "network", "computer"]);
+  const toSea = costsToGoal(reverse, words.length, W.sea);
+  assert.equal(naturalRoute(neighbors, toSea, W.computer), null); // can't get back to sea
+});
+
+test("naturalRoute avoids a wild leap even when it costs extra steps", () => {
+  // start's 90th-closest word is the goal (a 1-step but awkward leap);
+  // start -> near -> nearer -> goal uses only #1 steps.
+  const names = ["start", "near", "nearer", "goal", ...Array.from({ length: 88 }, (_, i) => `filler${i}`)];
+  const N = Object.fromEntries(names.map((w, i) => [w, i]));
+  const fillers = names.slice(4).map((w) => N[w]);
+  const nbrs = names.map(() => [N.start]); // fillers are dead ends back to start
+  nbrs[N.start] = [N.near, ...fillers, N.goal];
+  nbrs[N.near] = [N.nearer];
+  nbrs[N.nearer] = [N.goal];
+  nbrs[N.goal] = [N.start];
+  assert.equal(nbrs[N.start].indexOf(N.goal) + 1, 90);
+  const rev = buildReverse(nbrs);
+  assert.equal(distancesToGoal(rev, names.length, N.goal)[N.start], 1); // par is still 1
+  const route = naturalRoute(nbrs, costsToGoal(rev, names.length, N.goal), N.start);
+  assert.deepEqual(route.map((i) => names[i]), ["start", "near", "nearer", "goal"]);
+  route.slice(1).forEach((v, i) => assert.ok(nbrs[route[i]].includes(v), "every step is a real neighbor"));
 });
 
 test("checkStep accepts neighbors and explains every rejection", () => {

@@ -318,3 +318,34 @@ the seeded fallback for days that have no puzzle file, so they're low-risk,
 but run `make candidates` and commit the fixture with it.
 
 Live site: https://meaningladder.github.io/
+
+## Natural routes: fewest rungs isn't gentlest rungs
+
+Players said the ladders felt jumpy. The puzzles weren't the problem, since
+players pick the middle words themselves. The problem was the route *we*
+showed them on the result screen and in hints. That route came from BFS, which
+finds the path with the **fewest steps**. When any of a word's top 100
+neighbors counts as a legal step, the fewest-steps path usually needs one wild
+leap: `door → window → stained → blood (#79) → kidney`.
+
+The fix is a different question with a different algorithm. **Dijkstra** finds
+the *cheapest* path, and the price of a step is its rank in the neighbor list
+(#1 costs 1, #79 costs 79) plus 5 per step. Same puzzle:
+`door → window → glass → shards → fragments → bone → marrow → kidney`.
+It's three steps longer, and every step is obvious.
+
+- **Why add a +5 per step?** Without it, ten #1 steps would beat one #11 step,
+  and routes would crawl through near-synonyms. One constant (`STEP_COST`)
+  sets the trade-off between short and smooth.
+- **Same trick as BFS, run backwards.** One Dijkstra from the goal over
+  reversed edges gives every word's cost-to-goal at once, so any hint is just
+  "pick the neighbor with the cheapest step plus remaining cost." It takes
+  about 22 ms on 20k words, and it only runs when a hint or the result screen
+  needs it.
+- **Par stays on BFS.** Par is a promise about the *fewest* steps possible,
+  and medals depend on it. Changing it would have silently changed every past
+  result. So the result screen says both things:
+  "A natural route … (7 steps; the shortest takes 4)."
+- **No similarity scores needed.** The graph only stores neighbor lists, but
+  they're sorted by similarity, so rank works as a free cost. Always check
+  what your data already encodes before adding more of it.

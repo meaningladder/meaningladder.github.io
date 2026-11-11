@@ -13,8 +13,15 @@ export function buildReverse(neighbors) {
   const offsets = counts.slice();
   const fill = counts.slice(0, n);
   const edges = new Int32Array(offsets[n]);
-  neighbors.forEach((row, u) => { for (const v of row) edges[fill[v]++] = u; });
-  return { offsets, edges };
+  // ranks[k]: where the word that points in (edges[k]) lists this word, 1 = its
+  // most similar neighbor. Used to price steps in costsToGoal.
+  const ranks = new Uint8Array(offsets[n]);
+  neighbors.forEach((row, u) => row.forEach((v, r) => {
+    const k = fill[v]++;
+    edges[k] = u;
+    ranks[k] = r + 1;
+  }));
+  return { offsets, edges, ranks };
 }
 
 // Steps-to-goal for EVERY word, via one BFS from the goal over reversed edges.
@@ -39,15 +46,82 @@ export function distancesToGoal(reverse, n, goal) {
   return dist;
 }
 
-// One shortest route from `from` to the goal: at each word, take the most
-// similar neighbor (neighbor lists are sorted by similarity) that is one step
-// closer. Returns word indexes, including both ends.
-export function routeToGoal(neighbors, dist, from) {
-  if (dist[from] < 0) return null;
+// ------------------------------------------------------------ natural routes
+// BFS finds the FEWEST steps, which often means one wild leap: any of a word's
+// top 100 is legal, so door -> window -> stained -> blood (#79) -> kidney is
+// "shortest". For hints and the route we show, we want the GENTLEST path:
+// Dijkstra, where a step costs its rank in the neighbor list (1 = most similar)
+// plus STEP_COST. Without STEP_COST the route would crawl through dozens of
+// near-synonyms; 5 gives routes of roughly par to par + 4 steps.
+// Par and medals still come from BFS (distancesToGoal); this only changes
+// what we *suggest*.
+export const STEP_COST = 5;
+
+// Cheapest cost-to-goal for EVERY word: one Dijkstra from the goal over the
+// reversed edges (same trick as distancesToGoal). Infinity = can't reach it.
+// The priority queue is a binary heap keyed by word, with decrease-key, so it
+// never holds more than n entries.
+export function costsToGoal(reverse, n, goal) {
+  const cost = new Float64Array(n).fill(Infinity);
+  const heap = new Int32Array(n); // word indexes, smallest cost on top
+  const pos = new Int32Array(n).fill(-1); // where each word sits in heap; -1 = not queued
+  let size = 0;
+  const swap = (i, j) => {
+    const a = heap[i], b = heap[j];
+    heap[i] = b; heap[j] = a; pos[b] = i; pos[a] = j;
+  };
+  const up = (i) => {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (cost[heap[p]] <= cost[heap[i]]) break;
+      swap(i, p); i = p;
+    }
+  };
+  const down = (i) => {
+    for (;;) {
+      const l = 2 * i + 1, r = l + 1;
+      let m = i;
+      if (l < size && cost[heap[l]] < cost[heap[m]]) m = l;
+      if (r < size && cost[heap[r]] < cost[heap[m]]) m = r;
+      if (m === i) return;
+      swap(i, m); i = m;
+    }
+  };
+  cost[goal] = 0;
+  heap[0] = goal; pos[goal] = 0; size = 1;
+  while (size) {
+    const v = heap[0];
+    pos[v] = -2; // settled
+    size--;
+    if (size) { heap[0] = heap[size]; pos[heap[0]] = 0; down(0); }
+    for (let k = reverse.offsets[v]; k < reverse.offsets[v + 1]; k++) {
+      const u = reverse.edges[k];
+      if (pos[u] === -2) continue;
+      const c = cost[v] + reverse.ranks[k] + STEP_COST;
+      if (c < cost[u]) {
+        cost[u] = c;
+        if (pos[u] === -1) { heap[size] = u; pos[u] = size; size++; }
+        up(pos[u]);
+      }
+    }
+  }
+  return cost;
+}
+
+// The gentlest route from `from` to the goal, as word indexes including both
+// ends; null if the goal can't be reached. At each word, take the neighbor
+// with the lowest (step price + its cost-to-goal); ties go to the more similar word.
+export function naturalRoute(neighbors, cost, from) {
+  if (!Number.isFinite(cost[from])) return null;
   const route = [from];
   let cur = from;
-  while (dist[cur] > 0) {
-    cur = neighbors[cur].find((v) => dist[v] === dist[cur] - 1);
+  while (cost[cur] > 0 && route.length <= neighbors.length) {
+    let best = -1, bestCost = Infinity;
+    neighbors[cur].forEach((v, r) => {
+      const c = r + 1 + STEP_COST + cost[v];
+      if (c < bestCost) { best = v; bestCost = c; }
+    });
+    cur = best;
     route.push(cur);
   }
   return route;

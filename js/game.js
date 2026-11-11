@@ -12,7 +12,7 @@ import { loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzl
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, nearMissText, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
-  medalFor, routeToGoal, shareText,
+  medalFor, naturalRoute, costsToGoal, shareText,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
 import { LEVELS, gameNumber } from "./seeded.js";
@@ -396,6 +396,11 @@ function playView(ladder, state, saveKey, date) {
   const goalIdx = ladder.index.get(puzzle.goal);
   const dist = distancesToGoal(ladder.reverse, ladder.words.length, goalIdx);
   const stepsTo = (word) => dist[ladder.index.get(word)];
+  // Gentlest-route costs (Dijkstra), only computed when a hint or the result
+  // screen first needs them, so opening a puzzle stays instant.
+  let cost = null;
+  const routeFrom = (word) => naturalRoute(ladder.neighbors,
+    (cost ??= costsToGoal(ladder.reverse, ladder.words.length, goalIdx)), ladder.index.get(word));
   // The graph is the source of truth: if a puzzle file's par disagrees with
   // the real shortest path, trust the BFS (and say so in the console).
   const truePar = stepsTo(puzzle.start);
@@ -534,7 +539,7 @@ function playView(ladder, state, saveKey, date) {
     if (d < 0) {
       state.hint = { word: current, text: `There's no way to ${puzzle.goal} from ${current}. Try Undo.` };
     } else {
-      const next = ladder.words[routeToGoal(ladder.neighbors, dist, ladder.index.get(current))[1]];
+      const next = ladder.words[routeFrom(current)[1]];
       const tier = state.hint?.word === current ? state.hint.tier + 1 : 1;
       if (tier > 2) return;
       state.hints++;
@@ -553,7 +558,7 @@ function playView(ladder, state, saveKey, date) {
   }
 
   function confirmGiveUp() {
-    openDialog("Give up?", h("p", {}, `We'll show you one shortest route. This ends this ${levelLabel.toLowerCase()} ladder.`),
+    openDialog("Give up?", h("p", {}, `We'll show you a route to the goal. This ends this ${levelLabel.toLowerCase()} ladder.`),
       [["Keep playing", () => input.focus()], ["Give up", () => { finish("gaveUp"); save(); update(); }, true]]);
   }
 
@@ -678,7 +683,10 @@ function playView(ladder, state, saveKey, date) {
     const steps = state.path.length - 1;
     const won = state.status === "won";
     const medal = won ? medalFor(steps, puzzle.par) : null;
-    const route = routeToGoal(ladder.neighbors, dist, ladder.index.get(puzzle.start)).map((i) => ladder.words[i]);
+    const route = routeFrom(puzzle.start).map((i) => ladder.words[i]);
+    const routeSteps = route.length - 1;
+    const foundIt = won && state.path.join() === route.join();
+    const hitPar = won && steps === puzzle.par;
     const toast = h("p", { class: "toast", role: "status" });
     const shareBtn = h("button", { class: "btn", onClick: () => share(toast) }, icon("share-network", "btn-icon"), "Share result");
 
@@ -705,10 +713,11 @@ function playView(ladder, state, saveKey, date) {
         ? `${steps} step${steps === 1 ? "" : "s"}, par ${puzzle.par}.${state.hints ? ` ${state.hints} hint${state.hints === 1 ? "" : "s"} used.` : ""}`
         : `You stopped after ${steps} step${steps === 1 ? "" : "s"}. Par was ${puzzle.par}.`),
       h("p", { class: "route" },
-        won && state.path.join() === route.join() ? "You found the most direct route: "
-          : won && steps === puzzle.par ? "You found a shortest route! Another one: "
-          : "One shortest route: ",
-        h("b", {}, route.join(" → "))),
+        foundIt ? "You found the natural route: "
+          : hitPar ? (routeSteps === puzzle.par ? "You found a shortest route! Another one: " : "You found a shortest route! A gentler one: ")
+          : routeSteps === puzzle.par ? "One shortest route: " : "A natural route: ",
+        h("b", {}, route.join(" → ")),
+        !foundIt && !hitPar && routeSteps !== puzzle.par ? ` (${routeSteps} steps; the shortest takes ${puzzle.par}).` : null),
       h("div", { class: "btn-row" },
         shareBtn,
         state.kind === "practice"
