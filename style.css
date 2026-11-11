@@ -356,11 +356,6 @@ a.chip:active { transform: scale(0.95); }
 
 @keyframes shimmer { to { transform: translateX(100%); } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
-@keyframes shake {
-  20% { transform: translateX(-5px); } 40% { transform: translateX(4px); }
-  60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
-}
-.guess.shake { animation: shake 260ms ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

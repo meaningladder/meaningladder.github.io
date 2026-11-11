@@ -500,9 +500,6 @@ function playView(ladder, state, saveKey, date) {
       miss = res.nearMiss ? nearMissText(res.nearMiss, current, normalize(input.value)) : null;
       if (res.nearMiss) addTried(normalize(input.value), current, res.nearMiss.oneWay);
       update();
-      form.classList.remove("shake");
-      void form.offsetWidth;     // restart the animation even on repeated errors
-      form.classList.add("shake");
       input.select();
       return;
     }

@@ -233,9 +233,10 @@ checklist. The interesting part is what it caught that "it works" didn't:
   read as "almost there" instead of "broken".
 - **Five different corner radii.** 8, 10, 12, 14 and 6 px had crept in. Now
   there's one documented rule: controls 8 px, containers 12 px, pills round.
-- **Motion with a reason.** Exactly three animations, each one justified:
-  a short shake when a word is rejected (feedback), the win card rising in
-  (a state change), the new bar sliding in (where your eye should go).
+- **Motion with a reason.** Exactly two animations, each one justified:
+  the win card rising in (a state change), the new bar sliding in (where
+  your eye should go). There was a shake on rejected words too; it was cut
+  later because the Tried list already shows what happened.
   All of them switch off under `prefers-reduced-motion`.
 - **Copy bugs.** "A expert one." (the practice teaser) and dash characters
   used as placeholders ("Not played" and "no route" now say what they mean).
