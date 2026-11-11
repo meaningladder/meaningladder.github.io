@@ -16,7 +16,7 @@ endif
 
 PY    ?= $(VENV_BIN)/python
 GH    ?= $(shell command -v gh 2>/dev/null || echo '"/c/Program Files/GitHub CLI/gh.exe"')
-REPO  ?= NKGuillaume/meaning-ladder
+REPO  ?= meaningladder/meaningladder.github.io
 PORT  ?= 8000
 DATE  ?=
 NOAI  ?=

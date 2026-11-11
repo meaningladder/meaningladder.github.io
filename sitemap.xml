@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The whole game is one page (screens live in the URL #hash, which crawlers
      ignore), so one entry is the complete map. Submit this file in Google
-     Search Console: https://nkguillaume.github.io/meaning-ladder/sitemap.xml -->
+     Search Console: https://meaningladder.github.io/sitemap.xml -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://nkguillaume.github.io/meaning-ladder/</loc>
+    <loc>https://meaningladder.github.io/</loc>
     <changefreq>daily</changefreq>
   </url>
 </urlset>

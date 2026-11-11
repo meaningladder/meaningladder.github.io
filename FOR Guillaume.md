@@ -290,4 +290,4 @@ spending cap on the OpenAI project. Edits to the candidate list now only affect
 the seeded fallback for days that have no puzzle file, so they're low-risk,
 but run `make candidates` and commit the fixture with it.
 
-Live site: https://nkguillaume.github.io/meaning-ladder/
+Live site: https://meaningladder.github.io/
