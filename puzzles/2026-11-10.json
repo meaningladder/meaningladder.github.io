@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-10",
+  "gameNumber": 1,
+  "start": "browser",
+  "goal": "curator",
+  "par": 3,
+  "theme": "Clicks to collections",
+  "teaser": "Begin with a little online exploring and end by deciding what deserves an exhibition.",
+  "source": "ai",
+  "graphVersion": 1,
+  "difficulty": "medium"
+}
