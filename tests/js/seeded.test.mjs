@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { bfsRoutes, fnv1a32, gameNumber, levelBand, mulberry32, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsRoutes, cutNeighbors, fnv1a32, gameNumber, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -37,6 +37,17 @@ test("mulberry32 equals the canonical published version", () => {
   }
 });
 
+test("rulesFor picks each date's era, like Python's rules_for", () => {
+  const config = readJson("puzzle_config.json");
+  assert.equal(rulesFor(config, "2026-11-01").stepLimit, 100);
+  assert.equal(rulesFor(config, "2026-11-12").stepLimit, 100);
+  assert.equal(rulesFor(config, "2026-11-13").stepLimit, 20);
+  assert.equal(rulesFor(config, null).stepLimit, 20); // Unlimited: newest rules
+  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 6);
+  assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
+  assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
+});
+
 test("bfsRoutes on the tiny directed graph", () => {
   const nb = [[1, 2], [3], [3], [4], [0], [0]]; // same graph as tests/test_core.py
   assert.deepEqual(bfsRoutes(nb, 0, 3), { par: 2, routes: 2 });
@@ -47,14 +58,15 @@ test("bfsRoutes on the tiny directed graph", () => {
 test("seeded puzzles and game numbers match Python for every fixture date and level", () => {
   const config = readJson("puzzle_config.json");
   const graph = readJson(`data/graph_v${config.graphVersion}.json`);
-  const ladder = {
-    index: new Map(graph.words.map((w, i) => [w, i])),
-    neighbors: graph.neighbors,
-    candidates: readJson(`data/candidates_v${config.graphVersion}.json`).words,
-    config,
-  };
+  const index = new Map(graph.words.map((w, i) => [w, i]));
+  const candidates = readJson(`data/candidates_v${config.graphVersion}.json`).words;
+  const cut = new Map(); // one cut graph per step limit
   for (const p of fixture.puzzles) {
-    const band = levelBand(p.level, config);
+    const rules = rulesFor(config, p.date);
+    assert.equal(rules.stepLimit, p.stepLimit, `${p.date} step limit`);
+    if (!cut.has(rules.stepLimit)) cut.set(rules.stepLimit, cutNeighbors(graph.neighbors, rules.stepLimit));
+    const ladder = { index, neighbors: cut.get(rules.stepLimit), candidates, config: rules };
+    const band = levelBand(p.level, rules);
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
     const got = seededPuzzle(ladder, seedBase(p.date, p.level), band);
     assert.deepEqual(

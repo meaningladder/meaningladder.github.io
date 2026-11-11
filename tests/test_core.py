@@ -105,14 +105,34 @@ def test_game_number():
 
 
 def test_levels_cover_easy_medium_hard():
+    from ladder_core import rules_for
+
     cfg = load_config()
     assert LEVELS == ("easy", "medium", "hard")
-    easy, medium, hard = (level_band(lv, cfg) for lv in LEVELS)
+    # Original rules (Nov 1-12): Easy and Medium are both 3 steps; Easy just has
+    # many more routes.
+    easy, medium, hard = (level_band(lv, rules_for(cfg, "2026-11-12")) for lv in LEVELS)
     assert easy["level"] == "easy" and easy["label"] == "Easy"
-    # Easy and Medium are both 3 steps; Easy just has many more routes.
     assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
     assert medium["maxRoutes"] < easy["minRoutes"]
+    # Top-20 rules (from Nov 13): longer ladders, one par per level.
+    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [4, 5, 6]
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
+
+
+def test_rules_eras_pick_by_date():
+    from ladder_core import rules_for
+
+    cfg = load_config()
+    assert cfg["rules"][0]["from"] == cfg["launchDate"]  # every date has rules
+    assert [e["from"] for e in cfg["rules"]] == sorted(e["from"] for e in cfg["rules"])
+    assert rules_for(cfg, "2026-11-01")["stepLimit"] == 100
+    assert rules_for(cfg, "2026-11-12")["stepLimit"] == 100
+    assert rules_for(cfg, "2026-11-13")["stepLimit"] == 20
+    assert rules_for(cfg, "2030-01-01")["stepLimit"] == 20
+    assert rules_for(cfg, None)["stepLimit"] == 20  # Unlimited: newest rules
+    merged = rules_for(cfg, "2026-11-13")
+    assert "rules" not in merged and merged["launchDate"] == cfg["launchDate"]
 
 
 # ---------------------------------------------------------------- validation
@@ -145,6 +165,18 @@ def ladder():
     return load_ladder()
 
 
+def test_ladder_view_cuts_neighbor_lists(ladder):
+    old, new = ladder.at("2026-11-12"), ladder.at("2026-11-13")
+    i = ladder.index["door"]
+    assert len(old.neighbors[i]) == 100 and len(new.neighbors[i]) == 20
+    assert new.neighbors[i] == old.neighbors[i][:20]  # lists are sorted: first 20 = top 20
+    assert new.full_neighbors[i] == old.neighbors[i]
+    # Same pair, tighter steps, longer ladder.
+    k = ladder.index["kidney"]
+    assert bfs_routes(old.neighbors, i, k)[0] == 4
+    assert bfs_routes(new.neighbors, i, k)[0] == 6
+
+
 def test_seeded_puzzle_same_date_same_puzzle(ladder):
     band = level_band("medium", ladder.config)
     first = seeded_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
@@ -153,14 +185,16 @@ def test_seeded_puzzle_same_date_same_puzzle(ladder):
     assert first[2].ok and first[2].par == band["par"]
     # Each level of a day is an independent puzzle.
     hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert hard[:2] != first[:2] and hard[2].par == 4
+    assert hard[:2] != first[:2] and hard[2].par == 6  # Nov 17: top-20 rules
 
 
 def test_seeded_puzzles_match_fixture(ladder):
     fx = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    for p in fx["puzzles"][:3]:  # the full list runs in the JS test
+    for p in fx["puzzles"][3:9]:  # both rules eras; the full list runs in the JS test
+        dated = ladder.at(p["date"])
+        assert dated.config["stepLimit"] == p["stepLimit"]
         start, goal, verdict, attempt = seeded_puzzle(
-            ladder, seed_base(p["date"], p["level"]), level_band(p["level"], ladder.config))
+            dated, seed_base(p["date"], p["level"]), level_band(p["level"], dated.config))
         assert (start, goal, verdict.par, attempt) == (p["start"], p["goal"], p["par"],
                                                        p["attempt"])
 

@@ -12,9 +12,9 @@ from generate_puzzle import make_puzzle, recent_words, write_puzzle
 from ladder_core import level_band, load_ladder, validate_pair
 
 DAY = date(2026, 11, 17)
-LEVEL = "medium"  # par 3, 1-18 routes
+LEVEL = "medium"  # par 5 under the top-20 rules (from Nov 13)
 SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
-               "source", "graphVersion"}
+               "source", "graphVersion", "stepLimit"}
 
 
 @pytest.fixture(scope="module")
@@ -93,6 +93,15 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
     assert p1["par"] == level_band(LEVEL, ladder.config)["par"]
     assert p1["level"] == LEVEL
     assert p1["gameNumber"] == 17  # launch 2026-11-01 is game 1
+    assert p1["stepLimit"] == 20 and p1["par"] == 5  # Nov 17: top-20 rules
+
+
+def test_puzzles_follow_their_dates_rules(ladder):
+    """Before Nov 13 the original top-100 rules apply, even with a newest-rules ladder."""
+    old = make_puzzle(ladder, date(2026, 11, 12), "hard", set(), None, quiet)
+    new = make_puzzle(ladder, date(2026, 11, 13), "hard", set(), None, quiet)
+    assert (old["stepLimit"], old["par"]) == (100, 4)
+    assert (new["stepLimit"], new["par"]) == (20, 6)
 
 
 def test_write_never_overwrites(tmp_path, ladder):

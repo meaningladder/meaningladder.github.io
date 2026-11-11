@@ -57,6 +57,10 @@ DIFFICULTY_HINTS = {
        "two intermediate ideas, not obvious partners like ocean -> boat.",
     4: "The pair should be about 4 meaning-steps apart: from clearly different "
        "domains of life (e.g. a food and a machine, an animal and a building).",
+    5: "The pair should be about 5 small meaning-steps apart: different domains, "
+       "linked by a story of several clearly related ideas.",
+    6: "The pair should be about 6 small meaning-steps apart: far-flung domains "
+       "that still connect through a long chain of obvious neighbors.",
 }
 
 

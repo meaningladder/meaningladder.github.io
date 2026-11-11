@@ -207,7 +207,9 @@ test("sameFamily mirrors the Python prefix rule", () => {
 });
 
 test("rank tones, fills and tried-list order", () => {
-  assert.deepEqual([50, 101, 300, 301, 2000, 2001].map(rankTone), ["near", "mid", "mid", "far", "far", "cold"]);
+  assert.deepEqual([50, 101, 300, 301, 2000, 2001].map((r) => rankTone(r)), ["near", "mid", "mid", "far", "far", "cold"]);
+  // Top-20 rules: #21 is already a miss, and reads as very close.
+  assert.deepEqual([20, 21, 99].map((r) => rankTone(r, 20)), ["near", "mid", "mid"]);
   assert.equal(rankFill(1), 100);
   assert.ok(rankFill(101) > rankFill(1000) && rankFill(1000) > rankFill(15000));
   assert.ok(rankFill(20000) >= 4);
@@ -233,4 +235,33 @@ test("streak counts days, not levels: any solved level keeps it alive", () => {
   assert.equal(s.played, 5);
   assert.equal(s.winPct, 80);
   assert.deepEqual(s.solvedByLevel, { easy: 2, medium: 1, hard: 1 });
+});
+
+test("rules views: a cut step limit rejects far neighbors and ranks them exactly", async () => {
+  const { ladderAt, ladderFor } = await import("../../js/data.js");
+  // hub's list: 30 words, most similar first. Top 20 = w(0)..w(19).
+  const abc = "abcdefghijklmnopqrstuvwxyz";
+  const w = (i) => `w${abc[Math.floor(i / 26)]}${abc[i % 26]}`; // words must be letters only
+  const names = ["hub", ...Array.from({ length: 30 }, (_, i) => w(i))];
+  const nbrs = names.map(() => [0]);
+  nbrs[0] = names.slice(1).map((_, i) => i + 1);
+  const base = {
+    words: names, index: new Map(names.map((w, i) => [w, i])), neighbors: nbrs, candidates: names,
+    views: new Map(),
+    config: { launchDate: "2026-11-01", rules: [
+      { from: "2026-11-01", stepLimit: 100, minPar: 1, maxPar: 6, levels: {} },
+      { from: "2026-11-13", stepLimit: 20, minPar: 1, maxPar: 6, levels: {} }] },
+  };
+  const oldRules = ladderAt(base, "2026-11-12"), newRules = ladderAt(base, "2026-11-13");
+  assert.equal(ladderAt(base, "2026-11-20"), newRules); // cached per era
+  assert.deepEqual(checkStep(oldRules, ["hub"], w(24)), { ok: true, word: w(24) });
+  assert.match(checkStep(newRules, ["hub"], w(24)).error, /isn't a neighbor/);
+  assert.deepEqual(checkStep(newRules, ["hub"], w(19)), { ok: true, word: w(19) });
+  // #25 is cut from the legal steps but still in the stored list: exact rank.
+  assert.deepEqual(displayRank(newRules, 0, 25, 999), { rank: 25, family: false });
+  // Which rules a puzzle gets: by date; Unlimited by its stamp; old saves = top 100.
+  assert.equal(ladderFor(base, { date: "2026-11-05" }).config.stepLimit, 100);
+  assert.equal(ladderFor(base, { date: "2026-11-14", stepLimit: 20 }).config.stepLimit, 20);
+  assert.equal(ladderFor(base, { date: null, stepLimit: 20 }).config.stepLimit, 20);
+  assert.equal(ladderFor(base, { date: null }).config.stepLimit, 100);
 });

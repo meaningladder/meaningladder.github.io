@@ -55,6 +55,7 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
     from ai_suggest import AIUnavailable, ai_puzzle
 
     date_str = day.isoformat()
+    ladder = ladder.at(date_str)  # that day's rules: step limit and level bands
     cfg = ladder.config
     band = level_band(level, cfg)
     log(f"{date_str} {band['label']}: par {band['par']}, "
@@ -88,6 +89,7 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         "teaser": teaser,
         "source": source,
         "graphVersion": cfg["graphVersion"],
+        "stepLimit": cfg["stepLimit"],
     }
 
 

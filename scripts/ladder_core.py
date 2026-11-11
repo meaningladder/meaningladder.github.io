@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
@@ -27,14 +27,52 @@ class Ladder:
     neighbors: list[list[int]]
     candidates: list[str]  # sorted; order matters for the seeded pick
     candidate_set: set[str]
-    config: dict
+    config: dict  # the rules for one date (see rules_for), not the raw file
+    # The full top-100 lists and the raw puzzle_config.json. `neighbors` above
+    # is the legal-step view: each list cut to the rules' stepLimit.
+    full_neighbors: list[list[int]] | None = None
+    base_config: dict | None = None
+
+    def at(self, date_str: str | None) -> "Ladder":
+        """This ladder under the rules for `date_str` (None = the newest rules)."""
+        return ladder_view(self, rules_for(self.base_config, date_str))
 
 
 def load_config(root: Path = ROOT) -> dict:
     return json.loads((root / "puzzle_config.json").read_text(encoding="utf-8"))
 
 
-def load_ladder(root: Path = ROOT, config: dict | None = None) -> Ladder:
+# ---------------------------------------------------------------- rules eras
+DEFAULT_STEP_LIMIT = 100  # puzzles made before "stepLimit" existed allowed the top 100
+
+
+def rules_for(config: dict, date_str: str | None) -> dict:
+    """The config with one era of `config["rules"]` merged in: the newest era
+    whose "from" <= date_str (None = the newest era). An era holds stepLimit,
+    minPar, maxPar and levels, so older dates keep the rules they were played
+    under. JS twin: rulesFor in js/seeded.js."""
+    eras = config.get("rules")
+    if not eras:  # hand-made test configs
+        return config
+    era = eras[-1] if date_str is None else next(
+        (e for e in reversed(eras) if e["from"] <= date_str), eras[0])
+    merged = {k: v for k, v in config.items() if k != "rules"}
+    merged.update(era)
+    return merged
+
+
+def ladder_view(ladder: Ladder, rules: dict) -> Ladder:
+    """Same words, but each neighbor list cut to rules["stepLimit"]. The lists
+    are sorted by similarity, so the first 20 ARE the top 20: no new data file."""
+    full = ladder.full_neighbors or ladder.neighbors
+    k = rules.get("stepLimit", DEFAULT_STEP_LIMIT)
+    return replace(ladder, neighbors=[row[:k] for row in full], full_neighbors=full,
+                   config=rules)
+
+
+def load_ladder(root: Path = ROOT, config: dict | None = None,
+                date_str: str | None = None) -> Ladder:
+    """The word graph under the rules for `date_str` (None = the newest rules)."""
     config = config or load_config(root)
     v = config["graphVersion"]
     graph = json.loads((root / "data" / f"graph_v{v}.json").read_text(encoding="utf-8"))
@@ -47,7 +85,8 @@ def load_ladder(root: Path = ROOT, config: dict | None = None) -> Ladder:
         candidates=cands["words"],
         candidate_set=set(cands["words"]),
         config=config,
-    )
+        base_config=config,
+    ).at(date_str)
 
 
 # ---------------------------------------------------------------- BFS

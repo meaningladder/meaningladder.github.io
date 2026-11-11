@@ -349,3 +349,35 @@ It's three steps longer, and every step is obvious.
 - **No similarity scores needed.** The graph only stores neighbor lists, but
   they're sorted by similarity, so rank works as a free cost. Always check
   what your data already encodes before adding more of it.
+
+## Tightening the rule without breaking history
+
+Natural routes fixed what we *showed*, but players could still make, and par
+still assumed, big leaps, because any of a word's top 100 was a legal step. The
+real fix was a rule change: from Nov 13, only the **top 20** count. Across 300
+random pairs, par moved from mostly 3 to mostly 4–6, and the shortest path
+itself became sensible: `mineral → copper → gold → crown → throne`.
+
+The interesting part is changing a rule in a live game:
+
+- **Eras, not edits.** `puzzle_config.json` now has a `rules` list with dated
+  entries. Nov 1–12 keep top 100 and their old pars; Nov 13+ get top 20 and
+  pars 4/5/6. One function (`rules_for` in Python, `rulesFor` in JS) picks
+  the era for a date. Every old result, medal and streak stays valid, because
+  every old puzzle is still judged by its old rule.
+- **A view, not a new data file.** The neighbor lists were already sorted by
+  similarity, so "top 20" is just `row[:20]`. A *ladder view* wraps the same
+  graph with cut lists, its own reverse index and the era's config. Because
+  every function already took a `ladder`, the whole game (checks, par, hints,
+  routes, seeded fallback, AI shortlist) switched rules without touching those
+  functions. That's the payoff of passing data in instead of reading globals.
+- **The cut part is still useful.** Words ranked #21–#100 are no longer legal,
+  but the file still knows their exact rank, so the Tried list now shows "#50"
+  exactly instead of estimating it from the compact vectors.
+- **Stamp what you can't infer later.** New puzzle files carry `stepLimit`.
+  Old files don't, and "missing means 100" is the one rule for reading them.
+  Unlimited games are stamped too, so a game saved under the old rules still
+  resumes under the old rules.
+- **Timing.** Nov 13–15 already had Hard puzzles built for the old rule. They
+  were unplayed (UTC+14 was still on Nov 12), so they were deleted and
+  regenerated. That's the same exception as before, checked the same way.

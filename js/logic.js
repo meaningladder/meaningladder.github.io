@@ -199,18 +199,20 @@ export function sameFamily(a, b) {
   return p >= 5 && p >= 0.75 * Math.min(a.length, b.length);
 }
 
-// What a wrong guess shows. Real neighbors use their exact graph position;
-// everything else is at least #101, even where the compact vectors disagree,
-// so the number never contradicts the game's top-100 rule.
+// What a wrong guess shows. Words in the stored top 100 use their exact graph
+// position (with the top-20 rule, #21-#100 are exact near misses); everything
+// else is at least #101, even where the compact vectors disagree, so the
+// number never contradicts the graph.
 export function displayRank(ladder, fromIdx, toIdx, approxRank) {
-  const pos = ladder.neighbors[fromIdx].indexOf(toIdx);
+  const pos = (ladder.fullNeighbors ?? ladder.neighbors)[fromIdx].indexOf(toIdx);
   if (pos >= 0) return { rank: pos + 1, family: false };
   if (sameFamily(ladder.words[fromIdx], ladder.words[toIdx])) return { rank: null, family: true };
   return { rank: Math.max(approxRank, 101), family: false };
 }
 
-export function rankTone(rank) {
-  if (rank <= 100) return "near";
+// `limit` = the legal-step limit; a rejected word is always past it.
+export function rankTone(rank, limit = 100) {
+  if (rank <= limit) return "near";
   if (rank <= 300) return "mid";
   if (rank <= 2000) return "far";
   return "cold";

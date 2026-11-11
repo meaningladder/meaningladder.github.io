@@ -12,8 +12,9 @@ from ladder_core import (ROOT, LEVELS, fnv1a32, game_number, level_band, load_la
 OUT = ROOT / "tests" / "fixtures" / "seeded_vectors.json"
 HASH_INPUTS = ["", "a", "foobar", "2026-11-12#0", "2026-11-12#1", "sample#2026-11-12", "héllo"]
 SEEDS = [0, 1, 42, 0xDEADBEEF, 0xFFFFFFFF]
-# A few ordinary days plus a DST-change day (US: 2027-03-14) and a leap day.
-DATES = [(date(2026, 11, 16) + timedelta(days=i)).isoformat() for i in range(3)] + [
+# Two days under the original top-100 rules, then ordinary top-20 days, a
+# DST-change day (US: 2027-03-14) and a leap day.
+DATES = ["2026-11-05", "2026-11-12"] + [(date(2026, 11, 16) + timedelta(days=i)).isoformat() for i in range(3)] + [
     "2027-03-14", "2028-02-29"]
 
 
@@ -23,10 +24,12 @@ def main() -> None:
     puzzles = []
     for d in DATES:
         day = date.fromisoformat(d)
+        dated = ladder.at(d)
         for level in LEVELS:
-            band = level_band(level, ladder.config)
-            start, goal, verdict, attempt = seeded_puzzle(ladder, seed_base(d, level), band)
-            puzzles.append({"date": d, "level": level, "gameNumber": game_number(day, launch),
+            band = level_band(level, dated.config)
+            start, goal, verdict, attempt = seeded_puzzle(dated, seed_base(d, level), band)
+            puzzles.append({"date": d, "level": level, "stepLimit": dated.config["stepLimit"],
+                            "gameNumber": game_number(day, launch),
                             "start": start, "goal": goal, "par": verdict.par,
                             "routes": verdict.routes, "attempt": attempt})
             print(f"  {d} {level}: {start} -> {goal} (par {verdict.par}, attempt {attempt})")

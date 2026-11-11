@@ -8,14 +8,14 @@
 //   #/archive     previous games
 // For testing: ?today=YYYY-MM-DD pretends it's that date (local view only).
 
-import { loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, store } from "./data.js";
+import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, store } from "./data.js";
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, nearMissText, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, naturalRoute, costsToGoal, shareText,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
-import { LEVELS, gameNumber } from "./seeded.js";
+import { LEVELS, gameNumber, rulesFor } from "./seeded.js";
 
 const app = document.getElementById("app");
 
@@ -123,8 +123,11 @@ function openDialog(title, body, actions = [["Close", null]]) {
   return dlg;
 }
 
-function showHelp() {
+async function showHelp() {
   store.set("seenHelp", true);
+  // The newest rules; older days in the archive keep theirs (see rulesFor).
+  let k = 20;
+  try { k = rulesFor(await loadConfig(), null).stepLimit ?? 100; } catch { /* keep the default */ }
   const ex = (word, d, latest) => {
     const { tone, fill } = closeness(d);
     return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}`, style: `--fill:${fill}%` },
@@ -134,10 +137,10 @@ function showHelp() {
     h("ul", {},
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), " word, one word at a time."),
       h("li", {}, "Every day has three ladders: ", h("b", {}, "Easy"), ", ", h("b", {}, "Medium"), " and ", h("b", {}, "Hard"), ". Solve any of them to keep your streak."),
-      h("li", {}, "Each step must be one of the previous word's 100 closest words in meaning."),
+      h("li", {}, `Each step must be one of the previous word's ${k} closest words in meaning. (Ladders before November 13 allowed 100.)`),
       h("li", {}, "The number on each bar is how many steps that word is from the goal: green is 1, yellow is 2, pink is 3 or more."),
       h("li", {}, h("b", {}, "Par"), " is the fewest steps possible. Match it for gold, one over for silver, two over for bronze."),
-      h("li", {}, "A rejected word joins your Tried list with its rank from the current word. Only the top 100 are valid steps, so #101 was very close."),
+      h("li", {}, `A rejected word joins your Tried list with its rank from the current word. Only the top ${k} are valid steps, so #${k + 1} was very close.`),
       h("li", {}, "Stuck? Use Undo or Hint, or give up from the ⋯ menu."),
       h("li", {}, "New ladders arrive every day at midnight, your time.")),
     h("p", { class: "sub", style: "margin-top:12px" }, "Example: ocean → computer"),
@@ -388,7 +391,7 @@ async function showGame(kind, n, level) {
     }
   }
   if (token !== routeToken) return;
-  playView(ladder, state, saveKey, date);
+  playView(ladderFor(ladder, state.puzzle), state, saveKey, date); // that puzzle's rules
 }
 
 function playView(ladder, state, saveKey, date) {
@@ -609,7 +612,7 @@ function playView(ladder, state, saveKey, date) {
 
   function rankBar(x, latest) {
     const known = typeof x.rank === "number";
-    const tone = x.family || !known ? "cold" : rankTone(x.rank);
+    const tone = x.family || !known ? "cold" : rankTone(x.rank, ladder.config.stepLimit);
     const right = x.family ? h("span", { class: "tag" }, "same word")
       : x.rank == null ? "\u2026" : known ? `#${x.rank.toLocaleString()}` : "?";
     return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}`, style: `--fill:${known ? rankFill(x.rank) : 0}%` },

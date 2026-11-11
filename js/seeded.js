@@ -77,6 +77,25 @@ export function gameNumber(dateStr, launchDateStr) {
   return n;
 }
 
+// ------------------------------------------------------------ rules eras
+// Python twin: ladder_core.rules_for. The config with one era of
+// config.rules merged in: the newest era whose "from" <= dateStr
+// (null = the newest era). Older dates keep the rules they were played under.
+export const DEFAULT_STEP_LIMIT = 100; // puzzles from before "stepLimit" existed
+
+export function rulesFor(config, dateStr) {
+  const eras = config.rules;
+  if (!eras?.length) return config;
+  const era = dateStr == null ? eras[eras.length - 1]
+    : [...eras].reverse().find((e) => e.from <= dateStr) ?? eras[0];
+  const { rules, ...rest } = config;
+  return { ...rest, ...era };
+}
+
+// Each neighbor list cut to the step limit. The lists are sorted by
+// similarity, so the first 20 ARE the top 20 (Python: ladder_view).
+export const cutNeighbors = (neighbors, k) => neighbors.map((row) => row.slice(0, k));
+
 export function levelBand(level, config) {
   return { ...config.levels[level], level };
 }

@@ -8,14 +8,26 @@ meaning (GloVe word embeddings). Par is the shortest possible path.
 ocean → wave → signal → network → computer
 ```
 
-Every day has **three ladders: Easy, Medium and Hard** (Easy: 3 steps with
-19+ shortest routes; Medium: 3 steps with 1-18; Hard: 4 steps). Solving any
-of them keeps your streak alive. Unlimited mode has the same three levels.
-Puzzle files are `puzzles/YYYY-MM-DD-<level>.json`.
+Every day has **three ladders: Easy, Medium and Hard**. Solving any of them
+keeps your streak alive. Unlimited mode has the same three levels. Puzzle files
+are `puzzles/YYYY-MM-DD-<level>.json`.
+
+**Rules eras.** The rules live in `puzzle_config.json` under `rules`, one entry
+per era, each with a `from` date. A date always keeps the rules it was played
+under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
+
+| From | Legal steps | Easy | Medium | Hard |
+|---|---|---|---|---|
+| 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
+| 2026-11-13 | top 20 neighbors | par 4 | par 5 | par 6 |
+
+The graph file always stores the top 100. A tighter era just uses the first N
+of each (already sorted) list, so no data file changes. New puzzle files record
+their `stepLimit`; files without one are from the top-100 era.
 
 If a step is rejected, it joins a Contexto-style **Tried** list with its rank
-from the current word (#1-#100 are the valid steps, so #101 was very close).
-Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,
+from the current word (under the top-20 rules, #21 was very close). Ranks up
+to #100 are exact, from the graph. Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,
 1.3 MB, built by `make vectors`), loaded only after the first wrong guess. It's
 free feedback: it never names the right word.
 

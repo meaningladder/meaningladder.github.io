@@ -1,30 +1,62 @@
 {
   "launchDate": "2026-11-01",
   "graphVersion": 1,
-  "minPar": 3,
-  "maxPar": 6,
   "model": "gpt-6.1-sol",
   "recentDays": 30,
   "promptSampleSize": 150,
   "aiRounds": 5,
-  "levels": {
-    "easy": {
-      "label": "Easy",
-      "par": 3,
-      "minRoutes": 19,
-      "maxRoutes": 100000
+  "rules": [
+    {
+      "from": "2026-11-01",
+      "stepLimit": 100,
+      "minPar": 3,
+      "maxPar": 6,
+      "levels": {
+        "easy": {
+          "label": "Easy",
+          "par": 3,
+          "minRoutes": 19,
+          "maxRoutes": 100000
+        },
+        "medium": {
+          "label": "Medium",
+          "par": 3,
+          "minRoutes": 1,
+          "maxRoutes": 18
+        },
+        "hard": {
+          "label": "Hard",
+          "par": 4,
+          "minRoutes": 1,
+          "maxRoutes": 100000
+        }
+      }
     },
-    "medium": {
-      "label": "Medium",
-      "par": 3,
-      "minRoutes": 1,
-      "maxRoutes": 18
-    },
-    "hard": {
-      "label": "Hard",
-      "par": 4,
-      "minRoutes": 1,
-      "maxRoutes": 100000
+    {
+      "from": "2026-11-13",
+      "stepLimit": 20,
+      "minPar": 4,
+      "maxPar": 7,
+      "levels": {
+        "easy": {
+          "label": "Easy",
+          "par": 4,
+          "minRoutes": 1,
+          "maxRoutes": 100000
+        },
+        "medium": {
+          "label": "Medium",
+          "par": 5,
+          "minRoutes": 1,
+          "maxRoutes": 100000
+        },
+        "hard": {
+          "label": "Hard",
+          "par": 6,
+          "minRoutes": 1,
+          "maxRoutes": 100000
+        }
+      }
     }
-  }
+  ]
 }

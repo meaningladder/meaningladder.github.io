@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { LEVELS, gameNumber, levelBand, seedBase, seededPuzzle } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, cutNeighbors, gameNumber, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -26,10 +26,10 @@ export function loadLadder() {
     return {
       words: graph.words,
       index: new Map(graph.words.map((w, i) => [w, i])),
-      neighbors: graph.neighbors,
-      reverse: buildReverse(graph.neighbors),
+      neighbors: graph.neighbors, // the full top-100 lists; games use ladderAt/ladderFor views
       candidates: cands.words,
       config,
+      views: new Map(),
     };
   })().catch((err) => {
     ladderPromise = null; // don't cache a failure: let the next attempt retry
@@ -62,9 +62,42 @@ export function loadVectors() {
   }));
 }
 
+// ------------------------------------------------------------ rules views
+// The base ladder holds every word's full top-100 list. A view applies one
+// era's rules: neighbor lists cut to stepLimit (the legal steps), a reverse
+// index for those, the full lists kept for exact near-miss ranks, and the
+// merged config (levels, par range). Cached per era, since cutting and
+// reversing 20k lists takes a few tens of ms.
+function viewOf(base, rules) {
+  const k = rules.stepLimit ?? DEFAULT_STEP_LIMIT;
+  const key = `${rules.from ?? ""}|${k}`;
+  let view = base.views.get(key);
+  if (!view) {
+    const neighbors = k >= base.neighbors[0].length ? base.neighbors : cutNeighbors(base.neighbors, k);
+    view = { ...base, neighbors, fullNeighbors: base.neighbors, reverse: buildReverse(neighbors),
+             config: { ...rules, stepLimit: k } };
+    base.views.set(key, view);
+  }
+  return view;
+}
+
+// The rules for a date (null = the newest rules, used by Unlimited).
+export const ladderAt = (base, dateStr) => viewOf(base, rulesFor(base.config, dateStr));
+
+// The rules a puzzle was made under. Daily puzzles go by date; the file's own
+// stepLimit wins if it disagrees. Unlimited puzzles carry their stepLimit;
+// one saved before stepLimit existed was played on the original top 100.
+export function ladderFor(base, puzzle) {
+  const rules = rulesFor(base.config, puzzle.date ?? (puzzle.stepLimit == null ? base.config.launchDate : null));
+  const k = puzzle.stepLimit ?? rules.stepLimit ?? DEFAULT_STEP_LIMIT;
+  if (k !== rules.stepLimit) console.warn(`Puzzle says stepLimit ${k}; its date's rules say ${rules.stepLimit}. Using ${k}.`);
+  return viewOf(base, { ...rules, stepLimit: k });
+}
+
 // One level of a day's puzzle (puzzles/YYYY-MM-DD-<level>.json), or the
 // identical-everywhere seeded fallback if the file is missing.
-export async function loadDailyPuzzle(ladder, dateStr, level) {
+export async function loadDailyPuzzle(base, dateStr, level) {
+  const ladder = ladderAt(base, dateStr);
   const { config } = ladder;
   try {
     const p = await getJson(`puzzles/${dateStr}-${level}.json`);
@@ -81,20 +114,21 @@ export async function loadDailyPuzzle(ladder, dateStr, level) {
     gameNumber: gameNumber(dateStr, config.launchDate),
     start: s.start, goal: s.goal, par: s.par,
     theme: "Daily ladder", teaser: "",
-    source: "seeded", graphVersion: config.graphVersion,
+    source: "seeded", graphVersion: config.graphVersion, stepLimit: config.stepLimit,
   };
 }
 
 // Unlimited: a random seed fed through the same seeded generator, at the
 // level the player picked.
-export function makePracticePuzzle(ladder, level) {
+export function makePracticePuzzle(base, level) {
+  const ladder = ladderAt(base, null);
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   const band = levelBand(level, ladder.config);
   const s = seededPuzzle(ladder, `practice-${seed}`, band);
   return {
     date: null, gameNumber: null, level, start: s.start, goal: s.goal, par: s.par,
     theme: "Unlimited ladder", teaser: `Level: ${band.label}.`, source: "practice",
-    graphVersion: ladder.config.graphVersion,
+    graphVersion: ladder.config.graphVersion, stepLimit: ladder.config.stepLimit,
   };
 }
 
