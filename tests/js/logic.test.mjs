@@ -108,3 +108,42 @@ test("stats and streaks", () => {
   assert.ok(Math.abs(s.avgOverPar - 0.8) < 1e-9); // (1+0+1+2+0)/5
   assert.equal(computeStats({}, "2026-11-21").avgOverPar, null);
 });
+
+// ------------------------------------------------------------ near-miss feedback
+import { nearMiss, nearMissText } from "../../js/logic.js";
+
+test("nearMiss measures how far a rejected word really is", () => {
+  assert.deepEqual(nearMiss(ladder, W.signal, W.computer), { steps: 2, oneWay: false });
+  assert.deepEqual(nearMiss(ladder, W.wave, W.computer), { steps: 3, oneWay: false });
+  assert.deepEqual(nearMiss(ladder, W.ocean, W.keyboard), { steps: null, oneWay: false }); // 5 away
+});
+
+test("nearMiss spots one-way links (pitfall #1)", () => {
+  // signal lists network, but network doesn't list signal.
+  assert.equal(nearMiss(ladder, W.network, W.signal).oneWay, true);
+});
+
+test("checkStep attaches near-miss info only to neighbor rejections", () => {
+  const res = checkStep(ladder, ["ocean", "wave", "signal"], "computer");
+  assert.equal(res.error, "computer isn't a neighbor of signal. Try another word.");
+  assert.deepEqual(res.nearMiss, { steps: 2, oneWay: false });
+  assert.equal(checkStep(ladder, ["ocean"], "zzzz").nearMiss, undefined);
+});
+
+test("nearMissText copy: four cases, no dashes, never names a third word", () => {
+  const cases = [
+    [{ steps: 2, oneWay: false }, "close", "Close!"],
+    [{ steps: 3, oneWay: false }, "warm", "Warm."],
+    [{ steps: null, oneWay: false }, "far", "Far."],
+    [{ steps: null, oneWay: true }, "close", "So close:"],
+  ];
+  for (const [miss, tone, keyword] of cases) {
+    const m = nearMissText(miss, "signal", "keyboard");
+    assert.equal(m.tone, tone);
+    assert.equal(m.keyword, keyword);
+    assert.doesNotMatch(m.keyword + m.text, /[–—]/);
+    const named = (m.keyword + " " + m.text).toLowerCase().match(/[a-z]+/g)
+      .filter((w) => words.includes(w));
+    assert.ok(named.every((w) => w === "signal" || w === "keyboard"), named.join());
+  }
+});

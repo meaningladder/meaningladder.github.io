@@ -8,6 +8,11 @@ meaning (GloVe word embeddings). Par is the shortest possible path.
 ocean → wave → signal → network → computer
 ```
 
+If a step is rejected, the game says how close the guess really was: **Close!**
+(2 steps from your current word), **Warm.** (3 steps), **Far.**, or **So close:**
+when the link only exists in the other direction. It never names the bridging
+word, so it's free feedback, not a hint.
+
 ## How it fits together
 
 ```

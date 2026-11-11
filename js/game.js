@@ -10,6 +10,7 @@
 import { loadConfig, loadDailyPuzzle, loadLadder, makePracticePuzzle, store } from "./data.js";
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
+  nearMissText, normalize,
   medalFor, routeToGoal, shareText,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -110,6 +111,7 @@ function showHelp() {
       h("li", {}, "Each step must be one of the previous word's 100 closest words in meaning."),
       h("li", {}, "The number on each bar is how many steps that word is from the goal: green is 1, yellow is 2, pink is 3 or more."),
       h("li", {}, h("b", {}, "Par"), " is the fewest steps possible. Match it for gold, one over for silver, two over for bronze."),
+      h("li", {}, "If a word is rejected, we tell you how close it was: close, warm or far."),
       h("li", {}, "Stuck? Use Undo or Hint, or give up from the ⋯ menu."),
       h("li", {}, "A new ladder arrives every day at midnight, your time.")),
     h("p", { class: "sub", style: "margin-top:12px" }, "Example: ocean → computer"),
@@ -357,6 +359,7 @@ function playView(ladder, state, saveKey, date) {
   document.title = `${state.kind === "daily" ? `#${puzzle.gameNumber}` : "Practice"} · Meaning Ladder`;
 
   let error = null;
+  let miss = null;           // near-miss feedback for the last rejected word
   let justAdded = false;
   let countdownTimer = null;
   cleanups.push(() => clearInterval(countdownTimer));
@@ -423,6 +426,8 @@ function playView(ladder, state, saveKey, date) {
     const res = checkStep(ladder, state.path, input.value);
     if (!res.ok) {
       error = res.error;         // keep the typed text so a typo is easy to fix
+      const current = state.path[state.path.length - 1];
+      miss = res.nearMiss ? nearMissText(res.nearMiss, current, normalize(input.value)) : null;
       update();
       form.classList.remove("shake");
       void form.offsetWidth;     // restart the animation even on repeated errors
@@ -433,6 +438,7 @@ function playView(ladder, state, saveKey, date) {
     state.path.push(res.word);
     state.hint = null;
     error = null;
+    miss = null;
     justAdded = true;
     input.value = "";
     if (res.word === puzzle.goal) finish("won");
@@ -445,6 +451,7 @@ function playView(ladder, state, saveKey, date) {
     state.path.pop();
     state.hint = null;
     error = null;
+    miss = null;
     save();
     update();
     input.focus();
@@ -469,6 +476,7 @@ function playView(ladder, state, saveKey, date) {
       };
     }
     error = null;
+    miss = null;
     save();
     update();
     input.focus();
@@ -520,7 +528,8 @@ function playView(ladder, state, saveKey, date) {
 
     // Feedback slot: exactly one thing.
     if (!playing) feedback.replaceChildren();
-    else if (error) feedback.replaceChildren(h("p", { class: "error" }, error));
+    else if (error) feedback.replaceChildren(h("p", { class: "error" }, error,
+      miss ? h("span", { class: `miss miss-${miss.tone}` }, h("b", {}, miss.keyword), " ", miss.text) : null));
     else if (state.hint?.word === current) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), state.hint.text));
     else if (steps > 0) feedback.replaceChildren(h("ol", { class: "path", style: "margin:0" }, bar(current, { latest: true })));
     else feedback.replaceChildren(h("p", { class: "muted" }, `Type a word close in meaning to ${puzzle.start}.`));

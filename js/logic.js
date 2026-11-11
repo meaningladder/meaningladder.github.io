@@ -69,10 +69,53 @@ export function checkStep(ladder, path, typed) {
   if (word === current) return { ok: false, error: `You're already on ${word}.` };
   if (path.includes(word)) return { ok: false, error: `${word} is already in your path.` };
   const cur = ladder.index.get(current);
-  if (!ladder.neighbors[cur].includes(ladder.index.get(word))) {
-    return { ok: false, error: `${word} isn't a neighbor of ${current}. Try another word.` };
+  const idx = ladder.index.get(word);
+  if (!ladder.neighbors[cur].includes(idx)) {
+    return {
+      ok: false,
+      error: `${word} isn't a neighbor of ${current}. Try another word.`,
+      nearMiss: nearMiss(ladder, cur, idx),
+    };
   }
   return { ok: true, word };
+}
+
+// How far was a rejected word, really? A forward BFS from the current word
+// that gives up after `maxDepth` steps (depth 3 already reaches most of the
+// map, so this costs a few milliseconds).
+//   steps:  2 or 3, or null when it's further than maxDepth (or unreachable)
+//   oneWay: the attempt lists the current word among ITS neighbors, but not
+//           the other way round (neighbor lists aren't symmetric)
+export function nearMiss(ladder, fromIdx, toIdx, maxDepth = 3) {
+  const oneWay = ladder.neighbors[toIdx].includes(fromIdx);
+  const n = ladder.neighbors.length;
+  const depth = new Int8Array(n).fill(-1);
+  const queue = new Int32Array(n);
+  let head = 0, tail = 0;
+  depth[fromIdx] = 0;
+  queue[tail++] = fromIdx;
+  while (head < tail) {
+    const u = queue[head++];
+    if (depth[u] === maxDepth) break; // BFS order: everything after is deeper
+    for (const v of ladder.neighbors[u]) {
+      if (depth[v] !== -1) continue;
+      depth[v] = depth[u] + 1;
+      if (v === toIdx) return { steps: depth[v], oneWay };
+      queue[tail++] = v;
+    }
+  }
+  return { steps: null, oneWay };
+}
+
+// The sentence shown under the rejection. It never names a bridging word,
+// so it's feedback about the guess, not a hint about the answer.
+export function nearMissText({ steps, oneWay }, current, word) {
+  if (oneWay) {
+    return { tone: "close", keyword: "So close:", text: `${current} is one of ${word}'s closest words, but the link only runs the other way.` };
+  }
+  if (steps === 2) return { tone: "close", keyword: "Close!", text: "It's 2 steps away: find a word that links them." };
+  if (steps === 3) return { tone: "warm", keyword: "Warm.", text: "It's 3 steps away: try something closer in meaning." };
+  return { tone: "far", keyword: "Far.", text: `Try a word much closer in meaning to ${current}.` };
 }
 
 // ------------------------------------------------------------ results
