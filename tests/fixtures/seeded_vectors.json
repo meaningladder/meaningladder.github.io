@@ -48,7 +48,7 @@
   "puzzles": [
     {
       "date": "2026-11-16",
-      "gameNumber": 1,
+      "gameNumber": 7,
       "weekday": "monday",
       "start": "origin",
       "goal": "artist",
@@ -58,7 +58,7 @@
     },
     {
       "date": "2026-11-17",
-      "gameNumber": 2,
+      "gameNumber": 8,
       "weekday": "tuesday",
       "start": "dance",
       "goal": "barn",
@@ -68,7 +68,7 @@
     },
     {
       "date": "2026-11-18",
-      "gameNumber": 3,
+      "gameNumber": 9,
       "weekday": "wednesday",
       "start": "lung",
       "goal": "archive",
@@ -78,7 +78,7 @@
     },
     {
       "date": "2026-11-19",
-      "gameNumber": 4,
+      "gameNumber": 10,
       "weekday": "thursday",
       "start": "psychologist",
       "goal": "lining",
@@ -88,7 +88,7 @@
     },
     {
       "date": "2026-11-20",
-      "gameNumber": 5,
+      "gameNumber": 11,
       "weekday": "friday",
       "start": "individual",
       "goal": "mac",
@@ -98,7 +98,7 @@
     },
     {
       "date": "2026-11-21",
-      "gameNumber": 6,
+      "gameNumber": 12,
       "weekday": "saturday",
       "start": "apparatus",
       "goal": "ben",
@@ -108,7 +108,7 @@
     },
     {
       "date": "2026-11-22",
-      "gameNumber": 7,
+      "gameNumber": 13,
       "weekday": "sunday",
       "start": "jimmy",
       "goal": "sub",
@@ -118,7 +118,7 @@
     },
     {
       "date": "2027-03-14",
-      "gameNumber": 119,
+      "gameNumber": 125,
       "weekday": "sunday",
       "start": "manual",
       "goal": "kohl",
@@ -128,7 +128,7 @@
     },
     {
       "date": "2027-03-15",
-      "gameNumber": 120,
+      "gameNumber": 126,
       "weekday": "monday",
       "start": "wrist",
       "goal": "clothes",
@@ -138,7 +138,7 @@
     },
     {
       "date": "2028-02-29",
-      "gameNumber": 471,
+      "gameNumber": 477,
       "weekday": "tuesday",
       "start": "terminus",
       "goal": "envelope",

@@ -278,18 +278,16 @@ owns the key, and if the key ever leaks, revoke it at OpenAI first, then run
 
 ---
 
-## Your to-do list before launch (Monday 2026-11-16)
+## Launch
 
-1. **Add the API key secret.** Run `gh secret set OPENAI_API_KEY -R NKGuillaume/meaning-ladder`
-   and paste the key when asked. Do this **before 2026-11-13 00:17 UTC**, when the
-   job first generates the Nov 16 puzzle (today + 3). Without it you'll get
-   seeded puzzles (valid, but no themes).
-2. **Try the AI once locally:** `python scripts/generate_puzzle.py --date 2026-11-16 --dry-run`
-   with `$env:OPENAI_API_KEY` set. If the themes or teasers feel off, tune
-   the prompt in `scripts/ai_suggest.py`.
-3. **Skim the candidate words** (`data/candidates_v1.json`) and add any dull or
-   awkward ones to `scripts/lists/candidates_exclude.txt`. Rebuild with
-   `--candidates-only`, regenerate the fixture, commit. After launch,
-   this list is frozen.
+We launched on **Tuesday 2026-11-10** (moved up from the planned Monday the 16th,
+which was safe because no real puzzle had been published yet, so no game numbers
+changed for anyone). The first four puzzles (Nov 10-13) were written by the
+GitHub job with the AI; the daily cron keeps three days ahead from here.
+
+Still worth doing: one human read of `data/candidates_v1.json`, and a monthly
+spending cap on the OpenAI project. Edits to the candidate list now only affect
+the seeded fallback for days that have no puzzle file, so they're low-risk,
+but run `make candidates` and commit the fixture with it.
 
 Live site: https://nkguillaume.github.io/meaning-ladder/
