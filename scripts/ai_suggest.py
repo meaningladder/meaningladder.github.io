@@ -12,7 +12,7 @@ from typing import Callable
 
 from pydantic import BaseModel
 
-from ladder_core import Ladder, Verdict, seeded_sample, validate_pair
+from ladder_core import Ladder, Verdict, seeded_sample, shortlist, validate_pair
 
 PAIRS_PER_ROUND = 5
 MAX_THEME = 40
@@ -40,7 +40,10 @@ from a START word to a GOAL word one step at a time; each step must be a word
 close in meaning to the previous one (word-embedding neighbors).
 
 Suggest {PAIRS_PER_ROUND} different (start, goal) pairs, best first. Rules:
-- Both words MUST come from the allowed word list in the request, spelled exactly.
+- If the request lists "Verified pairs", choose ONLY from those, exactly as
+  written: they already have the right difficulty. Pick the ones that make the
+  most fun, surprising journey. Otherwise both words MUST come from the
+  allowed word list, spelled exactly.
 - Start and goal should feel far apart, but be bridgeable through a chain of
   related ideas. Prefer vivid, concrete, family-friendly words.
 - Never use any word from the "recently used" list.
@@ -58,6 +61,15 @@ DIFFICULTY_HINTS = {
 
 
 def build_request(ladder: Ladder, date_str: str, band: dict, recent: set[str]) -> str:
+    # Preferred: pairs the graph has already verified for today's band.
+    pairs = shortlist(ladder, date_str, band, recent)
+    if len(pairs) >= PAIRS_PER_ROUND:
+        listing = "\n".join(f"- {s} -> {g}" for s, g, _ in pairs)
+        return (
+            f"Date: {date_str} ({band['weekday'].title()}). Difficulty: {band['label']}.\n\n"
+            f"Verified pairs (choose only from these):\n{listing}"
+        )
+    # Fallback: free choice from a word sample (validated afterwards as always).
     sample = seeded_sample(ladder.candidates, ladder.config["promptSampleSize"],
                            f"sample#{date_str}")
     sample = [w for w in sample if w not in recent]

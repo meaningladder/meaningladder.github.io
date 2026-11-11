@@ -154,3 +154,27 @@ def test_seeded_puzzles_match_fixture(ladder):
                                                       band_for(day, ladder.config))
         assert (start, goal, verdict.par, attempt) == (p["start"], p["goal"], p["par"],
                                                        p["attempt"])
+
+
+def test_bfs_all_matches_pairwise_bfs():
+    from ladder_core import bfs_all
+
+    dist, routes = bfs_all(TINY_NEIGHBORS, A)
+    for goal in range(len(TINY_WORDS)):
+        par, n = bfs_routes(TINY_NEIGHBORS, A, goal)
+        assert dist[goal] == (-1 if par is None else par)
+        assert routes[goal] == n
+
+
+def test_shortlist_pairs_all_fit_the_band(ladder):
+    """Saturday (par 4, narrow route band) is where blind AI guesses failed."""
+    from ladder_core import shortlist
+
+    band = band_for(date(2026, 11, 14), ladder.config)
+    pairs = shortlist(ladder, "2026-11-14", band, recent={"bee"})
+    assert len(pairs) >= 5
+    assert pairs == shortlist(ladder, "2026-11-14", band, recent={"bee"})  # deterministic
+    for start, goal, routes in pairs:
+        assert "bee" not in (start, goal)
+        v = validate_pair(ladder, start, goal, band)
+        assert v.ok and v.routes == routes

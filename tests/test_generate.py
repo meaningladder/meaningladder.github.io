@@ -158,3 +158,13 @@ def test_unsafe_ai_text_is_rejected_with_feedback(ladder, good_pair):
     puzzle = make_puzzle(ladder, DAY, set(), lambda: fake, quiet)
     assert puzzle["source"] == "ai" and "<" not in puzzle["theme"]
     assert "plain text" in fake.calls[1]["input"][-1]["content"]
+
+
+def test_prompt_offers_verified_pairs(ladder):
+    from ai_suggest import build_request
+
+    band = band_for(date(2026, 11, 14), ladder.config)
+    prompt = build_request(ladder, "2026-11-14", band, set())
+    assert "Verified pairs" in prompt
+    s, g = prompt.split("\n- ", 1)[1].split("\n")[0].split(" -> ")
+    assert validate_pair(ladder, s, g, band).ok

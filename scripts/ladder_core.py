@@ -84,6 +84,57 @@ def bfs_routes(neighbors: list[list[int]], start: int, goal: int) -> tuple[int |
     return None, 0
 
 
+def bfs_all(neighbors: list[list[int]], start: int) -> tuple[list[int], list[int]]:
+    """Distance and shortest-route count from `start` to EVERY word (-1 = unreachable).
+
+    Same ripple idea as bfs_routes, but it never stops early. One call answers
+    "how far is every possible goal?" for this start word.
+    """
+    n = len(neighbors)
+    dist = [-1] * n
+    routes = [0] * n
+    dist[start], routes[start] = 0, 1
+    frontier = [start]
+    d = 0
+    while frontier:
+        d += 1
+        nxt = []
+        for u in frontier:
+            ru = routes[u]
+            for v in neighbors[u]:
+                if dist[v] == -1:
+                    dist[v] = d
+                    routes[v] = ru
+                    nxt.append(v)
+                elif dist[v] == d:
+                    routes[v] += ru
+        frontier = nxt
+    return dist, routes
+
+
+def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = frozenset(),
+              starts: int = 12, per_start: int = 3) -> list[tuple[str, str, int]]:
+    """Pairs that already satisfy today's band, for the AI to choose from.
+
+    The AI can't see our graph, so on hard days (par 4 with a narrow route
+    range, ~1-3% of random pairs) it almost never guesses a valid pair. Instead
+    we find valid ones first: one full BFS per sampled start word reveals every
+    goal that fits. Deterministic for a given date.
+    """
+    pool = [w for w in ladder.candidates if w not in recent]
+    rand = mulberry32(fnv1a32(f"shortlist#{date_str}"))
+    out = []
+    for start in seeded_sample(pool, starts, f"shortlist-starts#{date_str}"):
+        dist, routes = bfs_all(ladder.neighbors, ladder.index[start])
+        fits = [g for g in pool if g != start
+                and dist[ladder.index[g]] == band["par"]
+                and band["minRoutes"] <= routes[ladder.index[g]] <= band["maxRoutes"]]
+        for _ in range(min(per_start, len(fits))):
+            goal = fits.pop(math.floor(rand() * len(fits)))
+            out.append((start, goal, routes[ladder.index[goal]]))
+    return out
+
+
 # ---------------------------------------------------------------- seeded randomness
 def fnv1a32(text: str) -> int:
     """32-bit FNV-1a hash of the UTF-8 bytes of `text`."""
