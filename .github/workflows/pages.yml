@@ -38,7 +38,7 @@ jobs:
         # Only what the browser needs: no scripts/, tests/ or lists/.
         run: |
           mkdir _site
-          cp -r index.html style.css js data assets puzzle_config.json sitemap.xml robots.txt _site/
+          cp -r index.html 404.html style.css js data assets puzzle_config.json sitemap.xml robots.txt _site/
           if [ -d puzzles ]; then cp -r puzzles _site/; fi
           du -sh _site
 
