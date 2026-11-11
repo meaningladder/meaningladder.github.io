@@ -225,8 +225,8 @@ async function showHome() {
       h("div", {},
         h("h2", { id: "practice-title" }, "Practice"),
         h("p", { class: "sub" }, "Unlimited random ladders. No streaks at stake.")),
-      h("a", { class: "btn", href: "#/practice", "aria-label": `${store.get("practice")?.status === "playing" ? "Resume" : "Play"} a practice ladder` },
-        store.get("practice")?.status === "playing" ? "Resume" : "Play")));
+      h("a", { class: "btn", href: "#/practice", "aria-label": `${store.get("practice")?.status === "playing" ? "Resume" : "Play"} unlimited practice ladders` },
+        "Unlimited")));
 
   render(
     h("header", { class: "home-head" },
