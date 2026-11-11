@@ -1,5 +1,6 @@
 # Minimal deps for GitHub Actions (daily puzzle + tests). The full local
 # toolchain, including gensim for rebuilding the graph, is in requirements.txt.
+numpy==2.5.4  # tests/test_vectors.py checks the compact rank vectors
 openai==3.49.0
 nltk==3.10.4
 pytest==9.2.0
