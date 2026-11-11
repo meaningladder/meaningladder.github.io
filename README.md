@@ -13,10 +13,11 @@ Every day has **three ladders: Easy, Medium and Hard** (Easy: 3 steps with
 of them keeps your streak alive. Unlimited mode has the same three levels.
 Puzzle files are `puzzles/YYYY-MM-DD-<level>.json`.
 
-If a step is rejected, the game says how close the guess really was: **Close!**
-(2 steps from your current word), **Warm.** (3 steps), **Far.**, or **So close:**
-when the link only exists in the other direction. It never names the bridging
-word, so it's free feedback, not a hint.
+If a step is rejected, it joins a Contexto-style **Tried** list with its rank
+from the current word (#1-#100 are the valid steps, so #101 was very close).
+Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,
+1.3 MB, built by `make vectors`), loaded only after the first wrong guess. It's
+free feedback: it never names the right word.
 
 ## How it fits together
 

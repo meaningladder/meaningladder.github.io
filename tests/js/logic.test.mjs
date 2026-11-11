@@ -18,7 +18,7 @@ const neighbors = [
   [W.computer],             // keyboard
   [W.ocean],                // sea (can only go back)
 ];
-const ladder = { index: new Map(words.map((w, i) => [w, i])), neighbors };
+const ladder = { words, index: new Map(words.map((w, i) => [w, i])), neighbors };
 const reverse = buildReverse(neighbors);
 const dist = distancesToGoal(reverse, words.length, W.computer);
 
@@ -109,43 +109,66 @@ test("stats and streaks", () => {
   assert.equal(computeStats({}, "2026-11-21").avgOverPar, null);
 });
 
-// ------------------------------------------------------------ near-miss feedback
-import { nearMiss, nearMissText } from "../../js/logic.js";
-
-test("nearMiss measures how far a rejected word really is", () => {
-  assert.deepEqual(nearMiss(ladder, W.signal, W.computer), { steps: 2, oneWay: false });
-  assert.deepEqual(nearMiss(ladder, W.wave, W.computer), { steps: 3, oneWay: false });
-  assert.deepEqual(nearMiss(ladder, W.ocean, W.keyboard), { steps: null, oneWay: false }); // 5 away
-});
+// ------------------------------------------------------------ near-miss + ranks
+import {
+  displayRank, nearMiss, nearMissText, rankFill, rankOf, rankTone, sameFamily, scoresFrom, triedOrder,
+} from "../../js/logic.js";
 
 test("nearMiss spots one-way links (pitfall #1)", () => {
   // signal lists network, but network doesn't list signal.
   assert.equal(nearMiss(ladder, W.network, W.signal).oneWay, true);
+  assert.equal(nearMiss(ladder, W.ocean, W.keyboard).oneWay, false);
+  assert.match(nearMissText({ oneWay: true }, "network", "signal").text, /other way/);
+  assert.equal(nearMissText({ oneWay: false }, "network", "signal"), null);
 });
 
 test("checkStep attaches near-miss info only to neighbor rejections", () => {
   const res = checkStep(ladder, ["ocean", "wave", "signal"], "computer");
   assert.equal(res.error, "computer isn't a neighbor of signal. Try another word.");
-  assert.deepEqual(res.nearMiss, { steps: 2, oneWay: false });
+  assert.deepEqual(res.nearMiss, { oneWay: false });
   assert.equal(checkStep(ladder, ["ocean"], "zzzz").nearMiss, undefined);
 });
 
-test("nearMissText copy: four cases, no dashes, never names a third word", () => {
-  const cases = [
-    [{ steps: 2, oneWay: false }, "close", "Close!"],
-    [{ steps: 3, oneWay: false }, "warm", "Warm."],
-    [{ steps: null, oneWay: false }, "far", "Far."],
-    [{ steps: null, oneWay: true }, "close", "So close:"],
-  ];
-  for (const [miss, tone, keyword] of cases) {
-    const m = nearMissText(miss, "signal", "keyboard");
-    assert.equal(m.tone, tone);
-    assert.equal(m.keyword, keyword);
-    assert.doesNotMatch(m.keyword + m.text, /[–—]/);
-    const named = (m.keyword + " " + m.text).toLowerCase().match(/[a-z]+/g)
-      .filter((w) => words.includes(w));
-    assert.ok(named.every((w) => w === "signal" || w === "keyboard"), named.join());
-  }
+// Four words in 2-d: a=(1,0); b is near a; c is perpendicular; d is opposite.
+const vec = (rows) => {
+  const data = new Int8Array(rows.flat());
+  const norms = new Float32Array(rows.map((r) => Math.hypot(...r)));
+  return { data, dims: rows[0].length, count: rows.length, norms };
+};
+
+test("scoresFrom + rankOf rank every word by cosine", () => {
+  const v = vec([[100, 0], [90, 20], [0, 100], [-100, 0]]);
+  const scores = scoresFrom(v, 0);
+  assert.ok(Math.abs(scores[0] - 1) < 1e-6);
+  assert.equal(rankOf(scores, 0, 1), 1); // closest other word
+  assert.equal(rankOf(scores, 0, 2), 2);
+  assert.equal(rankOf(scores, 0, 3), 3); // the opposite word is last
+});
+
+test("displayRank never shows a non-neighbor inside the top 100", () => {
+  assert.deepEqual(displayRank(ladder, W.signal, W.network, 7), { rank: 1, family: false }); // exact graph position
+  assert.deepEqual(displayRank(ladder, W.signal, W.computer, 12), { rank: 101, family: false });
+  assert.deepEqual(displayRank(ladder, W.signal, W.computer, 4567), { rank: 4567, family: false });
+});
+
+test("sameFamily mirrors the Python prefix rule", () => {
+  assert.ok(sameFamily("volcano", "volcanic"));
+  assert.ok(sameFamily("music", "musical"));
+  assert.ok(sameFamily("computer", "computing"));
+  assert.ok(!sameFamily("car", "cart"));
+  assert.ok(!sameFamily("planet", "plantation"));
+});
+
+test("rank tones, fills and tried-list order", () => {
+  assert.deepEqual([50, 101, 300, 301, 2000, 2001].map(rankTone), ["near", "mid", "mid", "far", "far", "cold"]);
+  assert.equal(rankFill(1), 100);
+  assert.ok(rankFill(101) > rankFill(1000) && rankFill(1000) > rankFill(15000));
+  assert.ok(rankFill(20000) >= 4);
+  const order = triedOrder([
+    { word: "far", rank: 5000 }, { word: "fam", rank: null, family: true },
+    { word: "near", rank: 120 }, { word: "loading", rank: null }, { word: "err", rank: "?" },
+  ]).map((x) => x.word);
+  assert.deepEqual(order, ["loading", "near", "far", "err", "fam"]);
 });
 
 test("streak counts days, not levels: any solved level keeps it alive", () => {

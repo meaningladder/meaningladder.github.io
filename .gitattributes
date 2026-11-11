@@ -2,3 +2,5 @@
 * text=auto eol=lf
 # The 10 MB graph is generated data: no line diffs.
 data/*.json -diff linguist-generated
+# Binary data: never touch line endings.
+*.bin binary

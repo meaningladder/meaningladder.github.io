@@ -8,10 +8,10 @@
 //   #/archive     previous games
 // For testing: ?today=YYYY-MM-DD pretends it's that date (local view only).
 
-import { loadConfig, loadDailyPuzzle, loadLadder, makePracticePuzzle, migrateStorage, store } from "./data.js";
+import { loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, store } from "./data.js";
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
-  nearMissText, normalize,
+  displayRank, nearMissText, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, routeToGoal, shareText,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -137,7 +137,7 @@ function showHelp() {
       h("li", {}, "Each step must be one of the previous word's 100 closest words in meaning."),
       h("li", {}, "The number on each bar is how many steps that word is from the goal: green is 1, yellow is 2, pink is 3 or more."),
       h("li", {}, h("b", {}, "Par"), " is the fewest steps possible. Match it for gold, one over for silver, two over for bronze."),
-      h("li", {}, "If a word is rejected, we tell you how close it was: close, warm or far."),
+      h("li", {}, "A rejected word joins your Tried list with its rank from the current word. Only the top 100 are valid steps, so #101 was very close."),
       h("li", {}, "Stuck? Use Undo or Hint, or give up from the ⋯ menu."),
       h("li", {}, "New ladders arrive every day at midnight, your time.")),
     h("p", { class: "sub", style: "margin-top:12px" }, "Example: ocean → computer"),
@@ -452,13 +452,15 @@ function playView(ladder, state, saveKey, date) {
   const form = h("form", { class: "guess", onSubmit: (e) => { e.preventDefault(); submit(); } },
     h("label", { for: "guess", class: "visually-hidden" }, "Next word"), input);
   const feedback = h("div", { class: "feedback", "aria-live": "polite" });
+  const tried = h("section", { class: "tried", hidden: true, "aria-label": "Words you tried" });
   const win = h("section", { class: "card win", hidden: true, "aria-live": "polite" });
   const list = h("ol", { class: "path", "aria-label": "Your path, newest first" });
   const undoBtn = h("button", { class: "btn btn-quiet", onClick: undo }, "Undo");
   const hintBtn = h("button", { class: "btn btn-quiet", onClick: hint }, "Hint");
   const actions = h("div", { class: "actions" }, undoBtn, hintBtn);
 
-  render(topbar("meaning ladder", menuWrap), switcher, status, theme, pills, win, form, feedback, list, actions);
+  render(topbar("meaning ladder", menuWrap), switcher, status, theme, pills, win, form, feedback, tried,
+    h("p", { class: "list-head", "aria-hidden": "true" }, "Your path"), list, actions);
 
   // ---- menu
   const menuItems = [
@@ -496,6 +498,7 @@ function playView(ladder, state, saveKey, date) {
       error = res.error;         // keep the typed text so a typo is easy to fix
       const current = state.path[state.path.length - 1];
       miss = res.nearMiss ? nearMissText(res.nearMiss, current, normalize(input.value)) : null;
+      if (res.nearMiss) addTried(normalize(input.value), current, res.nearMiss.oneWay);
       update();
       form.classList.remove("shake");
       void form.offsetWidth;     // restart the animation even on repeated errors
@@ -505,6 +508,7 @@ function playView(ladder, state, saveKey, date) {
     }
     state.path.push(res.word);
     state.hint = null;
+    state.tried = null;   // a new word means a new Tried list
     error = null;
     miss = null;
     justAdded = true;
@@ -518,6 +522,7 @@ function playView(ladder, state, saveKey, date) {
     if (state.status !== "playing" || state.path.length < 2) return;
     state.path.pop();
     state.hint = null;
+    state.tried = null;
     error = null;
     miss = null;
     save();
@@ -565,6 +570,62 @@ function playView(ladder, state, saveKey, date) {
     route();
   }
 
+  // ---- Contexto-style Tried list
+  // Each wrong guess at the current word, ranked by closeness to that word.
+  let scoreCache = { at: -1, scores: null }; // scores for one "from" word at a time
+
+  function addTried(word, current, oneWay) {
+    if (state.tried?.at !== current) state.tried = { at: current, items: [] };
+    state.tried.items = state.tried.items.filter((x) => x.word !== word); // a repeat moves to newest
+    state.tried.items.push({ word, rank: null, family: false, oneWay });
+    save();
+    resolveRanks();
+  }
+
+  async function resolveRanks() {
+    const t = state.tried;
+    if (!t || !t.items.some((x) => x.rank == null && !x.family)) return;
+    let vectors;
+    try {
+      vectors = await loadVectors();
+    } catch (err) {
+      console.warn("Couldn't load word vectors for ranks.", err);
+      t.items.forEach((x) => { if (x.rank == null && !x.family) x.rank = "?"; });
+      update();
+      return;
+    }
+    const from = ladder.index.get(t.at);
+    if (scoreCache.at !== from) scoreCache = { at: from, scores: scoresFrom(vectors, from) };
+    for (const x of t.items) {
+      if (x.rank != null || x.family) continue;
+      const to = ladder.index.get(x.word);
+      Object.assign(x, displayRank(ladder, from, to, rankOf(scoreCache.scores, from, to)));
+    }
+    save();
+    update();
+  }
+
+  function rankBar(x, latest) {
+    const known = typeof x.rank === "number";
+    const tone = x.family || !known ? "cold" : rankTone(x.rank);
+    const right = x.family ? h("span", { class: "tag" }, "same word")
+      : x.rank == null ? "\u2026" : known ? `#${x.rank.toLocaleString()}` : "?";
+    return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}`, style: `--fill:${known ? rankFill(x.rank) : 0}%` },
+      h("span", {}, x.word, x.oneWay ? h("span", { class: "tag" }, "one-way") : null),
+      h("span", { class: "num" }, right,
+        known ? h("span", { class: "visually-hidden" }, ` closest to ${state.tried.at}`) : null));
+  }
+
+  function renderTried(current, playing) {
+    const t = state.tried;
+    tried.hidden = !playing || !t || t.at !== current || !t.items.length;
+    if (tried.hidden) return;
+    const latest = t.items[t.items.length - 1];
+    tried.replaceChildren(
+      h("p", { class: "tried-head" }, `Tried from ${t.at}`),
+      h("ol", { class: "path" }, triedOrder(t.items).map((x) => rankBar(x, x === latest))));
+  }
+
   // ---- rendering
   function bar(word, { latest = false, isStart = false, enter = false } = {}) {
     const d = stepsTo(word);
@@ -609,6 +670,7 @@ function playView(ladder, state, saveKey, date) {
     })).reverse());
     justAdded = false;
 
+    renderTried(current, playing);
     renderSwitcher();
     renderWin();
   }
@@ -683,6 +745,7 @@ function playView(ladder, state, saveKey, date) {
   }
 
   update();
+  resolveRanks(); // ranks still pending from before a refresh
   if (state.status === "playing") input.focus();
 }
 

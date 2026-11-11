@@ -37,6 +37,31 @@ export function loadLadder() {
   }));
 }
 
+// Compact word vectors (data/vectors_vN.bin, 64 bytes per word), used only to
+// rank wrong guesses. Loaded on the first wrong guess, then cached.
+let vectorsPromise = null;
+export function loadVectors() {
+  return (vectorsPromise ??= (async () => {
+    const config = await loadConfig();
+    const v = config.graphVersion;
+    const header = await getJson(`data/vectors_v${v}.json`);
+    const res = await fetch(`data/vectors_v${v}.bin`);
+    if (!res.ok) throw new Error(`vectors: HTTP ${res.status}`);
+    const data = new Int8Array(await res.arrayBuffer());
+    if (data.length !== header.count * header.dims) throw new Error("vectors: unexpected size");
+    const norms = new Float32Array(header.count);
+    for (let i = 0; i < header.count; i++) {
+      let sum = 0;
+      for (let k = 0; k < header.dims; k++) sum += data[i * header.dims + k] ** 2;
+      norms[i] = Math.sqrt(sum);
+    }
+    return { data, dims: header.dims, count: header.count, norms };
+  })().catch((err) => {
+    vectorsPromise = null; // let the next wrong guess retry
+    throw err;
+  }));
+}
+
 // One level of a day's puzzle (puzzles/YYYY-MM-DD-<level>.json), or the
 // identical-everywhere seeded fallback if the file is missing.
 export async function loadDailyPuzzle(ladder, dateStr, level) {

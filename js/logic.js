@@ -80,42 +80,77 @@ export function checkStep(ladder, path, typed) {
   return { ok: true, word };
 }
 
-// How far was a rejected word, really? A forward BFS from the current word
-// that gives up after `maxDepth` steps (depth 3 already reaches most of the
-// map, so this costs a few milliseconds).
-//   steps:  2 or 3, or null when it's further than maxDepth (or unreachable)
-//   oneWay: the attempt lists the current word among ITS neighbors, but not
-//           the other way round (neighbor lists aren't symmetric)
-export function nearMiss(ladder, fromIdx, toIdx, maxDepth = 3) {
-  const oneWay = ladder.neighbors[toIdx].includes(fromIdx);
-  const n = ladder.neighbors.length;
-  const depth = new Int8Array(n).fill(-1);
-  const queue = new Int32Array(n);
-  let head = 0, tail = 0;
-  depth[fromIdx] = 0;
-  queue[tail++] = fromIdx;
-  while (head < tail) {
-    const u = queue[head++];
-    if (depth[u] === maxDepth) break; // BFS order: everything after is deeper
-    for (const v of ladder.neighbors[u]) {
-      if (depth[v] !== -1) continue;
-      depth[v] = depth[u] + 1;
-      if (v === toIdx) return { steps: depth[v], oneWay };
-      queue[tail++] = v;
-    }
-  }
-  return { steps: null, oneWay };
+// Is the link one-way? The attempt lists the current word among ITS
+// neighbors, but not the other way round (neighbor lists aren't symmetric).
+export function nearMiss(ladder, fromIdx, toIdx) {
+  return { oneWay: ladder.neighbors[toIdx].includes(fromIdx) };
 }
 
-// The sentence shown under the rejection. It never names a bridging word,
-// so it's feedback about the guess, not a hint about the answer.
-export function nearMissText({ steps, oneWay }, current, word) {
-  if (oneWay) {
-    return { tone: "close", keyword: "So close:", text: `${current} is one of ${word}'s closest words, but the link only runs the other way.` };
+// Extra sentence under a rejection, or null. Ranks (below) now say how close
+// a guess was; this only explains the one surprising case.
+export function nearMissText({ oneWay }, current, word) {
+  return oneWay ? { tone: "close", keyword: "So close:", text: `${current} is one of ${word}'s closest words, but the link only runs the other way.` } : null;
+}
+
+// ------------------------------------------------------------ Contexto-style ranks
+// vectors = { data: Int8Array(count * dims), dims, count, norms: Float32Array }
+// Cosine similarity of `fromIdx` against every word. Integer dot products on
+// 8-bit numbers: 20k words x 64 dims is about a million multiplies (a few ms).
+export function scoresFrom(vectors, fromIdx) {
+  const { data, dims, count, norms } = vectors;
+  const out = new Float32Array(count);
+  const base = fromIdx * dims;
+  for (let i = 0; i < count; i++) {
+    let dot = 0;
+    const off = i * dims;
+    for (let k = 0; k < dims; k++) dot += data[base + k] * data[off + k];
+    out[i] = dot / (norms[i] * norms[fromIdx] || 1);
   }
-  if (steps === 2) return { tone: "close", keyword: "Close!", text: "It's 2 steps away: find a word that links them." };
-  if (steps === 3) return { tone: "warm", keyword: "Warm.", text: "It's 3 steps away: try something closer in meaning." };
-  return { tone: "far", keyword: "Far.", text: `Try a word much closer in meaning to ${current}.` };
+  return out;
+}
+
+// 1 + how many other words score strictly higher than `toIdx`.
+export function rankOf(scores, fromIdx, toIdx) {
+  const s = scores[toIdx];
+  let rank = 1;
+  for (let i = 0; i < scores.length; i++) if (i !== fromIdx && i !== toIdx && scores[i] > s) rank++;
+  return rank;
+}
+
+// Same prefix rule as scripts/wordfilters.py is_trivial_pair (the lemma half
+// needs WordNet, so mice/mouse falls through to a normal rank).
+export function sameFamily(a, b) {
+  let p = 0;
+  while (p < a.length && p < b.length && a[p] === b[p]) p++;
+  return p >= 5 && p >= 0.75 * Math.min(a.length, b.length);
+}
+
+// What a wrong guess shows. Real neighbors use their exact graph position;
+// everything else is at least #101, even where the compact vectors disagree,
+// so the number never contradicts the game's top-100 rule.
+export function displayRank(ladder, fromIdx, toIdx, approxRank) {
+  const pos = ladder.neighbors[fromIdx].indexOf(toIdx);
+  if (pos >= 0) return { rank: pos + 1, family: false };
+  if (sameFamily(ladder.words[fromIdx], ladder.words[toIdx])) return { rank: null, family: true };
+  return { rank: Math.max(approxRank, 101), family: false };
+}
+
+export function rankTone(rank) {
+  if (rank <= 100) return "near";
+  if (rank <= 300) return "mid";
+  if (rank <= 2000) return "far";
+  return "cold";
+}
+
+// Log scale: #1 fills the bar, #101 about half, #10,000 a sliver.
+export function rankFill(rank, total = 20000) {
+  return Math.max(4, Math.round(100 * (1 - Math.log(rank) / Math.log(total))));
+}
+
+// Tried list order: still-loading first, then closest, then "same word".
+export function triedOrder(items) {
+  const key = (x) => (x.family ? Infinity : typeof x.rank === "number" ? x.rank : x.rank == null ? -1 : 1e9);
+  return [...items].sort((a, b) => key(a) - key(b));
 }
 
 // ------------------------------------------------------------ results
