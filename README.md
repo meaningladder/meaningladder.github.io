@@ -20,8 +20,8 @@ ONE TIME (offline, scripts/build_graph.py)
   GloVe 300d → filtered 20k vocabulary → top-100 neighbors (directed graph)
   → data/graph_v1.json, data/candidates_v1.json            (frozen, versioned)
 
-DAILY (GitHub Actions, .github/workflows/daily-puzzle.yml, 00:17 UTC)
-  scripts/generate_puzzle.py --ahead 3
+DAILY (GitHub Actions, .github/workflows/daily-puzzle.yml, 06:17 + 08:47 UTC)
+  scripts/generate_puzzle.py --ahead 1   (tomorrow, just before it starts in UTC+14)
     OpenAI suggests start/goal + theme + teaser → BFS validates against the graph
     → retry with feedback → seeded fallback if anything fails
   → puzzles/YYYY-MM-DD.json → commit → redeploy site
@@ -73,7 +73,7 @@ node --test "tests/js/*.test.mjs"  # JS: game rules + Python/JS seeded parity
 |---|---|
 | Preview a puzzle without writing it | `python scripts/generate_puzzle.py --date 2026-11-20 --dry-run` |
 | Same, without calling OpenAI | add `--no-ai` |
-| Generate today..today+3 | `python scripts/generate_puzzle.py --ahead 3` |
+| Generate today + tomorrow | `python scripts/generate_puzzle.py --ahead 1` |
 | Edit start/goal words | edit `scripts/lists/candidates_exclude.txt`, then `python scripts/build_graph.py --candidates-only` and `python scripts/make_fixtures.py` |
 | Run the daily job now | GitHub → Actions → Daily puzzle → Run workflow |
 

@@ -1,0 +1,7 @@
+# Keep answer files and the 10 MB word graph out of search results.
+# (Browsers ignore this; the game still loads them normally.)
+User-agent: *
+Disallow: /puzzles/
+Disallow: /data/
+
+Sitemap: https://meaningladder.github.io/sitemap.xml

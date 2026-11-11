@@ -33,7 +33,7 @@ Think of it as three people who never meet but share a notebook:
 1. **The cartographer** (`scripts/build_graph.py`) drew the map once, and the
    map is never redrawn in place. If it changes, it becomes `graph_v2.json`.
 2. **The puzzle editor** (`scripts/generate_puzzle.py`, run by GitHub Actions
-   every day at 00:17 UTC) asks OpenAI for a fun pair, then fact-checks it
+   twice a day, just before tomorrow starts anywhere) asks OpenAI for a fun pair, then fact-checks it
    against the map with BFS, because the AI has never seen our map.
 3. **The player's browser** (`js/`) reads the map and the day's puzzle file.
 
@@ -283,7 +283,12 @@ owns the key, and if the key ever leaks, revoke it at OpenAI first, then run
 We launched on **Tuesday 2026-11-10** (moved up from the planned Monday the 16th,
 which was safe because no real puzzle had been published yet, so no game numbers
 changed for anyone). The first four puzzles (Nov 10-13) were written by the
-GitHub job with the AI; the daily cron keeps three days ahead from here.
+GitHub job with the AI. On Nov 11 the job switched to just-in-time: because the
+repo is public, every committed puzzle is readable on GitHub at once, so it now
+writes only tomorrow's puzzle, a few hours before UTC+14 reaches it. (Hashed file
+names wouldn't have helped: they'd sit in the same public repo, and the browser's
+naming rule would be in public JavaScript.) A robots.txt, which only works now
+that the game sits at a domain root, keeps /puzzles/ and /data/ out of search.
 
 Still worth doing: one human read of `data/candidates_v1.json`, and a monthly
 spending cap on the OpenAI project. Edits to the candidate list now only affect

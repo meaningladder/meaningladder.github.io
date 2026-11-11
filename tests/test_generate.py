@@ -168,3 +168,21 @@ def test_prompt_offers_verified_pairs(ladder):
     assert "Verified pairs" in prompt
     s, g = prompt.split("\n- ", 1)[1].split("\n")[0].split(" -> ")
     assert validate_pair(ladder, s, g, band).ok
+
+
+def test_daily_cron_runs_before_tomorrow_starts_anywhere():
+    """Just-in-time schedule: both cron runs must land before UTC+14 reaches
+    tomorrow (10:00 UTC), or tomorrow would get the seeded puzzle."""
+    import re
+    from datetime import datetime, timedelta, timezone
+    from pathlib import Path
+
+    from generate_puzzle import is_live
+
+    wf = (Path(__file__).resolve().parent.parent / ".github/workflows/daily-puzzle.yml").read_text()
+    crons = re.findall(r'cron: "(\d+) (\d+) \* \* \*"', wf)
+    assert len(crons) == 2
+    for minute, hour in crons:
+        now = datetime(2026, 11, 12, int(hour), int(minute), tzinfo=timezone.utc)
+        assert not is_live((now + timedelta(days=1)).date(), now), f"{hour}:{minute} is too late"
+    assert "args=(--ahead 1)" in wf

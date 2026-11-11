@@ -2,7 +2,7 @@
 
     python scripts/generate_puzzle.py                     # tomorrow (UTC)
     python scripts/generate_puzzle.py --date 2026-11-12   # a specific day
-    python scripts/generate_puzzle.py --ahead 3           # today (UTC) through today+3
+    python scripts/generate_puzzle.py --ahead 1           # today and tomorrow (the daily job)
     python scripts/generate_puzzle.py --no-ai --dry-run   # seeded only, print, write nothing
 
 Writes puzzles/YYYY-MM-DD.json and never overwrites an existing file.

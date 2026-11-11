@@ -87,8 +87,8 @@ preview: ## Preview one puzzle, saves nothing: make preview DATE=2026-11-16 [NOA
 	@test -n "$(DATE)" || { echo "usage: make preview DATE=YYYY-MM-DD [NOAI=1]"; exit 1; }
 	$(PY) scripts/generate_puzzle.py --date $(DATE) --dry-run $(if $(NOAI),--no-ai)
 
-puzzles: ## Generate and SAVE today..today+3 locally (what the daily job does)
-	$(PY) scripts/generate_puzzle.py --ahead 3
+puzzles: ## Generate and SAVE today + tomorrow locally (what the daily job does)
+	$(PY) scripts/generate_puzzle.py --ahead 1
 
 # ---------------------------------------------------------------- GitHub
 cloud-dry-run: ## Run the daily job on GitHub without saving: make cloud-dry-run DATE=2026-11-16 [NOAI=1]
