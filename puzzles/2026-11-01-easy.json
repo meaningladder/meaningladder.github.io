@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-01",
+  "gameNumber": 1,
+  "level": "easy",
+  "start": "guitarist",
+  "goal": "tomato",
+  "par": 3,
+  "theme": "From strums to splats",
+  "teaser": "Start with a strum and see whether your performance ends with a splat!",
+  "source": "ai",
+  "graphVersion": 1
+}
