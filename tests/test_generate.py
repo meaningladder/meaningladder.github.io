@@ -92,7 +92,7 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
     assert set(p1) == SPEC_FIELDS
     assert p1["par"] == level_band(LEVEL, ladder.config)["par"]
     assert p1["level"] == LEVEL
-    assert p1["gameNumber"] == 8  # launch 2026-11-10 is game 1
+    assert p1["gameNumber"] == 17  # launch 2026-11-01 is game 1
 
 
 def test_write_never_overwrites(tmp_path, ladder):
@@ -128,7 +128,7 @@ def test_is_live_uses_earliest_time_zone():
 def test_cli_skips_dates_before_launch(tmp_path, capsys):
     from generate_puzzle import main
 
-    main(["--date", "2026-11-09", "--no-ai", "--out", str(tmp_path)])
+    main(["--date", "2026-10-31", "--no-ai", "--out", str(tmp_path)])
     assert "before launch" in capsys.readouterr().out
     assert not list(tmp_path.iterdir())
 

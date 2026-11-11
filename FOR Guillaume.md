@@ -301,7 +301,7 @@ with few, 4 steps). Design choices worth noticing:
 
 ## Launch
 
-We launched on **Tuesday 2026-11-10** (moved up from the planned Monday the 16th,
+We launched on **Tuesday 2026-11-10**, then moved Game #1 back to **Nov 1** two days later so the whole first month is playable (27 back-filled puzzles; the game computes numbers from the date, so stale saves can't show old numbers). Originally it launched (moved up from the planned Monday the 16th,
 which was safe because no real puzzle had been published yet, so no game numbers
 changed for anyone). The first four puzzles (Nov 10-13) were written by the
 GitHub job with the AI. On Nov 11 the job switched to just-in-time: because the

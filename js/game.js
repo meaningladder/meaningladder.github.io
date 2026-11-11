@@ -403,6 +403,9 @@ function playView(ladder, state, saveKey, date) {
     console.warn(`Puzzle file says par ${puzzle.par}, but the shortest path is ${truePar}.`);
     puzzle.par = truePar;
   }
+  // The game number always comes from the date and the current launch date,
+  // never from a saved copy (saves made before a launch-date change are stale).
+  if (state.kind === "daily") puzzle.gameNumber = gameNumber(date, ladder.config.launchDate);
   const level = puzzle.level ?? "medium";
   const levelLabel = LEVEL_LABEL[level];
   const label = state.kind === "daily" ? `#${puzzle.gameNumber} ${levelLabel}` : `unlimited (${level})`;
