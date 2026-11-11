@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "medium",
+  "start": "telephone",
+  "goal": "tree",
+  "par": 5,
+  "theme": "Naturally connected",
+  "teaser": "This conversation is about to grow in unexpected directions.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 20
+}
