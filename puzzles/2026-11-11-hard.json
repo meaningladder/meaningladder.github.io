@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-11",
+  "gameNumber": 2,
+  "level": "hard",
+  "start": "door",
+  "goal": "kidney",
+  "par": 4,
+  "theme": "Picky about passage",
+  "teaser": "One lets you through; the other is much pickier about what gets to stay.",
+  "source": "ai",
+  "graphVersion": 1
+}
