@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "medium",
+  "start": "shark",
+  "goal": "paint",
+  "par": 3,
+  "theme": "From fins to finishes",
+  "teaser": "A toothy beginning takes a hands-on detour before adding a splash of color.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 40,
+  "twoWay": true
+}

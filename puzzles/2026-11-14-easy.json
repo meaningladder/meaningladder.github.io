@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "easy",
+  "start": "warrior",
+  "goal": "pet",
+  "par": 3,
+  "theme": "From battle to cuddles",
+  "teaser": "Even the fiercest fighter can find a cuddly companion after a few wild encounters.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 40,
+  "twoWay": true
+}
