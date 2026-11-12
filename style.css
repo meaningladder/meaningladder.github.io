@@ -212,6 +212,10 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 }
 .pill.goal { background: var(--goal); border-color: transparent; color: var(--text); }
 .pills .arrow { color: var(--muted); }
+/* Words found so far, between start and goal: lighter than the two ends. */
+.pill.step { background: transparent; font-weight: 600; }
+/* The rung you're on: same dark outline as the newest bar on the path. */
+.pill.current { border: 2px solid var(--strong); padding: 4px 11px; font-weight: 800; }
 
 .guess { display: flex; gap: 8px; }
 .guess input {
@@ -268,6 +272,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .bar .num { font-variant-numeric: tabular-nums; }
 .bar .tag { font-size: 0.72rem; color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
 .bar.enter { animation: slide-in 220ms ease-out; }
+/* A newly rejected word: one short pulse so the eye finds it in the list. */
+.tried .bar.enter { animation: slide-in 220ms ease-out, pulse 600ms ease-out 1; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 40% { box-shadow: 0 0 0 4px var(--line); } }
 @keyframes slide-in { from { opacity: 0; transform: translateY(-6px); } }
 
 .actions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }

@@ -158,7 +158,7 @@ async function showHelp(k = null) {
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), " word, one word at a time."),
       h("li", {}, "Every day has three ladders: ", h("b", {}, "Easy"), ", ", h("b", {}, "Medium"), " and ", h("b", {}, "Hard"), ". Solve any of them to keep your streak."),
       h("li", {}, `Each step must be one of the previous word's ${k} closest words in meaning.${eraNote}`),
-      h("li", {}, "Each word on your path shows how many steps it still is from the goal (“3 to go”): green is 1, yellow is 2, pink is 3 or more."),
+      h("li", {}, "Each word on your path shows how many steps it still is from the goal (“3 to go”): green is 1, yellow is 2, pink is 3 or more. A step can be valid without getting you closer; those are marked “no closer”."),
       h("li", {}, h("b", {}, "Par"), " is the fewest steps possible. Match it for gold, one over for silver, two over for bronze."),
       h("li", {}, `A rejected word joins your Tried list with its rank from the current word. Only the top ${k} are valid steps, so #${k + 1} was very close.`),
       h("li", {}, "Stuck? Use Undo or Hint, or give up from the ⋯ menu."),
@@ -444,6 +444,8 @@ function playView(ladder, state, saveKey, date) {
 
   let error = null;
   let miss = null;           // near-miss feedback for the last rejected word
+  let rejected = null;       // a real word that just went into the Tried list
+  let justTried = false;     // animate that word's bar once
   let justAdded = false;
   let countdownTimer = null;
   cleanups.push(() => clearInterval(countdownTimer));
@@ -476,9 +478,26 @@ function playView(ladder, state, saveKey, date) {
   const isPractice = state.kind === "practice" || puzzle.source === "practice";
   const theme = !isPractice && (puzzle.theme || puzzle.teaser) && h("p", { class: "theme" },
     h("strong", {}, puzzle.theme), puzzle.teaser ? h("span", {}, ` · ${puzzle.teaser}`) : null);
-  const pills = h("div", { class: "pills", "aria-label": `From ${puzzle.start} to ${puzzle.goal}` },
-    h("span", { class: "pill" }, puzzle.start), h("span", { class: "arrow" }, "→ … →"),
-    h("span", { class: "pill goal" }, puzzle.goal));
+  // Start, every word found so far, then the goal: the ladder at a glance.
+  // The word you're on is outlined (aria-current) while you play.
+  const pills = h("div", { class: "pills" });
+  function renderPills() {
+    const playing = state.status === "playing";
+    const won = state.status === "won";
+    const middle = state.path.slice(1, won ? -1 : undefined);
+    const last = state.path.length - 1;
+    const pill = (word, cls, i) => h("span", {
+      class: `pill${cls}${playing && i === last ? " current" : ""}`,
+      "aria-current": playing && i === last ? "step" : null,
+    }, word);
+    const arrow = (text = "→") => h("span", { class: "arrow", "aria-hidden": "true" }, text);
+    const parts = [pill(puzzle.start, "", 0)];
+    middle.forEach((w, j) => parts.push(arrow(), pill(w, " step", j + 1)));
+    parts.push(arrow(won ? "→" : "→ … →"), h("span", { class: "pill goal" }, puzzle.goal));
+    pills.setAttribute("aria-label",
+      `Your ladder so far: ${[puzzle.start, ...middle].join(", ")}${won ? "" : ", …"}, ${puzzle.goal}`);
+    pills.replaceChildren(...parts);
+  }
 
   const input = h("input", { id: "guess", type: "text", autocomplete: "off", autocapitalize: "none",
     autocorrect: "off", spellcheck: "false", enterkeyhint: "go", maxlength: "30" });
@@ -529,10 +548,17 @@ function playView(ladder, state, saveKey, date) {
     if (state.status !== "playing") return;
     const res = checkStep(ladder, state.path, input.value);
     if (!res.ok) {
-      error = res.error;         // keep the typed text so a typo is easy to fix
       const current = state.path[state.path.length - 1];
-      miss = res.nearMiss ? nearMissText(res.nearMiss, current, normalize(input.value)) : null;
-      if (res.nearMiss) addTried(normalize(input.value), current, res.nearMiss.oneWay);
+      // A real word that just isn't close enough goes into the Tried list,
+      // which already shows it, its rank and a highlight: no red sentence.
+      // Typos, unknown words and repeats keep their message.
+      error = res.nearMiss ? null : res.error;  // the typed text stays, so a typo is easy to fix
+      rejected = res.nearMiss ? { word: normalize(input.value), at: current } : null;
+      miss = null;
+      if (res.nearMiss) {
+        justTried = true;
+        addTried(normalize(input.value), current, res.nearMiss.oneWay);
+      }
       update();
       input.select();
       return;
@@ -542,6 +568,7 @@ function playView(ladder, state, saveKey, date) {
     state.tried = null;   // a new word means a new Tried list
     error = null;
     miss = null;
+    rejected = null;
     justAdded = true;
     input.value = "";
     if (res.word === puzzle.goal) finish("won");
@@ -556,6 +583,7 @@ function playView(ladder, state, saveKey, date) {
     state.tried = null;
     error = null;
     miss = null;
+    rejected = null;
     save();
     update();
     input.focus();
@@ -581,6 +609,7 @@ function playView(ladder, state, saveKey, date) {
     }
     error = null;
     miss = null;
+    rejected = null;
     save();
     update();
     input.focus();
@@ -641,7 +670,8 @@ function playView(ladder, state, saveKey, date) {
     const tone = x.family || !known ? "cold" : rankTone(x.rank, ladder.config.stepLimit);
     const right = x.family ? h("span", { class: "tag" }, "same word")
       : x.rank == null ? "\u2026" : known ? `#${x.rank.toLocaleString()}` : "?";
-    return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}`, style: `--fill:${known ? rankFill(x.rank) : 0}%` },
+    const enter = latest && justTried;
+    return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}${enter ? " enter" : ""}`, style: `--fill:${known ? rankFill(x.rank) : 0}%` },
       h("span", {}, x.word, x.oneWay ? h("span", { class: "tag" }, "one-way") : null),
       h("span", { class: "num" }, right,
         known ? h("span", { class: "visually-hidden" }, ` closest to ${state.tried.at}`) : null));
@@ -663,15 +693,24 @@ function playView(ladder, state, saveKey, date) {
   }
 
   // ---- rendering
-  function bar(word, { latest = false, isStart = false, enter = false } = {}) {
+  // How a step compared with the word before it: "no closer", "farther" or null.
+  function drift(prev, word) {
+    if (prev == null) return null;
+    const a = stepsTo(prev), b = stepsTo(word);
+    if (a < 0 || b < 0) return null;
+    return b === a ? "no closer" : b > a ? "farther" : null;
+  }
+
+  function bar(word, { latest = false, isStart = false, enter = false, prev = null } = {}) {
     const d = stepsTo(word);
     const { tone, fill } = closeness(d);
     const num = d === 0 ? "goal" : d < 0 ? "no route" : `${d} to go`;
+    const note = isStart ? "start" : drift(prev, word);
     return h("li", {
       class: `bar tone-${tone}${latest ? " latest" : ""}${enter ? " enter" : ""}`,
       style: `--fill:${fill}%`,
     },
-    h("span", {}, word, isStart ? h("span", { class: "tag" }, "start") : null),
+    h("span", {}, word, note ? h("span", { class: "tag" }, note) : null),
     h("span", { class: "num" }, num));
   }
 
@@ -679,6 +718,10 @@ function playView(ladder, state, saveKey, date) {
   function progressLine(current, steps) {
     const d = stepsTo(current);
     if (d < 0) return `${current}: no route to ${puzzle.goal} from here. Try Undo.`;
+    const s = d === 1 ? "" : "s";
+    const how = drift(state.path[steps - 1], current);
+    if (how === "no closer") return `${current} didn't get you closer: still ${d} step${s} to ${puzzle.goal}.`;
+    if (how === "farther") return `${current} is farther: now ${d} step${s} to ${puzzle.goal}. Undo to go back.`;
     const over = steps + d - puzzle.par;
     return `${current}: ${d} step${d === 1 ? "" : "s"} to ${puzzle.goal}.`
       + (over <= 0 ? " On track for par." : ` Best now: par +${over}.`);
@@ -702,6 +745,8 @@ function playView(ladder, state, saveKey, date) {
     if (!playing) feedback.replaceChildren();
     else if (error) feedback.replaceChildren(h("p", { class: "error" }, error,
       miss ? h("span", { class: `miss miss-${miss.tone}` }, h("b", {}, miss.keyword), " ", miss.text) : null));
+    else if (rejected?.at === current) feedback.replaceChildren(h("p", { class: "visually-hidden" },
+      `${rejected.word} is not a valid step from ${current}. It was added to your Tried list.`));
     else if (state.hint?.word === current) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), state.hint.text));
     else if (steps > 0) feedback.replaceChildren(h("p", { class: "muted" }, progressLine(current, steps)));
     else feedback.replaceChildren(h("p", { class: "muted" },
@@ -709,13 +754,16 @@ function playView(ladder, state, saveKey, date) {
 
     // Full path, newest on top; the start word sits at the bottom.
     list.replaceChildren(...state.path.map((w, i) => bar(w, {
-      latest: playing && i === steps && steps > 0,
+      latest: playing && i === steps, // the word you're on, start included
       isStart: i === 0,
       enter: justAdded && i === steps,
+      prev: i > 0 ? state.path[i - 1] : null,
     })).reverse());
     justAdded = false;
 
+    renderPills();
     renderTried(current, playing);
+    justTried = false;
     renderSwitcher();
     renderWin();
   }
