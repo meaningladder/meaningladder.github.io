@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "medium",
+  "start": "fabric",
+  "goal": "gasoline",
+  "par": 5,
+  "theme": "Textiles to tanks",
+  "teaser": "Can yesterday's outfit help power tomorrow's road trip?",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true
+}

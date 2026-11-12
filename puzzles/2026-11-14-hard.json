@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "hard",
+  "start": "booth",
+  "goal": "vitamin",
+  "par": 6,
+  "theme": "Small spaces, healthy choices",
+  "teaser": "Step out of a little enclosure and take a tasty turn toward a daily boost.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true
+}
