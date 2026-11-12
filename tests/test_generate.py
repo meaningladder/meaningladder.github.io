@@ -192,7 +192,9 @@ def test_prompt_offers_verified_pairs(ladder):
     # Each pair carries a route and the goal's incoming words, so the AI can
     # see which sense of the goal the graph uses (the "anchor" problem).
     lines = prompt.split("\n- ", 1)[1].split("\n")
-    route = lines[1].split("shortest route: ")[1].split(" -> ")
+    # Steps read "a -> b", or "a -[IsA]-> b" when ConceptNet relates them.
+    import re
+    route = re.split(r" -(?:\[[A-Za-z]+\]-)?> ", lines[1].split("shortest route: ")[1])
     assert route[0] == s and route[-1] == g and len(route) == band["par"] + 1
     incoming = lines[2].split(f"words that step to {g}: ")[1].split(", ")
     assert 1 <= len(incoming) <= 10
