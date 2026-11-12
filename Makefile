@@ -23,7 +23,7 @@ NOAI  ?=
 UI_FILES := index.html style.css js/game.js js/data.js js/seeded.js js/icons.js
 
 .DEFAULT_GOAL := help
-.PHONY: help setup test test-py test-js check audit graph graph-bin candidates era-exclude fixtures vectors \
+.PHONY: help setup test test-py test-js check audit graph graph-bin relations candidates era-exclude fixtures vectors \
         serve preview puzzles cloud-dry-run cloud-status secret-check redeploy clean
 
 help: ## List all targets
@@ -82,6 +82,10 @@ era-exclude: ## Rebuild the 2026-11-13 era's start/goal exclusions after editing
 
 graph-bin: ## Split the graph into the files the browser loads (data/graph_v1_wide{_head,_tail}.bin + _wide.json)
 	$(PY) scripts/build_graph_bin.py
+
+relations: ## Rebuild data/relations_v1.* from ConceptNet: make relations DUMP=conceptnet-assertions-5.7.0.csv.gz
+	@test -n "$(DUMP)" || { echo "usage: make relations DUMP=path/to/conceptnet-assertions-5.7.0.csv.gz"; exit 1; }
+	$(PY) scripts/build_relations.py $(DUMP)
 
 vectors: ## Build data/vectors_v1.bin, the compact vectors behind wrong-guess ranks
 	$(PY) scripts/build_vectors.py

@@ -38,6 +38,10 @@ class Ladder:
     # era's exclusions; the v1 file itself is frozen, so eras filter it.
     all_candidates: list[str] | None = None
     exclusions: dict[str, frozenset[str]] | None = None
+    # ConceptNet links between GloVe neighbors (data/relations_vN.*): key
+    # rel_key(u, v) -> relation name. Used to choose and show routes whose
+    # steps are real relations; never to accept or reject a step.
+    related: dict[int, str] | None = None
 
     def at(self, date_str: str | None) -> "Ladder":
         """This ladder under the rules for `date_str` (None = the newest rules)."""
@@ -180,7 +184,105 @@ def load_ladder(root: Path = ROOT, config: dict | None = None,
         base_config=config,
         all_candidates=cands["words"],
         exclusions=load_exclusions(root, config),
+        related=load_relations(root, v),
     ).at(date_str)
+
+
+# ---------------------------------------------------------------- ConceptNet relations
+REL_KEY = 65536  # word indexes are < 65,536 (uint16 in the data files)
+
+
+def rel_key(a: int, b: int) -> int:
+    """One key per unordered pair. JS twin: relKey in js/seeded.js."""
+    return min(a, b) * REL_KEY + max(a, b)
+
+
+def load_relations(root: Path, v: int) -> dict[int, str] | None:
+    """data/relations_vN.bin (see scripts/build_relations.py), or None if absent."""
+    head, blob = root / "data" / f"relations_v{v}.json", root / "data" / f"relations_v{v}.bin"
+    if not head.exists() or not blob.exists():
+        return None
+    meta = json.loads(head.read_text(encoding="utf-8"))
+    data, n = blob.read_bytes(), meta["count"]
+    out = {}
+    for i in range(n):
+        u = int.from_bytes(data[4 * i:4 * i + 2], "little")
+        w = int.from_bytes(data[4 * i + 2:4 * i + 4], "little")
+        out[rel_key(u, w)] = meta["relations"][data[4 * n + i]]
+    return out
+
+
+def linked_steps(neighbors: list[list[int]], related, start: int, goal: int, par: int) -> int:
+    """The most steps that are ConceptNet relations on any SHORTEST route
+    start -> goal (undirected two-way graphs). One BFS from the goal in layers,
+    then best[u] = max over the next layer's v of linked(u, v) + best[v].
+    JS twin: linkedSteps in js/seeded.js."""
+    if par < 1:
+        return 0
+    dist = {goal: 0}
+    layers = [[goal]]
+    for d in range(1, par + 1):
+        nxt = []
+        for u in layers[-1]:
+            for v in neighbors[u]:
+                if v not in dist:
+                    dist[v] = d
+                    nxt.append(v)
+        layers.append(nxt)
+    if dist.get(start) != par:
+        return 0
+    best = {goal: 0}
+    for d in range(1, par + 1):
+        for u in layers[d]:
+            best[u] = max((rel_key(u, v) in related) + best[v]
+                          for v in neighbors[u] if dist.get(v) == d - 1)
+    return best[start]
+
+
+def linked_from(neighbors: list[list[int]], related, start: int, dist: list[int]) -> list[int]:
+    """linked_steps from `start` to EVERY word at once, given bfs_all's dist
+    from start (the graph is undirected, so the count is the same either way).
+    Python only (the shortlist)."""
+    order = sorted((i for i, d in enumerate(dist) if d >= 0), key=lambda i: dist[i])
+    best = [0] * len(dist)
+    for v in order:
+        if v == start:
+            continue
+        best[v] = max(((rel_key(u, v) in related) + best[u]
+                       for u in neighbors[v] if dist[u] == dist[v] - 1), default=0)
+    return best
+
+
+def guide_route(neighbors: list[list[int]], related, start: int, goal: int) -> list[int] | None:
+    """A shortest route with the most ConceptNet-relation steps (ties: the
+    more similar neighbor first). For the AI prompt; the browser builds its
+    own with guideRoute in js/logic.js."""
+    dist = {goal: 0}
+    frontier = [goal]
+    while frontier and start not in dist:
+        nxt = []
+        for u in frontier:
+            for v in neighbors[u]:
+                if v not in dist:
+                    dist[v] = dist[u] + 1
+                    nxt.append(v)
+        frontier = nxt
+    if start not in dist:
+        return None
+    memo: dict[int, int] = {goal: 0}
+
+    def best(u: int) -> int:
+        if u not in memo:
+            memo[u] = max((rel_key(u, v) in related) + best(v)
+                          for v in neighbors[u] if dist.get(v) == dist[u] - 1)
+        return memo[u]
+
+    route, u = [start], start
+    while u != goal:
+        u = max((v for v in neighbors[u] if dist.get(v) == dist[u] - 1),
+                key=lambda v: (rel_key(u, v) in related) + best(v))
+        route.append(u)
+    return route
 
 
 # ---------------------------------------------------------------- BFS
@@ -344,7 +446,10 @@ def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = fr
     out = []
     for start in seeded_sample(pool, starts, f"shortlist-starts#{date_str}"):
         dist, routes, closer = bfs_all(ladder.neighbors, ladder.index[start])
+        linked = (linked_from(ladder.neighbors, ladder.related, ladder.index[start], dist)
+                  if "minLinkedSteps" in band else None)
         fits = [g for g in goals if g != start
+                and (linked is None or linked[ladder.index[g]] >= band["minLinkedSteps"])
                 and dist[ladder.index[g]] == band["par"]
                 and band["minRoutes"] <= routes[ladder.index[g]] <= band["maxRoutes"]
                 and closer_fits(band, closer[ladder.index[g]])]
@@ -496,6 +601,15 @@ def validate_pair(
                                   f"today needs {band.get('minCloserFirstMoves', 0)}-"
                                   f"{band.get('maxCloserFirstMoves', 'any')}",
                            par, routes, closer)
+        # Newer eras want a shortest route whose steps are mostly real
+        # relations, so the route the game shows reads as a reason.
+        if "minLinkedSteps" in band:
+            if ladder.related is None:
+                raise ValueError("minLinkedSteps needs data/relations_vN.* (scripts/build_relations.py)")
+            n = linked_steps(ladder.neighbors, ladder.related, i, ladder.index[goal], par)
+            if n < band["minLinkedSteps"]:
+                return Verdict(False, f"best route has {n} related steps, today needs "
+                                      f"{band['minLinkedSteps']}", par, routes, closer)
     return Verdict(True, "ok", par, routes, closer)
 
 

@@ -401,3 +401,59 @@ def test_goals_few_words_step_to_are_rejected(ladder):
         assert "words step to" not in validate_pair(old, "ocean", goal).reason
     # The cached count follows the view: top-100 lists give far more links in.
     assert in_degrees(old)[old.index["anchor"]] > in_degrees(new)[new.index["anchor"]]
+
+
+# ---------------------------------------------------------------- ConceptNet relations
+def test_relations_file_is_consistent(ladder):
+    """Every related pair is a GloVe top-40 neighbor pair (the only pairs that
+    can ever be steps), and the file matches the hash in its header."""
+    import hashlib
+    from ladder_core import REL_KEY
+
+    head = json.loads((ROOT / "data" / "relations_v1.json").read_text(encoding="utf-8"))
+    blob = (ROOT / "data" / "relations_v1.bin").read_bytes()
+    assert hashlib.sha256(blob).hexdigest() == head["sha256"]
+    assert head["license"] == "CC BY-SA 4.0" and len(ladder.related) == head["count"]
+    full = ladder.full_neighbors
+    for key in list(ladder.related)[:3000]:
+        u, v = divmod(key, REL_KEY)
+        assert u < v and (v in full[u][:40] or u in full[v][:40])
+
+
+def test_guide_route_keeps_par_and_prefers_relations(ladder):
+    """The shown route is a real shortest route (par kept, every step legal)
+    with as many relation steps as any shortest route has."""
+    from ladder_core import bfs_all, guide_route, linked_from, linked_steps, rel_key
+
+    nb, rel, ix = ladder.neighbors, ladder.related, ladder.index
+    for s, g in [("cafe", "fuel"), ("champ", "dress"), ("lunch", "sedan"), ("chest", "stream")]:
+        par = bfs_routes(nb, ix[s], ix[g])[0]
+        route = guide_route(nb, rel, ix[s], ix[g])
+        assert len(route) - 1 == par and route[0] == ix[s] and route[-1] == ix[g]
+        assert all(route[k + 1] in nb[route[k]] for k in range(par))
+        linked = sum(rel_key(route[k], route[k + 1]) in rel for k in range(par))
+        assert linked == linked_steps(nb, rel, ix[s], ix[g], par)
+        # The all-goals version used by the shortlist agrees.
+        dist = bfs_all(nb, ix[s])[0]
+        assert linked_from(nb, rel, ix[s], dist)[ix[g]] == linked
+    # cafe -> fuel: 4 of its 5 steps are real relations (restaurant, grill, stove, kerosene).
+    assert linked_steps(nb, rel, ix["cafe"], ix["fuel"], 5) == 4
+
+
+def test_linked_step_bands_start_nov_15(ladder):
+    from ladder_core import rules_for
+
+    cfg = ladder.base_config
+    assert all("minLinkedSteps" not in b for b in rules_for(cfg, "2026-11-14")["levels"].values())
+    newer = rules_for(cfg, "2026-11-15")
+    assert [newer["levels"][lv]["minLinkedSteps"] for lv in LEVELS] == [2, 3, 3]
+    # Same rules for players: only how puzzles are picked changed.
+    older = rules_for(cfg, "2026-11-14")
+    assert (newer["stepLimit"], newer["twoWay"]) == (older["stepLimit"], older["twoWay"])
+    day = ladder.at("2026-11-20")
+    for lv in LEVELS:
+        band = level_band(lv, day.config)
+        start, goal, v, _ = seeded_puzzle(day, seed_base("2026-11-20", lv), band)
+        from ladder_core import linked_steps
+        assert v.ok and linked_steps(day.neighbors, day.related, day.index[start],
+                                     day.index[goal], v.par) >= band["minLinkedSteps"]

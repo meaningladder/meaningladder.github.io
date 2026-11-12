@@ -181,6 +181,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .chip:disabled, .chip[aria-disabled="true"] { opacity: var(--disabled); cursor: default; }
 .chip-mark { height: 16px; display: grid; place-items: center; }
 
+.credits { text-align: center; font-size: var(--fs-xs); color: var(--muted); margin-top: 14px; }
 .home-foot { display: flex; justify-content: center; gap: 18px; margin-top: 10px; }
 
 /* ------------------------------------------------------------ level buttons */

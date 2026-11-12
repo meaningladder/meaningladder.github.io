@@ -14,7 +14,7 @@ import {
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, clueFor, clueText, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -144,8 +144,7 @@ async function showHelp(k = null, twoWay = null) {
     const todays = rulesFor(config, today());
     if (k == null) { k = todays.stepLimit ?? DEFAULT_STEP_LIMIT; twoWay ??= Boolean(todays.twoWay); }
     // A note about the other era, built from config.rules (not hard-coded).
-    const eras = config.rules ?? [];
-    const newest = eras[eras.length - 1];
+    const newest = newestEra(config); // the newest era players can see
     const day = (s) => fmt(s, { month: "long", day: "numeric" });
     if (newest && k !== newest.stepLimit) {
       eraNote = today() < newest.from
@@ -342,7 +341,10 @@ async function showHome() {
     practice,
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
-      h("button", { class: "link-btn", onClick: showStats }, "Statistics")));
+      h("button", { class: "link-btn", onClick: showStats }, "Statistics")),
+    // ConceptNet's license (CC BY-SA 4.0) asks for credit wherever it's used.
+    h("p", { class: "credits" }, "Word links from ",
+      h("a", { href: "https://conceptnet.io", rel: "noopener" }, "ConceptNet 5.7"), ", CC BY-SA 4.0."));
 
   showIntro();                                      // the only pop-up on load
   setTimeout(() => loadLadder().catch(() => {}), 300); // warm the 0.8 MB word map
@@ -665,7 +667,8 @@ function playView(ladder, state, saveKey, date, classic = "") {
     if (signpost === undefined) signpost = findSignpost();
     const cur = ladder.index.get(current);
     const onGuide = signpost ? signpost.route.indexOf(cur) : -1;
-    const next = onGuide >= 0 ? signpost.route[onGuide + 1] : hintStep(ladder.neighbors, dist, costs(), cur);
+    const next = onGuide >= 0 ? signpost.route[onGuide + 1]
+      : bestRoute(cur)?.[1] ?? hintStep(ladder.neighbors, dist, costs(), cur);
     if (tier >= 2) return `Try “${ladder.words[next]}”.`;
     return clueText(clueFor(ladder, state.path, next, puzzle.goal));
   }
@@ -836,11 +839,19 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // Never rung 1 (that would hand over the first step), and nothing on
   // ladders too short to need one. Lazy: it needs the route costs.
   let signpost;
+  // The route the game shows (signpost, hints, give-up): a shortest route
+  // whose steps are most often real ConceptNet relations, else the one with
+  // the strongest weakest link.
+  function bestRoute(from) {
+    return guideRoute(ladder.neighbors, dist, ladder.related, from)
+      ?? bottleneckRoute(ladder.neighbors, dist, from)?.route ?? null;
+  }
+
   function findSignpost() {
     const rung = Math.max(2, Math.floor(puzzle.par / 2));
     if (puzzle.par < 3 || rung >= puzzle.par) return null;
-    const guide = bottleneckRoute(ladder.neighbors, dist, ladder.index.get(puzzle.start));
-    return guide ? { rung, word: ladder.words[guide.route[rung]], route: guide.route } : null;
+    const route = bestRoute(ladder.index.get(puzzle.start));
+    return route ? { rung, word: ladder.words[route[rung]], route } : null;
   }
 
   function renderLadder(playing) {
@@ -852,7 +863,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     const ghost = new Map();
     const cur = state.path[state.path.length - 1];
     if (state.status === "gaveUp" && typeof lad.climber === "number") {
-      const route = shortestFrom(cur);
+      const route = bestRoute(ladder.index.get(cur)); // the same route the result card names
       route?.slice(1, -1).forEach((idx, k) => ghost.set(lad.climber + k + 1, ladder.words[idx]));
     }
     ladderEl.classList.toggle("off-route", lad.off != null);
@@ -978,8 +989,8 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // ladder already was a shortest one.
   function routeLine(yoursWasShortest) {
     if (yoursWasShortest) return h("p", { class: "route" }, "Your ladder was as short as it gets.");
-    const best = bottleneckRoute(ladder.neighbors, dist, ladder.index.get(puzzle.start));
-    const words = best ? best.route.map((i) => ladder.words[i])
+    const best = bestRoute(ladder.index.get(puzzle.start));
+    const words = best ? best.map((i) => ladder.words[i])
       : naturalRoute(ladder.neighbors, costs(), ladder.index.get(puzzle.start))?.map((i) => ladder.words[i]);
     if (!words) return null;
     return h("p", { class: "route" }, "A shortest route: ", h("b", {}, words.join(" → ")));

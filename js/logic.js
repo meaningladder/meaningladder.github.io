@@ -635,8 +635,21 @@ export function computeStats(results, today) {
 // labels, all from config, so a future era needs no code change.
 
 // The newest era, but only if there was an older one to change from.
+// Eras that change what players see: the step limit, link direction or a
+// level's par. An era that only changes how puzzles are picked (for example
+// minLinkedSteps) isn't news, so it gets no notice and no "classic" label.
+const visibleRules = (e) => JSON.stringify([e.stepLimit, Boolean(e.twoWay),
+  ...["easy", "medium", "hard"].map((lv) => e.levels?.[lv]?.par ?? null)]);
+export function visibleEras(config) {
+  const out = [];
+  for (const e of config?.rules ?? []) {
+    if (!out.length || visibleRules(out[out.length - 1]) !== visibleRules(e)) out.push(e);
+  }
+  return out;
+}
+
 export function newestEra(config) {
-  const eras = config?.rules ?? [];
+  const eras = visibleEras(config);
   return eras.length > 1 ? eras[eras.length - 1] : null;
 }
 
@@ -681,7 +694,8 @@ const listJoin = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(
 export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium", "hard"]) {
   const newest = newestEra(config);
   if (!newest) return "";
-  const old = config.rules[config.rules.length - 2];
+  const eras = visibleEras(config);
+  const old = eras[eras.length - 2];
   const was = old.stepLimit !== newest.stepLimit ? ` (it was ${old.stepLimit})` : "";
   // Two-way eras: a step counts if EITHER word is among the other's closest.
   const parts = [newest.twoWay && !old.twoWay
@@ -732,3 +746,40 @@ export function ladderRows(dists, par) {
     climber: cur < 0 ? "off" : cur > par ? "below" : par - cur,
   };
 }
+
+// ------------------------------------------------------------ guide route
+// A shortest route (each step one closer, via `dist`) with the most steps
+// that are ConceptNet relations (`related`: a Set of relKey pairs); ties go
+// to the more similar neighbor. Par is kept, so following it still earns
+// gold; it just reads better (cafe, restaurant, grill, stove, kerosene,
+// fuel). Word indexes including both ends, or null.
+export function guideRoute(neighbors, dist, related, from) {
+  if (!related || dist[from] < 0) return null;
+  const key = (a, b) => (a < b ? a * 65536 + b : b * 65536 + a);
+  const memo = new Map();
+  const best = (u) => {
+    if (dist[u] === 0) return 0;
+    if (memo.has(u)) return memo.get(u);
+    let b = -1;
+    for (const v of neighbors[u]) {
+      if (dist[v] !== dist[u] - 1) continue;
+      const c = (related.has(key(u, v)) ? 1 : 0) + best(v);
+      if (c > b) b = c;
+    }
+    memo.set(u, b);
+    return b;
+  };
+  const route = [from];
+  for (let u = from; dist[u] > 0;) {
+    let pick = -1, score = -1;
+    for (const v of neighbors[u]) {
+      if (dist[v] !== dist[u] - 1) continue;
+      const c = (related.has(key(u, v)) ? 1 : 0) + best(v);
+      if (c > score) { score = c; pick = v; }
+    }
+    u = pick;
+    route.push(u);
+  }
+  return route;
+}
+

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "graphVersion": 1,
+  "count": 24289,
+  "relations": [
+    "IsA",
+    "PartOf",
+    "HasA",
+    "UsedFor",
+    "AtLocation",
+    "MadeOf",
+    "CapableOf",
+    "Causes",
+    "HasPrerequisite",
+    "CreatedBy",
+    "LocatedNear",
+    "ReceivesAction",
+    "HasProperty",
+    "HasSubevent",
+    "Desires",
+    "MotivatedByGoal",
+    "Synonym",
+    "SimilarTo",
+    "RelatedTo"
+  ],
+  "window": 40,
+  "minWeight": 1.0,
+  "source": "ConceptNet 5.7 assertions (https://conceptnet.io)",
+  "license": "CC BY-SA 4.0",
+  "sha256": "213bf6d597945364a9dde685b7f6bbf0bcb6523bb9b9944d53fb4422c53d0ab3"
+}

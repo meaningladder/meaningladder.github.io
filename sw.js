@@ -25,7 +25,7 @@ self.addEventListener("install", (event) => {
       // They don't match VERSIONED, so they stay network-first like the config.
       const excludes = rules.map((e) => e.excludeCandidates).filter(Boolean);
       await Promise.allSettled([`data/graph_v${v}_wide.json`, `data/graph_v${v}_wide_head.bin`,
-        `data/candidates_v${v}.json`, ...excludes].map((url) => cache.add(url)));
+        `data/candidates_v${v}.json`, `data/relations_v${v}.json`, `data/relations_v${v}.bin`, ...excludes].map((url) => cache.add(url)));
     } catch { /* offline during install: they get cached on first use instead */ }
     await self.skipWaiting();
   })());

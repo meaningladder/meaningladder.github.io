@@ -2,7 +2,7 @@
 // Run: node --test "tests/js/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildReverse, distancesToGoal, ladderRows } from "../../js/logic.js";
+import { buildReverse, distancesToGoal, guideRoute, ladderRows } from "../../js/logic.js";
 
 // rows as "rung:at" strings, top to bottom (at = path index, "-" = empty).
 const shape = (lad) => lad.rows.map((r) => `${r.rung}:${r.at ?? "-"}${r.current ? "*" : ""}`);
@@ -62,3 +62,14 @@ test("what the ladder assumes: a step gets at most one step closer, and no route
     if (dist[u] < 0) assert.ok(dist[v] < 0, `${u}->${v} escapes a dead end`);
   }));
 });
+
+test("guideRoute keeps par and takes the route with the most relation steps", () => {
+  // Two shortest routes 0 -> 3: via 1 (first neighbor) or via 2. Only 0-2 and 2-3 are relations.
+  const neighbors = [[1, 2], [0, 3], [0, 3], [1, 2]];
+  const dist = distancesToGoal(buildReverse(neighbors), 4, 3);
+  const key = (a, b) => (a < b ? a * 65536 + b : b * 65536 + a);
+  assert.deepEqual(guideRoute(neighbors, dist, new Set([key(0, 2), key(2, 3)]), 0), [0, 2, 3]);
+  assert.deepEqual(guideRoute(neighbors, dist, new Set(), 0), [0, 1, 3]); // tie: more similar first
+  assert.equal(guideRoute(neighbors, dist, null, 0), null); // no relations loaded
+});
+

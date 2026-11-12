@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -30,6 +30,18 @@ async function getRows(url, count, width) {
   return rows;
 }
 
+// ConceptNet relations between GloVe neighbors (scripts/build_relations.py):
+// a Set of relKey(u, v). About 120 KB, cached by name like the graph.
+async function loadRelations(v) {
+  const header = await getJson(`data/relations_v${v}.json`);
+  const res = await fetch(`data/relations_v${v}.bin`);
+  if (!res.ok) throw new Error(`relations: HTTP ${res.status}`);
+  const view = new DataView(await res.arrayBuffer());
+  const set = new Set();
+  for (let i = 0; i < header.count; i++) set.add(relKey(view.getUint16(4 * i, true), view.getUint16(4 * i + 2, true)));
+  return set;
+}
+
 // The word map, in two parts. The head (each word's 20 closest words,
 // ~0.8 MB) is all today's rules need, so a game starts after that alone.
 // The tail (ranks 21-100, ~3 MB) loads only when something needs it: an
@@ -48,7 +60,10 @@ export function loadLadder() {
       getJson(`data/candidates_v${v}.json`),
       ...excludePaths.map((p) => getJson(p)),
     ]);
-    const head = await getRows(`data/graph_v${v}_wide_head.bin`, meta.count, meta.head);
+    const [head, related] = await Promise.all([
+      getRows(`data/graph_v${v}_wide_head.bin`, meta.count, meta.head),
+      loadRelations(v),
+    ]);
     const base = {
       words: meta.words,
       index: new Map(meta.words.map((w, i) => [w, i])),
@@ -57,6 +72,7 @@ export function loadLadder() {
       candidates: cands.words, // the whole frozen list; a view may drop some
       exclusions: new Map(excludePaths.map((p, i) => [p, excludedWords(excludeFiles[i])])),
       config,
+      related, // ConceptNet pairs (relKey): choose and show routes, never judge steps
       views: new Map(),
     };
     let tailPromise = null;

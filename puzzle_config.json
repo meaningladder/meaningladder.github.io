@@ -61,6 +61,39 @@
           "maxRoutes": 100000
         }
       }
+    },
+    {
+      "from": "2026-11-15",
+      "stepLimit": 10,
+      "twoWay": true,
+      "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
+      "minPar": 3,
+      "maxPar": 7,
+      "levels": {
+        "easy": {
+          "label": "Easy",
+          "par": 4,
+          "minRoutes": 1,
+          "maxRoutes": 100000,
+          "minCloserFirstMoves": 3,
+          "minLinkedSteps": 2
+        },
+        "medium": {
+          "label": "Medium",
+          "par": 5,
+          "minRoutes": 1,
+          "maxRoutes": 100000,
+          "minCloserFirstMoves": 3,
+          "minLinkedSteps": 3
+        },
+        "hard": {
+          "label": "Hard",
+          "par": 6,
+          "minRoutes": 1,
+          "maxRoutes": 100000,
+          "minLinkedSteps": 3
+        }
+      }
     }
   ]
 }

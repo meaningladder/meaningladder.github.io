@@ -12,8 +12,8 @@ from typing import Callable
 
 from pydantic import BaseModel
 
-from ladder_core import (Ladder, Verdict, incoming_words, seeded_sample, shortest_route,
-                         shortlist, validate_pair)
+from ladder_core import (Ladder, Verdict, guide_route, incoming_words, rel_key, seeded_sample,
+                         shortest_route, shortlist, validate_pair)
 
 PAIRS_PER_ROUND = 5
 MAX_THEME = 40
@@ -50,6 +50,10 @@ Suggest {PAIRS_PER_ROUND} different (start, goal) pairs, best first. Rules:
   "anchor" reached via presenter and newscast is the TV anchor, not the
   ship's). Skip a pair whose route or incoming words use a different sense
   than the one a player would naturally guess, or than your theme.
+- Route steps may carry a ConceptNet relation in brackets, e.g.
+  "cafe -[IsA]-> restaurant -[AtLocation]-> grill". These are real-world
+  reasons the two words connect: prefer pairs with many of them, and let the
+  theme follow that chain of reasons.
 - Start and goal should feel far apart, but be bridgeable through a chain of
   related ideas. Prefer vivid, concrete, family-friendly words.
 - Never use any word from the "recently used" list.
@@ -76,9 +80,17 @@ INCOMING_SHOWN = 10  # enough to reveal a sense, short enough to keep the prompt
 
 
 def _pair_listing(ladder: Ladder, start: str, goal: str, incoming: list[str]) -> str:
-    route = shortest_route(ladder.neighbors, ladder.index[start], ladder.index[goal])
+    s, g = ladder.index[start], ladder.index[goal]
+    if ladder.related:  # the route the game will show, with its relations
+        route = guide_route(ladder.neighbors, ladder.related, s, g)
+        hops = [f" -[{ladder.related[rel_key(a, b)]}]-> " if rel_key(a, b) in ladder.related else " -> "
+                for a, b in zip(route, route[1:])]
+        text = ladder.words[route[0]] + "".join(hop + ladder.words[b] for hop, b in zip(hops, route[1:]))
+    else:
+        route = shortest_route(ladder.neighbors, s, g)
+        text = " -> ".join(ladder.words[i] for i in route)
     return (f"- {start} -> {goal}\n"
-            f"    shortest route: {' -> '.join(ladder.words[i] for i in route)}\n"
+            f"    shortest route: {text}\n"
             f"    words that step to {goal}: {', '.join(incoming)}")
 
 

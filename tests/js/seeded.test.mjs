@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, relKey, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -81,6 +81,11 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
   const index = new Map(graph.words.map((w, i) => [w, i]));
   const candidates = readJson(`data/candidates_v${config.graphVersion}.json`).words;
   const cut = new Map(); // one cut graph per step limit
+  // ConceptNet pairs, read the way js/data.js reads them (newer eras need them).
+  const relHead = readJson(`data/relations_v${config.graphVersion}.json`);
+  const relBin = readFileSync(root + `data/relations_v${config.graphVersion}.bin`);
+  const related = new Set();
+  for (let i = 0; i < relHead.count; i++) related.add(relKey(relBin.readUInt16LE(4 * i), relBin.readUInt16LE(4 * i + 2)));
   for (const p of fixture.puzzles) {
     const rules = rulesFor(config, p.date);
     assert.equal(rules.stepLimit, p.stepLimit, `${p.date} step limit`);
@@ -91,7 +96,7 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
     const pool = rules.excludeCandidates
       ? candidatePool(candidates, excludedWords(readJson(rules.excludeCandidates)))
       : candidates;
-    const ladder = { index, neighbors: cut.get(key), candidates: pool, config: rules };
+    const ladder = { index, neighbors: cut.get(key), candidates: pool, config: rules, related };
     const band = levelBand(p.level, rules);
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
     const got = seededPuzzle(ladder, seedBase(p.date, p.level), band);

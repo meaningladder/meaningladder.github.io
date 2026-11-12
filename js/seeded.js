@@ -153,6 +153,39 @@ export function twoWayNeighbors(full, k) {
   });
 }
 
+// ConceptNet relations between GloVe neighbors (data/relations_vN.*), one
+// key per unordered pair. Python twins: rel_key, linked_steps.
+export const REL_KEY = 65536;
+export const relKey = (a, b) => (a < b ? a * REL_KEY + b : b * REL_KEY + a);
+
+// The most steps that are relations on any SHORTEST route start -> goal
+// (undirected two-way graphs): BFS layers from the goal, then the best count
+// per word from the layer below.
+export function linkedSteps(neighbors, related, start, goal, par) {
+  if (par < 1) return 0;
+  const dist = new Map([[goal, 0]]);
+  const layers = [[goal]];
+  for (let d = 1; d <= par; d++) {
+    const nxt = [];
+    for (const u of layers[d - 1]) for (const v of neighbors[u]) if (!dist.has(v)) { dist.set(v, d); nxt.push(v); }
+    layers.push(nxt);
+  }
+  if (dist.get(start) !== par) return 0;
+  const best = new Map([[goal, 0]]);
+  for (let d = 1; d <= par; d++) {
+    for (const u of layers[d]) {
+      let b = -1;
+      for (const v of neighbors[u]) {
+        if (dist.get(v) !== d - 1) continue;
+        const c = (related.has(relKey(u, v)) ? 1 : 0) + best.get(v);
+        if (c > b) b = c;
+      }
+      best.set(u, b);
+    }
+  }
+  return best.get(start);
+}
+
 // Closer first moves on an UNDIRECTED graph (two-way eras): one BFS from the
 // goal, depth par - 1. Two-way lists can exceed the 31 first moves the bit
 // masks in bfsRouteStats track. Python twin: closer_first_moves.
@@ -220,6 +253,11 @@ function check(ladder, start, goal, band, checkRoutes, inDeg) {
   // Never relaxed (unlike routes): it is what keeps the level label honest.
   const closer = twoWay ? closerFirstMoves(ladder.neighbors, i, ladder.index.get(goal), par) : stats.closer;
   if (wantsCloser(band) && !closerFits(band, closer)) return null;
+  // Newer eras want a shortest route whose steps are mostly real relations.
+  if (band.minLinkedSteps != null) {
+    if (!ladder.related) throw new Error("minLinkedSteps needs data/relations_vN.*");
+    if (linkedSteps(ladder.neighbors, ladder.related, i, ladder.index.get(goal), par) < band.minLinkedSteps) return null;
+  }
   return { par, routes, closer };
 }
 

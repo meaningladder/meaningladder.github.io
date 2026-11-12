@@ -20,6 +20,15 @@ under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
 |---|---|---|---|---|
 | 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
 | 2026-11-13 | top 10, links both ways | par 4, 3+ good first moves | par 5, 3+ good first moves | par 6 |
+| 2026-11-15 | same as Nov 13 | + 2+ related steps | + 3+ related steps | + 3+ related steps |
+
+A "related step" is a step that ConceptNet also links with a real relation
+(cafe IS A restaurant, coal IS USED FOR fuel; `data/relations_v1.*`, built by
+`make relations`). From Nov 15 each puzzle must have a shortest route with that
+many related steps. Relations never decide whether a typed word counts: they
+pick puzzles and choose the route the game shows (signpost, hints, give-up),
+always a shortest one, so par is unchanged. ConceptNet alone was measured too
+hub-heavy (everything via person, city, car) and too sparse to be the rule.
 
 A "good first move" is one of the start's legal steps that is one step closer
 to the goal (`minCloserFirstMoves` / `maxCloserFirstMoves` in a level). Par
@@ -145,6 +154,8 @@ has been played its file is frozen too; later fixes need a new era.
 
 - Word vectors: [GloVe](https://nlp.stanford.edu/projects/glove/) (Wikipedia + Gigaword, 300d), via gensim.
 - Dictionary checks: [WordNet](https://wordnet.princeton.edu/) via NLTK.
+- Word relations: [ConceptNet 5.7](https://conceptnet.io), CC BY-SA 4.0. `data/relations_v1.*` is
+  derived from it and shared under the same license; the game credits it on the home screen.
 - Icons: [Phosphor](https://phosphoricons.com/) (bold), MIT, copied into `js/icons.js`.
 - Font: [Nunito](https://github.com/googlefonts/nunito), SIL OFL 1.1, self-hosted from Fontsource.
 - Blocklist: [LDNOOBW](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words) (CC BY 4.0).

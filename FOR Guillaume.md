@@ -448,3 +448,24 @@ Round four tightened to top 10 both ways (about 15 accepted words per step):
 Easy par 4, Medium 5, Hard 6. Removing filler "hub" words (really, thing) was
 measured first and barely changed lengths: the step limit is the real lever.
 
+---
+
+## Better routes without a stricter rule
+
+The ask was "make the route better and longer". Three word maps were measured
+before writing any game code:
+- **WordNet** (dictionary relations): no longer, 6% of pairs unreachable, odd
+  verb-sense hops (building, make, fire).
+- **ConceptNet** (labeled relations): *shorter*, because hubs like person, city
+  and car connect everything; removing hubs didn't help.
+- **Hybrid** (GloVe-close AND a ConceptNet link): lovely, longer routes (cafe,
+  restaurant, dinner, barbecue, charcoal, coal, fuel), but as a step rule it
+  leaves most words 1-2 accepted next words. Far too strict.
+
+So the hybrid became a *lens*, not a rule. You can still type any word the
+GloVe rule accepts. ConceptNet only (1) picks puzzles that have a shortest
+route made mostly of real relations, and (2) chooses which shortest route the
+game shows. Because the shown route is always a shortest one, par and medals
+are untouched. The lesson: when one data source is great at quality but too
+sparse for a rule, use it to rank, not to judge.
+
