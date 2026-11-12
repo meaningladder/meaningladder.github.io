@@ -128,9 +128,9 @@ def test_levels_cover_easy_medium_hard():
     assert easy["level"] == "easy" and easy["label"] == "Easy"
     assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
     assert medium["maxRoutes"] < easy["minRoutes"]
-    # Top-40 two-way rules (from Nov 13): Easy and Medium par 3 (Easy has more
-    # good first moves), Hard one step longer.
-    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [3, 3, 4]
+    # Top-25 two-way rules (from Nov 13): Easy par 3; Medium and Hard par 4,
+    # Hard with only 1-2 good first moves.
+    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [3, 4, 4]
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
 
 
@@ -142,13 +142,13 @@ def test_rules_eras_pick_by_date():
     assert [e["from"] for e in cfg["rules"]] == sorted(e["from"] for e in cfg["rules"])
     assert rules_for(cfg, "2026-11-01")["stepLimit"] == 100
     assert rules_for(cfg, "2026-11-12")["stepLimit"] == 100
-    assert rules_for(cfg, "2026-11-13")["stepLimit"] == 40
-    assert rules_for(cfg, "2030-01-01")["stepLimit"] == 40
-    assert rules_for(cfg, None)["stepLimit"] == 40  # Unlimited: newest rules
+    assert rules_for(cfg, "2026-11-13")["stepLimit"] == 25
+    assert rules_for(cfg, "2030-01-01")["stepLimit"] == 25
+    assert rules_for(cfg, None)["stepLimit"] == 25  # Unlimited: newest rules
     # Links work both ways from Nov 13; older dates stay one-way.
     assert rules_for(cfg, "2026-11-13")["twoWay"] is True
     assert "twoWay" not in rules_for(cfg, "2026-11-12")
-    # Every word now has 40+ links in, so the thin-goal rule is gone.
+    # Every word now has 25+ links in, so the thin-goal rule is gone.
     assert "minGoalInDegree" not in rules_for(cfg, "2026-11-13")
     merged = rules_for(cfg, "2026-11-13")
     assert "rules" not in merged and merged["launchDate"] == cfg["launchDate"]
@@ -236,15 +236,15 @@ def test_ladder_view_cuts_neighbor_lists(ladder):
     assert len(old.neighbors[i]) == 100 and len(top20.neighbors[i]) == 20
     assert top20.neighbors[i] == old.neighbors[i][:20]  # lists are sorted: first 20 = top 20
     assert new.full_neighbors[i] == old.neighbors[i]
-    # Two-way: own top 40 first, then words that list door in their top 40.
-    assert new.neighbors[i][:40] == old.neighbors[i][:40] and len(new.neighbors[i]) >= 40
+    # Two-way: own top 25 first, then words that list door in their top 25.
+    assert new.neighbors[i][:25] == old.neighbors[i][:25] and len(new.neighbors[i]) >= 25
     assert all(i in new.neighbors[v] for v in new.neighbors[i])  # undirected
     # The same pair under each rule: top 100 par 4, top 20 one-way par 6,
-    # top 40 both ways par 3 (the playtest said the strict one wasn't fun).
+    # top 25 both ways par 4 (playtests: top 20 one-way too strict, top 40 too short).
     k = ladder.index["kidney"]
     assert bfs_routes(old.neighbors, i, k)[0] == 4
     assert bfs_routes(top20.neighbors, i, k)[0] == 6
-    assert bfs_routes(new.neighbors, i, k)[0] == 3
+    assert bfs_routes(new.neighbors, i, k)[0] == 4
 
 
 def test_new_era_drops_excluded_start_goal_words(ladder):
@@ -289,7 +289,7 @@ def test_seeded_puzzle_same_date_same_puzzle(ladder):
     assert first[2].ok and first[2].par == band["par"]
     # Each level of a day is an independent puzzle.
     hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert hard[:2] != first[:2] and hard[2].par == 4  # Nov 17: top-40 two-way rules
+    assert hard[:2] != first[:2] and hard[2].par == 4  # Nov 17: top-25 two-way rules
 
 
 def test_seeded_puzzles_match_fixture(ladder):

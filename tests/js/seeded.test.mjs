@@ -41,10 +41,10 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   const config = readJson("puzzle_config.json");
   assert.equal(rulesFor(config, "2026-11-01").stepLimit, 100);
   assert.equal(rulesFor(config, "2026-11-12").stepLimit, 100);
-  assert.equal(rulesFor(config, "2026-11-13").stepLimit, 40);
+  assert.equal(rulesFor(config, "2026-11-13").stepLimit, 25);
   assert.equal(rulesFor(config, "2026-11-13").twoWay, true);
   assert.equal(rulesFor(config, "2026-11-12").twoWay, undefined); // older days stay one-way
-  assert.equal(rulesFor(config, null).stepLimit, 40); // Unlimited: newest rules
+  assert.equal(rulesFor(config, null).stepLimit, 25); // Unlimited: newest rules
   assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 4);
   assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);

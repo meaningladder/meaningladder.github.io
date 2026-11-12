@@ -436,3 +436,8 @@ past days keep their rules, Python and JS build the two-way lists in the exact
 same order (the parity tests prove it), and new browser files get a new name
 (`graph_v1_wide_*`) because the service worker caches data files forever by name.
 
+The first loosening overshot: top 40 both ways made most ladders 3 steps, and
+the next playtest asked for more steps. Top 25 both ways sits between the two:
+no one-way rejections, about half the ladders 4 steps. Two quick rounds, each
+measured on the real word map before shipping, beat one big guess.
+

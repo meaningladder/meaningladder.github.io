@@ -34,7 +34,7 @@
     },
     {
       "from": "2026-11-13",
-      "stepLimit": 40,
+      "stepLimit": 25,
       "twoWay": true,
       "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
       "minPar": 2,
@@ -45,21 +45,22 @@
           "par": 3,
           "minRoutes": 1,
           "maxRoutes": 100000,
-          "minCloserFirstMoves": 6
+          "minCloserFirstMoves": 3
         },
         "medium": {
           "label": "Medium",
-          "par": 3,
+          "par": 4,
           "minRoutes": 1,
           "maxRoutes": 100000,
-          "minCloserFirstMoves": 2,
-          "maxCloserFirstMoves": 5
+          "minCloserFirstMoves": 3
         },
         "hard": {
           "label": "Hard",
           "par": 4,
           "minRoutes": 1,
-          "maxRoutes": 100000
+          "maxRoutes": 100000,
+          "minCloserFirstMoves": 1,
+          "maxCloserFirstMoves": 2
         }
       }
     }
