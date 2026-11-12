@@ -460,6 +460,7 @@ function playView(ladder, state, saveKey, date) {
   const levelHref = (lv) => (state.kind === "daily" ? `#/game/${puzzle.gameNumber}/${lv}` : `#/practice/${lv}`);
 
   let error = null;
+  let countedNote = null;    // "Counted as tree." when a form of the goal finished it
   let rejected = null;       // a real word that just went into the Tried list
   let justTried = false;     // animate that word's bar once
   let justAdded = false;
@@ -565,7 +566,7 @@ function playView(ladder, state, saveKey, date) {
   // ---- actions
   function submit() {
     if (state.status !== "playing") return;
-    const res = checkStep(ladder, state.path, input.value);
+    const res = checkStep(ladder, state.path, input.value, puzzle.goal);
     if (!res.ok) {
       const current = state.path[state.path.length - 1];
       // A real word that just isn't close enough goes into the Tried list,
@@ -587,6 +588,7 @@ function playView(ladder, state, saveKey, date) {
     error = null;
     rejected = null;
     justAdded = true;
+    countedNote = res.note ?? null;
     input.value = "";
     if (res.word === puzzle.goal) finish("won");
     save();
@@ -828,6 +830,8 @@ function playView(ladder, state, saveKey, date) {
       h("p", { class: "result" }, won
         ? `${movesText(steps, undos)}, par ${puzzle.par}.${state.hints ? ` ${state.hints} hint${state.hints === 1 ? "" : "s"} used.` : ""}`
         : `You stopped after ${movesText(steps, undos)}. Par was ${puzzle.par}.`),
+      // The game ends on that step, so the feedback line is hidden: say it here.
+      won && countedNote ? h("p", { class: "muted" }, countedNote) : null,
       ...routeLines(won, foundIt, hitPar, route, routeSteps),
       h("div", { class: "btn-row" },
         shareBtn,

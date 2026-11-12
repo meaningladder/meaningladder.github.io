@@ -165,13 +165,30 @@ export function normalize(text) {
 }
 
 // Is `typed` a legal next step from the current (last) word of `path`?
-// Returns { ok: true, word } or { ok: false, error }.
-export function checkStep(ladder, path, typed) {
+// Returns { ok: true, word, note? } or { ok: false, error, suggestion? }.
+// `goal` is optional: without it, forms of the goal get no special handling.
+export function checkStep(ladder, path, typed, goal = null) {
   const word = normalize(typed);
   const current = path[path.length - 1];
   if (!word) return { ok: false, error: "Type a word first." };
   if (!/^[a-z]+$/.test(word)) return { ok: false, error: "Letters only, please." };
-  if (!ladder.index.has(word)) return { ok: false, error: `I don't know “${word}”.` };
+  // Links between forms of one word are removed from the graph, so "trees"
+  // can be several steps from "tree". Typing a form of the goal almost always
+  // means "the goal", so count it as the goal when that step is legal, and
+  // say why it isn't otherwise instead of letting it become a detour.
+  if (goal && word !== goal && formOf(word, goal)) {
+    const cur = ladder.index.get(current), g = ladder.index.get(goal);
+    if (cur !== undefined && g !== undefined && ladder.neighbors[cur].includes(g)) {
+      return { ok: true, word: goal, note: `Counted as ${goal}.` };
+    }
+    return { ok: false, error: `${word} is a form of the goal ${goal}: you'll need to reach ${goal} itself.` };
+  }
+  if (!ladder.index.has(word)) {
+    const suggestion = didYouMean(ladder, path, word);
+    if (suggestion) return { ok: false, error: `Did you mean ${suggestion}?`, suggestion };
+    const size = ladder.words.length.toLocaleString("en-US");
+    return { ok: false, error: `${word} isn't in our ${size}-word list. Try a more common word.` };
+  }
   if (word === current) return { ok: false, error: `You're already on ${word}.` };
   if (path.includes(word)) return { ok: false, error: `${word} is already in your path.` };
   const cur = ladder.index.get(current);
@@ -184,6 +201,69 @@ export function checkStep(ladder, path, typed) {
     };
   }
   return { ok: true, word };
+}
+
+// Regular English inflection endings, as [ending, replacement]: a rough
+// stand-in for WordNet's morphy (which the Python side uses to drop these
+// links). Irregulars like mice/mouse are not covered.
+const DETACH = [
+  ["ies", "y"], ["ses", "s"], ["xes", "x"], ["zes", "z"], ["ches", "ch"], ["shes", "sh"],
+  ["men", "man"], ["es", "e"], ["es", ""], ["s", ""],
+  ["ied", "y"], ["ed", "e"], ["ed", ""], ["ing", "e"], ["ing", ""],
+  ["ier", "y"], ["iest", "y"], ["er", "e"], ["er", ""], ["est", "e"], ["est", ""],
+];
+
+// Possible base forms of `w` by stripping one regular ending. Bases shorter
+// than 3 letters are skipped: "bed" would otherwise be a form of "be".
+function baseForms(w) {
+  const out = new Set();
+  for (const [end, rep] of DETACH) {
+    if (!w.endsWith(end)) continue;
+    const stem = w.slice(0, -end.length);
+    const base = stem + rep;
+    if (base.length >= 3) out.add(base);
+    // running -> run, bigger -> big: undo a doubled final consonant.
+    if (!rep && stem.length >= 4 && stem.at(-1) === stem.at(-2)) out.add(stem.slice(0, -1));
+  }
+  return out;
+}
+
+// Is `a` just another form of `b`? Same rule as the graph filter: a shared
+// base form, or a long shared prefix (sameFamily).
+export function formOf(a, b) {
+  return a !== b && (baseForms(a).has(b) || baseForms(b).has(a) || sameFamily(a, b));
+}
+
+// Are `a` and `b` one edit apart (insert, delete, substitute, or swap two
+// adjacent letters)? Linear time, no matrix: this runs on thousands of words
+// per keypress-submit.
+export function oneEdit(a, b) {
+  if (a === b) return false;
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  while (i < la && i < lb && a[i] === b[i]) i++;
+  if (la === lb) {
+    if (a.slice(i + 1) === b.slice(i + 1)) return true; // substitution
+    return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2); // swap
+  }
+  return la > lb ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+// Best vocabulary word one edit from `word`, or null. A legal next step wins
+// (that's what the player was most likely aiming at), then the most common
+// word (the list is in frequency order). Words already in the path are
+// skipped since suggesting them would only lead to another rejection.
+function didYouMean(ladder, path, word) {
+  const cur = ladder.index.get(path[path.length - 1]);
+  for (const idx of cur === undefined ? [] : ladder.neighbors[cur]) {
+    const w = ladder.words[idx];
+    if (!path.includes(w) && oneEdit(word, w)) return w;
+  }
+  for (const w of ladder.words) {
+    if (Math.abs(w.length - word.length) <= 1 && !path.includes(w) && oneEdit(word, w)) return w;
+  }
+  return null;
 }
 
 // Is the link one-way? The attempt lists the current word among ITS
