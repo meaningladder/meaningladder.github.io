@@ -182,6 +182,21 @@ def test_prompt_offers_verified_pairs(ladder):
     assert "Verified pairs" in prompt
     s, g = prompt.split("\n- ", 1)[1].split("\n")[0].split(" -> ")
     assert validate_pair(ladder, s, g, band).ok
+    # Each pair carries a route and the goal's incoming words, so the AI can
+    # see which sense of the goal the graph uses (the "anchor" problem).
+    lines = prompt.split("\n- ", 1)[1].split("\n")
+    route = lines[1].split("shortest route: ")[1].split(" -> ")
+    assert route[0] == s and route[-1] == g and len(route) == band["par"] + 1
+    incoming = lines[2].split(f"words that step to {g}: ")[1].split(", ")
+    assert 1 <= len(incoming) <= 10
+    assert all(ladder.index[g] in ladder.neighbors[ladder.index[w]] for w in incoming)
+
+
+def test_instructions_ask_for_the_routes_sense():
+    from ai_suggest import INSTRUCTIONS
+
+    assert "shortest route" in INSTRUCTIONS and "SENSE" in INSTRUCTIONS
+    assert "sense the shown route" in INSTRUCTIONS
 
 
 def test_daily_cron_runs_before_tomorrow_starts_anywhere():

@@ -32,6 +32,9 @@ class Ladder:
     # is the legal-step view: each list cut to the rules' stepLimit.
     full_neighbors: list[list[int]] | None = None
     base_config: dict | None = None
+    # How many words list each word as a legal step (see in_degrees). Filled
+    # lazily, once per view, and only when the rules ask for minGoalInDegree.
+    in_degree: list[int] | None = None
 
     def at(self, date_str: str | None) -> "Ladder":
         """This ladder under the rules for `date_str` (None = the newest rules)."""
@@ -67,7 +70,24 @@ def ladder_view(ladder: Ladder, rules: dict) -> Ladder:
     full = ladder.full_neighbors or ladder.neighbors
     k = rules.get("stepLimit", DEFAULT_STEP_LIMIT)
     return replace(ladder, neighbors=[row[:k] for row in full], full_neighbors=full,
-                   config=rules)
+                   config=rules, in_degree=None)  # new lists, so recount on demand
+
+
+def in_degrees(ladder: Ladder) -> list[int]:
+    """For every word, how many words have it among their legal steps.
+
+    A goal with few incoming links is only reachable through a handful of
+    words, often all from one unexpected sense (anchor via presenter and
+    newscast, butterfly via swim strokes), which makes an unfair puzzle.
+    Counted once per view and cached, since validate_pair runs thousands of
+    times per seeded puzzle. JS twin: inDegrees in js/seeded.js."""
+    if ladder.in_degree is None:
+        deg = [0] * len(ladder.neighbors)
+        for row in ladder.neighbors:
+            for v in row:
+                deg[v] += 1
+        ladder.in_degree = deg
+    return ladder.in_degree
 
 
 def load_ladder(root: Path = ROOT, config: dict | None = None,
@@ -151,6 +171,42 @@ def bfs_all(neighbors: list[list[int]], start: int) -> tuple[list[int], list[int
     return dist, routes
 
 
+def shortest_route(neighbors: list[list[int]], start: int, goal: int) -> list[int] | None:
+    """One fewest-steps route, as word indexes including both ends (None if
+    unreachable). Plain BFS with parent links; lists are scanned most-similar
+    first, so ties go to the closer neighbor. Shown to the AI so it can see
+    which sense of a word the graph actually walks through."""
+    parent = {start: start}
+    frontier = [start]
+    while frontier and goal not in parent:
+        nxt = []
+        for u in frontier:
+            for v in neighbors[u]:
+                if v not in parent:
+                    parent[v] = u
+                    nxt.append(v)
+        frontier = nxt
+    if goal not in parent:
+        return None
+    route = [goal]
+    while route[-1] != start:
+        route.append(parent[route[-1]])
+    return route[::-1]
+
+
+def incoming_words(ladder: "Ladder", goals: list[str], limit: int = 10) -> dict[str, list[str]]:
+    """For each goal, the words that list it as a legal step, most similar
+    link first (the rank at which they list it), up to `limit`. One pass over
+    all lists answers every goal at once."""
+    want = {ladder.index[g]: g for g in goals}
+    found: dict[str, list[tuple[int, str]]] = {g: [] for g in goals}
+    for u, row in enumerate(ladder.neighbors):
+        for rank, v in enumerate(row):
+            if v in want:
+                found[want[v]].append((rank, ladder.words[u]))
+    return {g: [w for _, w in sorted(found[g])[:limit]] for g in goals}
+
+
 def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = frozenset(),
               starts: int = 12, per_start: int = 3) -> list[tuple[str, str, int]]:
     """Pairs that already satisfy today's band, for the AI to choose from.
@@ -161,11 +217,16 @@ def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = fr
     goal that fits. Deterministic for a given date.
     """
     pool = [w for w in ladder.candidates if w not in recent]
+    # Goals validate_pair would reject anyway; filtering here keeps every
+    # shortlisted pair valid, so the AI never wastes a round on them.
+    min_in = ladder.config.get("minGoalInDegree")
+    goals = pool if not min_in else [
+        w for w in pool if in_degrees(ladder)[ladder.index[w]] >= min_in]
     rand = mulberry32(fnv1a32(f"shortlist#{date_str}"))
     out = []
     for start in seeded_sample(pool, starts, f"shortlist-starts#{date_str}"):
         dist, routes = bfs_all(ladder.neighbors, ladder.index[start])
-        fits = [g for g in pool if g != start
+        fits = [g for g in goals if g != start
                 and dist[ladder.index[g]] == band["par"]
                 and band["minRoutes"] <= routes[ladder.index[g]] <= band["maxRoutes"]]
         for _ in range(min(per_start, len(fits))):
@@ -273,6 +334,10 @@ def validate_pair(
             return Verdict(False, f"'{w}' was used in a recent puzzle")
     if start == goal:
         return Verdict(False, "start and goal are the same word")
+    min_in = cfg.get("minGoalInDegree")  # absent in older eras: no check
+    if min_in and in_degrees(ladder)[ladder.index[goal]] < min_in:
+        return Verdict(False, f"only {in_degrees(ladder)[ladder.index[goal]]} words step to "
+                              f"'{goal}', today needs {min_in}")
 
     par, routes = bfs_routes(ladder.neighbors, ladder.index[start], ladder.index[goal])
     if par is None:

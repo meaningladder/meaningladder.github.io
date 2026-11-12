@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, cutNeighbors, gameNumber, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, cutNeighbors, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -113,7 +113,7 @@ function viewOf(base, rules) {
   if (!view) {
     const neighbors = k >= base.neighbors[0].length ? base.neighbors : cutNeighbors(base.neighbors, k);
     view = { ...base, neighbors, fullNeighbors: base.neighbors, reverse: buildReverse(neighbors),
-             config: { ...rules, stepLimit: k } };
+             inDegree: inDegrees(neighbors), config: { ...rules, stepLimit: k } };
     base.views.set(key, view);
   }
   return view;

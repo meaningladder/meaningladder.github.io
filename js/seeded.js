@@ -96,6 +96,15 @@ export function rulesFor(config, dateStr) {
 // similarity, so the first 20 ARE the top 20 (Python: ladder_view).
 export const cutNeighbors = (neighbors, k) => neighbors.map((row) => row.slice(0, k));
 
+// For every word, how many words have it among their legal steps (Python:
+// in_degrees). A goal few words point to is often reachable only through
+// one unexpected sense, so eras with "minGoalInDegree" skip such goals.
+export function inDegrees(neighbors) {
+  const deg = new Int32Array(neighbors.length);
+  for (const row of neighbors) for (const v of row) deg[v]++;
+  return deg;
+}
+
 export function levelBand(level, config) {
   return { ...config.levels[level], level };
 }
@@ -105,10 +114,12 @@ export function levelBand(level, config) {
 export const seedBase = (dateStr, level) => `${dateStr}:${level}`;
 
 // ------------------------------------------------------------ seeded puzzle
-// ladder = { index: Map(word -> i), neighbors, candidates (sorted), config }
-function check(ladder, start, goal, band, checkRoutes) {
+// ladder = { index: Map(word -> i), neighbors, candidates (sorted), config,
+//            inDegree? (precomputed per view; counted here if missing) }
+function check(ladder, start, goal, band, checkRoutes, inDeg) {
   const { config } = ladder;
   if (start === goal) return null;
+  if (inDeg && inDeg[ladder.index.get(goal)] < config.minGoalInDegree) return null;
   const { par, routes } = bfsRoutes(ladder.neighbors, ladder.index.get(start), ladder.index.get(goal));
   if (par === null || par < config.minPar || par > config.maxPar) return null;
   if (par !== band.par) return null;
@@ -119,11 +130,15 @@ function check(ladder, start, goal, band, checkRoutes) {
 export function seededPuzzle(ladder, dateStr, band) {
   const cands = ladder.candidates;
   const n = cands.length;
+  // Counted once per call at most, never per pair. Older eras have no
+  // minGoalInDegree, so they skip the check exactly like Python does.
+  const inDeg = ladder.config.minGoalInDegree
+    ? ladder.inDegree ?? inDegrees(ladder.neighbors) : null;
   for (let attempt = 0; attempt < GIVE_UP_AFTER; attempt++) {
     const rand = mulberry32(fnv1a32(`${dateStr}#${attempt}`));
     const start = cands[Math.floor(rand() * n)];
     const goal = cands[Math.floor(rand() * n)];
-    const ok = check(ladder, start, goal, band, attempt < RELAX_AFTER);
+    const ok = check(ladder, start, goal, band, attempt < RELAX_AFTER, inDeg);
     if (ok) return { start, goal, par: ok.par, routes: ok.routes, attempt };
   }
   throw new Error(`no seeded puzzle for ${dateStr}`);

@@ -12,7 +12,8 @@ from typing import Callable
 
 from pydantic import BaseModel
 
-from ladder_core import Ladder, Verdict, seeded_sample, shortlist, validate_pair
+from ladder_core import (Ladder, Verdict, incoming_words, seeded_sample, shortest_route,
+                         shortlist, validate_pair)
 
 PAIRS_PER_ROUND = 5
 MAX_THEME = 40
@@ -44,12 +45,19 @@ Suggest {PAIRS_PER_ROUND} different (start, goal) pairs, best first. Rules:
   written: they already have the right difficulty. Pick the ones that make the
   most fun, surprising journey. Otherwise both words MUST come from the
   allowed word list, spelled exactly.
+- Each verified pair shows one shortest route and some of the words that lead
+  into the goal. They reveal which SENSE of the goal the word graph uses (e.g.
+  "anchor" reached via presenter and newscast is the TV anchor, not the
+  ship's). Skip a pair whose route or incoming words use a different sense
+  than the one a player would naturally guess, or than your theme.
 - Start and goal should feel far apart, but be bridgeable through a chain of
   related ideas. Prefer vivid, concrete, family-friendly words.
 - Never use any word from the "recently used" list.
 - theme: 1-4 words (max {MAX_THEME} characters, plain text) naming the idea that links the pair (e.g. "From sea to silicon").
 - teaser: one playful sentence, at most {MAX_TEASER} characters, that hints at a
   possible route WITHOUT naming any intermediate word.
+- Theme and teaser must be about the sense the shown route and incoming words
+  actually use, so they point players the right way, never a different sense.
 """
 
 DIFFICULTY_HINTS = {
@@ -64,12 +72,26 @@ DIFFICULTY_HINTS = {
 }
 
 
+INCOMING_SHOWN = 10  # enough to reveal a sense, short enough to keep the prompt small
+
+
+def _pair_listing(ladder: Ladder, start: str, goal: str, incoming: list[str]) -> str:
+    route = shortest_route(ladder.neighbors, ladder.index[start], ladder.index[goal])
+    return (f"- {start} -> {goal}\n"
+            f"    shortest route: {' -> '.join(ladder.words[i] for i in route)}\n"
+            f"    words that step to {goal}: {', '.join(incoming)}")
+
+
 def build_request(ladder: Ladder, date_str: str, band: dict, recent: set[str]) -> str:
     # Preferred: pairs the graph has already verified for today's band.
     # Seed by date AND level, so a day's three shortlists start from different words.
     pairs = shortlist(ladder, f"{date_str}:{band['level']}", band, recent)
     if len(pairs) >= PAIRS_PER_ROUND:
-        listing = "\n".join(f"- {s} -> {g}" for s, g, _ in pairs)
+        # The route and the goal's incoming words show the AI which sense the
+        # graph means; without them it themed "anchor" as nautical while
+        # every way in was a TV presenter.
+        incoming = incoming_words(ladder, sorted({g for _, g, _ in pairs}), INCOMING_SHOWN)
+        listing = "\n".join(_pair_listing(ladder, s, g, incoming[g]) for s, g, _ in pairs)
         return (
             f"Date: {date_str}. Level: {band['label']}.\n\n"
             f"Verified pairs (choose only from these):\n{listing}"
