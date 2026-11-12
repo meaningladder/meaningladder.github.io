@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "hard",
+  "start": "cinema",
+  "goal": "stomach",
+  "par": 6,
+  "theme": "Belly laughs",
+  "teaser": "A night at the movies could leave your middle aching for the funniest reason.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true
+}

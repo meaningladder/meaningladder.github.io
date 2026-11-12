@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "easy",
+  "start": "chest",
+  "goal": "stream",
+  "par": 4,
+  "theme": "Anatomy of a waterway",
+  "teaser": "Follow your own anatomy until the scenery starts to flow.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true
+}

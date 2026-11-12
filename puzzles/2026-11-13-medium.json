@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "medium",
+  "start": "sculpture",
+  "goal": "bag",
+  "par": 5,
+  "theme": "Art to Errands",
+  "teaser": "Follow an artwork\u2019s materials until they\u2019re ready to carry your shopping.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true
+}
