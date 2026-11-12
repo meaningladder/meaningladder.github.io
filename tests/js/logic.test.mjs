@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  addDays, buildReverse, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
+  addDays, bottleneckRoute, buildReverse, GENTLE_RANK, worstRank, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
   hintStep, localDateStr, medalFor, naturalRoute, shareText, shortestRoute, squareFor, STEP_COST,
 } from "../../js/logic.js";
 
@@ -87,6 +87,72 @@ test("naturalRoute avoids a wild leap even when it costs extra steps", () => {
   const route = naturalRoute(nbrs, costsToGoal(rev, names.length, N.goal), N.start);
   assert.deepEqual(route.map((i) => names[i]), ["start", "near", "nearer", "goal"]);
   route.slice(1).forEach((v, i) => assert.ok(nbrs[route[i]].includes(v), "every step is a real neighbor"));
+});
+
+// A padded graph where each list puts chosen words at chosen ranks; every
+// other slot is a filler word that only leads back to start (a dead end).
+function rankedGraph(names, links) {
+  const all = [...names, ...Array.from({ length: 100 }, (_, i) => `filler${i}`)];
+  const N = Object.fromEntries(all.map((w, i) => [w, i]));
+  const fillers = all.slice(names.length).map((w) => N[w]);
+  const nbrs = all.map(() => [N.start]);
+  for (const [u, ranked] of Object.entries(links)) {
+    const row = fillers.slice(0, 50);
+    // Insert lowest rank first so later inserts don't shift earlier ones.
+    for (const [v, rank] of Object.entries(ranked).sort((x, y) => x[1] - y[1])) row.splice(rank - 1, 0, N[v]);
+    nbrs[N[u]] = row;
+  }
+  const dist = distancesToGoal(buildReverse(nbrs), all.length, N.goal);
+  return { all, N, nbrs, dist, words: (r) => r.map((i) => all[i]) };
+}
+
+test("bottleneckRoute picks the par route whose worst link is best", () => {
+  // Two 2-step routes: via "a" (#1 then #35, cheaper in total) and via "b"
+  // (#20 then #20, weakest link only #20). Sum-based routing prefers "a".
+  const g = rankedGraph(["start", "a", "b", "goal"], {
+    start: { a: 1, b: 20 }, a: { goal: 35 }, b: { goal: 20 }, goal: {},
+  });
+  assert.deepEqual(g.words(shortestRoute(g.nbrs, g.dist, costsToGoal(buildReverse(g.nbrs), g.all.length, g.N.goal), g.N.start)),
+    ["start", "a", "goal"]);
+  const best = bottleneckRoute(g.nbrs, g.dist, g.N.start);
+  assert.deepEqual(g.words(best.route), ["start", "b", "goal"]);
+  assert.equal(best.worst, 20);
+  assert.equal(worstRank(g.nbrs, best.route), 20);
+});
+
+test("bottleneckRoute breaks worst-link ties by total gentleness", () => {
+  // Both routes' worst link is #10; via "a" the other step is #1, via "b" #9.
+  const g = rankedGraph(["start", "a", "b", "goal"], {
+    start: { a: 10, b: 9 }, a: { goal: 1 }, b: { goal: 10 }, goal: {},
+  });
+  const best = bottleneckRoute(g.nbrs, g.dist, g.N.start);
+  assert.equal(best.worst, 10);
+  assert.deepEqual(g.words(best.route), ["start", "a", "goal"]);
+});
+
+test("bottleneckRoute with one spare step finds a friendlier longer route", () => {
+  // Par 2 needs a #40 link; the 3-step route via c1, c2 stays within #2.
+  const g = rankedGraph(["start", "a", "c1", "c2", "goal"], {
+    start: { a: 1, c1: 2 }, a: { goal: 40 }, c1: { c2: 1 }, c2: { goal: 1 }, goal: {},
+  });
+  assert.equal(g.dist[g.N.start], 2);
+  const par = bottleneckRoute(g.nbrs, g.dist, g.N.start);
+  assert.equal(par.worst, 40);
+  assert.ok(par.worst > GENTLE_RANK);
+  const plus = bottleneckRoute(g.nbrs, g.dist, g.N.start, 3);
+  assert.deepEqual(g.words(plus.route), ["start", "c1", "c2", "goal"]);
+  assert.equal(plus.worst, 2);
+  plus.route.slice(1).forEach((v, i) => assert.ok(g.nbrs[plus.route[i]].includes(v), "every step is a real neighbor"));
+});
+
+test("bottleneckRoute handles the goal itself, dead ends and too-small budgets", () => {
+  const toComputer = distancesToGoal(reverse, words.length, W.computer);
+  assert.deepEqual(bottleneckRoute(neighbors, toComputer, W.computer), { route: [W.computer], worst: 0 });
+  assert.deepEqual(bottleneckRoute(neighbors, toComputer, W.sea).route.map((i) => words[i]),
+    ["sea", "ocean", "wave", "signal", "network", "computer"]);
+  assert.equal(bottleneckRoute(neighbors, toComputer, W.sea, 4), null); // par is 5
+  const toSea = distancesToGoal(reverse, words.length, W.sea);
+  assert.equal(bottleneckRoute(neighbors, toSea, W.computer), null); // unreachable
 });
 
 test("checkStep names the step limit from the ladder's rules", () => {

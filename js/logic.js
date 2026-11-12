@@ -159,6 +159,83 @@ export function hintStep(neighbors, dist, cost, from) {
   return route && route.length > 1 ? route[1] : -1;
 }
 
+// ------------------------------------------------------------ bottleneck routes
+// A route is only as convincing as its WEAKEST link: mentor -> protege ->
+// combs -> puff -> cheese is par, but "combs" is embedding noise. So for the
+// routes we show, first minimise the worst rank on the route (a "bottleneck"
+// or minimax path), and only then the usual gentleness (sum of rank +
+// STEP_COST) to break ties. Sum-based Dijkstra can't do this: it will happily
+// trade one #98 leap for several #1 steps.
+//
+// A link "looks related" when it's in the top GENTLE_RANK of its word's list.
+// Above that, a par + 1 route that stays within it reads better than par.
+export const GENTLE_RANK = 30;
+
+// The route of at most maxLen steps (default: par) from `from` to the goal
+// (the word with dist 0) whose worst link rank is as small as possible; ties
+// go to the lowest rank + STEP_COST total. Returns { route, worst } with
+// route as word indexes including both ends, or null if no route fits.
+//
+// How: binary search the rank threshold T. For a given T, a depth-limited
+// search keeps only links with rank <= T and prunes any word whose
+// unrestricted distance to the goal (dist) already exceeds the steps left.
+// With maxLen = par that leaves just the words on shortest paths, so each
+// check touches a small corner of the 20k-word graph, not all of it.
+export function bottleneckRoute(neighbors, dist, from, maxLen = dist[from]) {
+  if (dist[from] < 0 || dist[from] > maxLen) return null;
+  const stride = maxLen + 1;
+  const search = (T) => {
+    // Keyed by word * stride + steps left: cheapest total to the goal (Infinity
+    // = impossible) and the neighbor that achieves it, to rebuild the route.
+    const best = new Map();
+    const next = new Map();
+    const solve = (u, b) => {
+      if (dist[u] === 0) return 0;
+      const key = u * stride + b;
+      const seen = best.get(key);
+      if (seen !== undefined) return seen;
+      let bestCost = Infinity, bestV = -1;
+      const row = neighbors[u];
+      const lim = Math.min(T, row.length);
+      for (let r = 0; r < lim; r++) {
+        const v = row[r];
+        if (dist[v] < 0 || dist[v] > b - 1) continue; // can't finish in time
+        const c = r + 1 + STEP_COST + solve(v, b - 1);
+        if (c < bestCost) { bestCost = c; bestV = v; }
+      }
+      best.set(key, bestCost);
+      next.set(key, bestV);
+      return bestCost;
+    };
+    if (!Number.isFinite(solve(from, maxLen))) return null;
+    const route = [from];
+    for (let u = from, b = maxLen; dist[u] !== 0; b--) {
+      u = next.get(u * stride + b);
+      route.push(u);
+    }
+    return route;
+  };
+  let maxRank = 0;
+  for (const row of neighbors) if (row.length > maxRank) maxRank = row.length;
+  let lo = 1, hi = maxRank; // hi is always a feasible threshold
+  if (!search(hi)) return null;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (search(mid)) hi = mid; else lo = mid + 1;
+  }
+  const route = search(hi);
+  return { route, worst: worstRank(neighbors, route) };
+}
+
+// The largest neighbor-list rank (1 = most similar) used along a route.
+export function worstRank(neighbors, route) {
+  let worst = 0;
+  for (let i = 1; i < route.length; i++) {
+    worst = Math.max(worst, neighbors[route[i - 1]].indexOf(route[i]) + 1);
+  }
+  return worst;
+}
+
 // ------------------------------------------------------------ steps
 export function normalize(text) {
   return text.trim().toLowerCase();
