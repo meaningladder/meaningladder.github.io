@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "easy",
+  "start": "warrior",
+  "goal": "ash",
+  "par": 4,
+  "theme": "From swords to cinders",
+  "teaser": "Trade a sword for a fiery mountain's dusty leftovers.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 15,
+  "twoWay": true
+}

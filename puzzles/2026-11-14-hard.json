@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "hard",
+  "start": "shield",
+  "goal": "honey",
+  "par": 5,
+  "theme": "Armor to sweetness",
+  "teaser": "A defensive layer takes a delicious turn toward something sweet and sticky.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 15,
+  "twoWay": true
+}
