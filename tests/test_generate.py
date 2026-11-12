@@ -101,7 +101,13 @@ def test_puzzles_follow_their_dates_rules(ladder):
     old = make_puzzle(ladder, date(2026, 11, 12), "hard", set(), None, quiet)
     new = make_puzzle(ladder, date(2026, 11, 13), "hard", set(), None, quiet)
     assert (old["stepLimit"], old["par"]) == (100, 4)
-    assert (new["stepLimit"], new["par"]) == (20, 6)
+    assert (new["stepLimit"], new["par"]) == (20, 5)
+    # Each new-era level's first-move band holds for the seeded pick.
+    for level in ("easy", "medium", "hard"):
+        p = make_puzzle(ladder, date(2026, 11, 20), level, set(), None, quiet)
+        band = level_band(level, ladder.at("2026-11-20").config)
+        v = validate_pair(ladder.at("2026-11-20"), p["start"], p["goal"], band)
+        assert v.ok and band["minCloserFirstMoves"] <= v.closer
 
 
 def test_write_never_overwrites(tmp_path, ladder):

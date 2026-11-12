@@ -44,19 +44,23 @@
           "label": "Easy",
           "par": 4,
           "minRoutes": 1,
-          "maxRoutes": 100000
+          "maxRoutes": 100000,
+          "minCloserFirstMoves": 3
         },
         "medium": {
           "label": "Medium",
           "par": 5,
           "minRoutes": 1,
-          "maxRoutes": 100000
+          "maxRoutes": 100000,
+          "minCloserFirstMoves": 3
         },
         "hard": {
           "label": "Hard",
-          "par": 6,
+          "par": 5,
           "minRoutes": 1,
-          "maxRoutes": 100000
+          "maxRoutes": 100000,
+          "minCloserFirstMoves": 1,
+          "maxCloserFirstMoves": 2
         }
       }
     }

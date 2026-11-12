@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { bfsRoutes, candidatePool, cutNeighbors, excludedWords, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, cutNeighbors, excludedWords, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -43,7 +43,8 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   assert.equal(rulesFor(config, "2026-11-12").stepLimit, 100);
   assert.equal(rulesFor(config, "2026-11-13").stepLimit, 20);
   assert.equal(rulesFor(config, null).stepLimit, 20); // Unlimited: newest rules
-  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 6);
+  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 5);
+  assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
 });
@@ -53,6 +54,23 @@ test("bfsRoutes on the tiny directed graph", () => {
   assert.deepEqual(bfsRoutes(nb, 0, 3), { par: 2, routes: 2 });
   assert.deepEqual(bfsRoutes(nb, 1, 0), { par: 3, routes: 1 });
   assert.deepEqual(bfsRoutes(nb, 0, 5), { par: null, routes: 0 });
+});
+
+test("bfsRouteStats counts first moves that begin a shortest route, like Python", () => {
+  const nb = [[1, 2], [3], [3], [4], [0], [0]];
+  assert.deepEqual(bfsRouteStats(nb, 0, 4), { par: 3, routes: 2, closer: 2 });
+  assert.deepEqual(bfsRouteStats(nb, 0, 1), { par: 1, routes: 1, closer: 1 });
+  assert.deepEqual(bfsRouteStats([[1, 2, 3], [3], [3], [4], [0], [0]], 0, 4), { par: 2, routes: 1, closer: 1 });
+  assert.deepEqual(bfsRouteStats(nb, 0, 5), { par: null, routes: 0, closer: 0 });
+  // The seeded loop caps depth at the band's par; a farther goal reads as "no fit".
+  assert.deepEqual(bfsRouteStats(nb, 0, 4, 3), { par: 3, routes: 2, closer: 2 });
+  assert.deepEqual(bfsRouteStats(nb, 0, 4, 2), { par: null, routes: 0, closer: 0 });
+  // Bit 30 is the last tracked move; it must not go negative and miscount.
+  const wide = [Array.from({ length: 31 }, (_, i) => i + 1), ...Array.from({ length: 31 }, () => [32]), []];
+  assert.deepEqual(bfsRouteStats(wide, 0, 32), { par: 2, routes: 31, closer: 31 });
+  assert.ok(closerFits({ minCloserFirstMoves: 1, maxCloserFirstMoves: 2 }, 2));
+  assert.ok(!closerFits({ minCloserFirstMoves: 3 }, 2));
+  assert.ok(closerFits({}, 0));
 });
 
 test("seeded puzzles and game numbers match Python for every fixture date and level", () => {
@@ -74,8 +92,8 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
     const got = seededPuzzle(ladder, seedBase(p.date, p.level), band);
     assert.deepEqual(
-      [got.start, got.goal, got.par, got.routes, got.attempt],
-      [p.start, p.goal, p.par, p.routes, p.attempt],
+      [got.start, got.goal, got.par, got.routes, got.closer, got.attempt],
+      [p.start, p.goal, p.par, p.routes, p.closer, p.attempt],
       `${p.date} ${p.level}`,
     );
   }

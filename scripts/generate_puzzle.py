@@ -27,6 +27,7 @@ from ladder_core import (
     parse_date,
     seed_base,
     seeded_puzzle,
+    wants_closer,
 )
 
 PUZZLES = ROOT / "puzzles"
@@ -58,8 +59,10 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
     ladder = ladder.at(date_str)  # that day's rules: step limit and level bands
     cfg = ladder.config
     band = level_band(level, cfg)
+    closer = (f", closer first moves {band.get('minCloserFirstMoves', 0)}-"
+              f"{band.get('maxCloserFirstMoves', 'any')}" if wants_closer(band) else "")
     log(f"{date_str} {band['label']}: par {band['par']}, "
-        f"routes {band['minRoutes']}-{band['maxRoutes']}")
+        f"routes {band['minRoutes']}-{band['maxRoutes']}{closer}")
 
     source, theme, teaser = "seeded", SEEDED_THEME, ""
     try:
@@ -76,7 +79,8 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
             print(f"::warning title=Seeded fallback for {date_str} {level}::{type(e).__name__}: {e}")
         start, goal, verdict, attempt = seeded_puzzle(ladder, seed_base(date_str, level), band)
         log(f"  seeded attempt {attempt}: {start} -> {goal} "
-            f"(par {verdict.par}, {verdict.routes} routes)")
+            f"(par {verdict.par}, {verdict.routes} routes"
+            f"{f', {verdict.closer} closer first moves' if closer else ''})")
 
     return {
         "date": date_str,

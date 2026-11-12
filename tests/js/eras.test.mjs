@@ -54,20 +54,20 @@ test("notice is due once, only for players from an earlier era", () => {
 test("notice text is built from the eras", () => {
   assert.equal(rulesNoticeText(two, fixedDay),
     "From November 13, each step must be one of the previous word's 20 closest words (it was 100)."
-    + " Ladders are longer: par is 4, 5 and 6.");
+    + " Ladders are longer: par 4 for Easy, 5 for Medium and 6 for Hard.");
   const samePar = { rules: [era("2026-11-01", 100, [4, 5, 6]), era("2026-11-13", 50, [4, 5, 6])] };
   assert.equal(rulesNoticeText(samePar, fixedDay),
     "From November 13, each step must be one of the previous word's 50 closest words (it was 100).");
   const shorter = { rules: [era("2026-11-01", 20, [4, 5, 6]), era("2026-11-13", 20, [3, 4, 5])] };
   assert.equal(rulesNoticeText(shorter, fixedDay),
-    "From November 13, each step must be one of the previous word's 20 closest words. Par is now 3, 4 and 5.");
+    "From November 13, each step must be one of the previous word's 20 closest words. Now par 3 for Easy, 4 for Medium and 5 for Hard.");
   assert.equal(rulesNoticeText({ rules: [two.rules[0]] }, fixedDay), "");
 });
 
 test("the real config announces the November 13 change", () => {
   assert.equal(rulesNoticeText(config, fixedDay),
     "From November 13, each step must be one of the previous word's 20 closest words (it was 100)."
-    + " Ladders are longer: par is 4, 5 and 6.");
+    + " Ladders are longer: par 4 for Easy, 5 for Medium and 5 for Hard.");
 });
 
 test("notice text has no em or en dashes", () => {

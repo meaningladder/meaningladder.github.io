@@ -659,7 +659,11 @@ export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium",
   const before = pars(old);
   if (now.length && now.join() !== before.join()) {
     const longer = before.length === now.length && now.every((p, i) => p >= before[i]);
-    parts.push(longer ? `Ladders are longer: par is ${listJoin(now)}.` : `Par is now ${listJoin(now)}.`);
+    // Name the levels: two levels can share a par (Medium and Hard are both 5),
+    // and "par is 4, 5 and 5" wouldn't say which is which.
+    const named = levelOrder.filter((lv) => newest.levels?.[lv]?.par != null)
+      .map((lv, i) => `${i ? "" : "par "}${newest.levels[lv].par} for ${newest.levels[lv].label ?? lv[0].toUpperCase() + lv.slice(1)}`);
+    parts.push(longer ? `Ladders are longer: ${listJoin(named)}.` : `Now ${listJoin(named)}.`);
   }
   return parts.join(" ");
 }
