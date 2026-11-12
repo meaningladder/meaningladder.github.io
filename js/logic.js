@@ -337,8 +337,10 @@ function didYouMean(ladder, path, word) {
     const w = ladder.words[idx];
     if (!path.includes(w) && oneEdit(word, w)) return w;
   }
+  // Anywhere else, only words with the same first letter: typos rarely change
+  // it, and "kitten" -> "Did you mean bitten?" reads as a joke, not a fix.
   for (const w of ladder.words) {
-    if (Math.abs(w.length - word.length) <= 1 && !path.includes(w) && oneEdit(word, w)) return w;
+    if (w[0] === word[0] && Math.abs(w.length - word.length) <= 1 && !path.includes(w) && oneEdit(word, w)) return w;
   }
   return null;
 }

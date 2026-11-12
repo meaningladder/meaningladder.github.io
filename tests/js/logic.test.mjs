@@ -248,6 +248,8 @@ test("checkStep suggests a one-edit fix for typos, preferring legal steps", () =
   const path = ["ocean", "wave", "signal"];
   // transposition, deletion, insertion
   assert.deepEqual(checkStep(ladder, path, "ntework"), { ok: false, error: "Did you mean network?", suggestion: "network" });
+  // Off the legal steps, a different first letter is no typo: "cave" is not "wave".
+  assert.equal(checkStep(ladder, ["ocean", "wave", "signal", "network"], "cave").suggestion, undefined);
   assert.equal(checkStep(ladder, path, "netwrk").suggestion, "network");
   assert.equal(checkStep(ladder, path, "networks").suggestion, "network");
   assert.equal(checkStep(ladder, path, "keybaord").suggestion, "keyboard"); // not a legal step, still a word
