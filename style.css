@@ -358,6 +358,7 @@ a.chip:active { transform: scale(0.95); }
 @media (hover: hover) { a.chip:hover { border-color: var(--strong); } }
 
 /* ------------------------------------------------------------ archive calendar */
+.archive-note { margin-top: 12px; color: var(--muted); font-size: var(--fs-sm); }
 .month { margin-top: 18px; }
 .month-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .month-head h2 { font-size: var(--fs-md); font-weight: 800; }

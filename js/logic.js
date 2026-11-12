@@ -470,3 +470,68 @@ export function computeStats(results, today) {
     solvedByLevel,
   };
 }
+
+// ------------------------------------------------------------ rules eras
+// config.rules is a list of eras sorted by "from" (see rulesFor in seeded.js).
+// These helpers drive the one-time "New rules" notice and the "classic rules"
+// labels, all from config, so a future era needs no code change.
+
+// The newest era, but only if there was an older one to change from.
+export function newestEra(config) {
+  const eras = config?.rules ?? [];
+  return eras.length > 1 ? eras[eras.length - 1] : null;
+}
+
+// True if a daily game on dateStr is played under an older era's rules.
+export function isClassicDay(config, dateStr) {
+  const newest = newestEra(config);
+  return Boolean(newest && dateStr && dateStr < newest.from);
+}
+
+// Short tag for an older-era day ("classic rules (top 100)"), or "".
+// The step limit is that day's own era's (there could be several old eras).
+export function classicLabel(config, dateStr) {
+  if (!isClassicDay(config, dateStr)) return "";
+  const era = [...config.rules].reverse().find((e) => e.from <= dateStr) ?? config.rules[0];
+  return `classic rules (top ${era.stepLimit})`;
+}
+
+// Dates the player played on, from saved results ("<date>:<level>" ->
+// { playedOn }) and save keys ("game:<date>:<level>"). Results use playedOn
+// (when they played), falling back to the game's own date for old saves.
+export function playedDates(results, gameKeys = []) {
+  const dates = Object.entries(results ?? {}).map(([k, r]) => r?.playedOn ?? k.slice(0, 10));
+  for (const k of gameKeys) dates.push(k.slice("game:".length, "game:".length + 10));
+  return dates.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+}
+
+// Should the "New rules" notice show? Only once the newest era has started,
+// only for players with history from before it (newcomers get How to play,
+// which already teaches today's rules), and only until dismissed.
+export function rulesNoticeDue(config, today, dates, seen) {
+  const newest = newestEra(config);
+  if (!newest || today < newest.from || seen) return false;
+  return dates.some((d) => d < newest.from);
+}
+
+// "4, 5 and 6"
+const listJoin = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+// Body text of the notice, comparing the newest era with the one before it.
+// dayText formats a "YYYY-MM-DD" date: the DOM side owns the player's
+// locale, and tests pass a fixed formatter.
+export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium", "hard"]) {
+  const newest = newestEra(config);
+  if (!newest) return "";
+  const old = config.rules[config.rules.length - 2];
+  const was = old.stepLimit !== newest.stepLimit ? ` (it was ${old.stepLimit})` : "";
+  const parts = [`From ${dayText(newest.from)}, each step must be one of the previous word's ${newest.stepLimit} closest words${was}.`];
+  const pars = (era) => levelOrder.map((lv) => era.levels?.[lv]?.par).filter((p) => p != null);
+  const now = pars(newest);
+  const before = pars(old);
+  if (now.length && now.join() !== before.join()) {
+    const longer = before.length === now.length && now.every((p, i) => p >= before[i]);
+    parts.push(longer ? `Ladders are longer: par is ${listJoin(now)}.` : `Par is now ${listJoin(now)}.`);
+  }
+  return parts.join(" ");
+}
