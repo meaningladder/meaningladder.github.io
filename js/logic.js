@@ -301,15 +301,29 @@ export function addDays(dateStr, n) {
   return localDateStr(new Date(y, m - 1, d + n)); // Date handles month/year rollover
 }
 
+// Whether a win on puzzle date `day` keeps the streak alive. Solving it on
+// the day itself always counts. A ladder STARTED on its day but finished just
+// after midnight counts too (startedOn is recorded when the game is created),
+// but only until the end of the next day: otherwise a game opened and
+// abandoned could be finished a week later and patch a streak gap. Archive
+// plays (started after their day) never count. Results saved before
+// startedOn existed only have playedOn, so they keep the old rule.
+export function countsForStreak(day, r) {
+  if (r?.status !== "won") return false;
+  if (r.playedOn === day) return true;
+  return r.startedOn === day && r.playedOn != null && r.playedOn <= addDays(day, 1);
+}
+
 // Results are keyed "<date>:<level>" (older saves: just "<date>").
-// The streak counts DAYS: solving any level on the day itself keeps it alive.
-// Archive plays (finished on a later date) never extend a streak.
+// The streak counts DAYS: one level that countsForStreak keeps it alive.
+// Just after midnight "today" has no win yet, so counting starts at
+// yesterday: the streak only breaks once a whole day passes unsolved.
 export function computeStats(results, today) {
   const dayOf = (key) => key.slice(0, 10);
   const levelOf = (key) => key.slice(11) || null;
   const finished = Object.entries(results).filter(([, r]) => r.status !== "playing");
   const wins = finished.filter(([, r]) => r.status === "won");
-  const onTimeDays = new Set(wins.filter(([k, r]) => r.playedOn === dayOf(k)).map(([k]) => dayOf(k)));
+  const onTimeDays = new Set(wins.filter(([k, r]) => countsForStreak(dayOf(k), r)).map(([k]) => dayOf(k)));
 
   let current = 0;
   let d = onTimeDays.has(today) ? today : addDays(today, -1);

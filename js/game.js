@@ -74,6 +74,8 @@ const dateOfGame = (n, config) => addDays(config.launchDate, n - 1);
 
 // ------------------------------------------------------------ saved results
 const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
+// One Unlimited save per level, so switching levels never discards a game.
+const practiceKey = (level) => `practice:${level}`;
 const resultKey = (date, level) => `${date}:${level}`;
 const getResults = () => store.get("results", {});
 function saveResult(date, state) {
@@ -81,6 +83,9 @@ function saveResult(date, state) {
   results[resultKey(date, state.puzzle.level)] = {
     status: state.status, steps: state.path.length - 1, par: state.puzzle.par,
     hints: state.hints, playedOn: today(),
+    // Lets a ladder started before midnight and solved after it still count
+    // for its own day's streak (see countsForStreak in logic.js).
+    startedOn: state.startedOn ?? null,
   };
   store.set("results", results);
 }
@@ -201,8 +206,9 @@ function route() {
   if ((m = hash.match(/^#\/game\/(\d+)$/))) return openDay(Number(m[1]));
   if ((m = hash.match(/^#\/practice\/(easy|medium|hard)$/))) return showGame("practice", null, m[1]);
   if (hash === "#/practice") {
-    const level = store.get("practice")?.puzzle?.level;
-    return location.replace(`#/practice/${LEVELS.includes(level) ? level : "medium"}`);
+    // Resume whichever level has a game going; otherwise medium.
+    const level = LEVELS.find((lv) => store.get(practiceKey(lv))?.status === "playing");
+    return location.replace(`#/practice/${level ?? "medium"}`);
   }
   if (hash === "#/archive") return showArchive();
   return showHome();
@@ -286,13 +292,12 @@ async function showHome() {
     dailyLevels,
     h("ol", { class: "week", "aria-label": "This week" }, chips));
 
-  const saved = store.get("practice");
   const practice = h("section", { class: "card", "aria-labelledby": "practice-title" },
     h("h2", { id: "practice-title" }, "Unlimited"),
     h("p", { class: "sub" }, "Random ladders, as many as you like. No streaks at stake."),
     h("div", { class: "levels", role: "group", "aria-label": "Unlimited ladders" },
       LEVELS.map((level) => {
-        const resume = saved?.status === "playing" && saved.puzzle?.level === level;
+        const resume = store.get(practiceKey(level))?.status === "playing";
         return h("a", { class: "level-btn", href: `#/practice/${level}`,
           "aria-label": `${resume ? "Resume" : "Play"} an unlimited ${LEVEL_LABEL[level].toLowerCase()} ladder` },
           h("b", {}, LEVEL_LABEL[level]), h("span", {}, resume ? "Resume" : "Play"));
@@ -363,7 +368,11 @@ function topbar(title, menu = null) {
 
 // ------------------------------------------------------------ game screen
 function newState(kind, puzzle) {
-  return { kind, puzzle, path: [puzzle.start], hints: 0, hint: null, status: "playing" };
+  const state = { kind, puzzle, path: [puzzle.start], hints: 0, hint: null, status: "playing" };
+  // The day a daily ladder was opened, so finishing it after midnight still
+  // counts for the streak of the day it belongs to.
+  if (kind === "daily") state.startedOn = today();
+  return state;
 }
 
 // Placeholder shaped like the game screen, shown while the 4.7 MB map downloads.
@@ -405,9 +414,9 @@ async function showGame(kind, n, level) {
       // A saved game keeps its own puzzle, so a refresh can never swap it.
       state = store.get(saveKey) ?? newState("daily", await loadDailyPuzzle(ladder, date, level));
     } else {
-      saveKey = "practice";
+      saveKey = practiceKey(level);
       state = store.get(saveKey);
-      if (!state || state.puzzle.level !== level
+      if (!state || state.puzzle?.level !== level
           || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)) {
         state = newState("practice", await makePracticePuzzle(ladder, level));
       }
@@ -628,9 +637,13 @@ function playView(ladder, state, saveKey, date) {
     if (state.kind === "daily") saveResult(date, state);
   }
 
+  // Throwing away a ladder with real progress asks first; a fresh or
+  // finished one is replaced straight away.
   function newPractice() {
-    store.remove("practice");
-    route();
+    const fresh = () => { store.remove(saveKey); route(); };
+    if (state.status !== "playing" || state.path.length < 2) return fresh();
+    openDialog("Start a new ladder?", h("p", {}, "This one will be lost."),
+      [["Keep playing", () => input.focus()], ["New ladder", fresh, true]]);
   }
 
   // ---- Contexto-style Tried list
