@@ -32,6 +32,11 @@ class Ladder:
     # is the legal-step view: each list cut to the rules' stepLimit.
     full_neighbors: list[list[int]] | None = None
     base_config: dict | None = None
+    # The whole candidates_vN.json list, and each era's "excludeCandidates"
+    # file (path -> words). `candidates` above is the pool after the current
+    # era's exclusions; the v1 file itself is frozen, so eras filter it.
+    all_candidates: list[str] | None = None
+    exclusions: dict[str, frozenset[str]] | None = None
 
     def at(self, date_str: str | None) -> "Ladder":
         """This ladder under the rules for `date_str` (None = the newest rules)."""
@@ -61,13 +66,39 @@ def rules_for(config: dict, date_str: str | None) -> dict:
     return merged
 
 
+def excluded_words(exclude_file: dict) -> set[str]:
+    """Every word in an exclusion file (data/candidates_exclude_<era>.json),
+    whatever its category. JS twin: excludedWords in js/seeded.js."""
+    return {w for words in exclude_file["categories"].values() for w in words}
+
+
+def candidate_pool(candidates: list[str], excluded) -> list[str]:
+    """The start/goal pool for an era: candidates minus its exclusions, in the
+    original sorted order (the seeded pick indexes into it). JS: candidatePool."""
+    return [w for w in candidates if w not in excluded]
+
+
 def ladder_view(ladder: Ladder, rules: dict) -> Ladder:
     """Same words, but each neighbor list cut to rules["stepLimit"]. The lists
-    are sorted by similarity, so the first 20 ARE the top 20: no new data file."""
+    are sorted by similarity, so the first 20 ARE the top 20: no new data file.
+    The start/goal pool drops the era's "excludeCandidates" words, if any."""
     full = ladder.full_neighbors or ladder.neighbors
     k = rules.get("stepLimit", DEFAULT_STEP_LIMIT)
-    return replace(ladder, neighbors=[row[:k] for row in full], full_neighbors=full,
+    view = replace(ladder, neighbors=[row[:k] for row in full], full_neighbors=full,
                    config=rules)
+    if ladder.all_candidates is None:  # hand-made test ladders: pool as given
+        return view
+    path = rules.get("excludeCandidates")
+    pool = candidate_pool(ladder.all_candidates, ladder.exclusions[path]) if path \
+        else ladder.all_candidates
+    return replace(view, candidates=pool, candidate_set=set(pool))
+
+
+def load_exclusions(root: Path, config: dict) -> dict[str, frozenset[str]]:
+    """Every exclusion file any era names, keyed by its path in the config."""
+    paths = {e["excludeCandidates"] for e in config.get("rules", []) if e.get("excludeCandidates")}
+    return {p: frozenset(excluded_words(json.loads((root / p).read_text(encoding="utf-8"))))
+            for p in sorted(paths)}
 
 
 def load_ladder(root: Path = ROOT, config: dict | None = None,
@@ -86,6 +117,8 @@ def load_ladder(root: Path = ROOT, config: dict | None = None,
         candidate_set=set(cands["words"]),
         config=config,
         base_config=config,
+        all_candidates=cands["words"],
+        exclusions=load_exclusions(root, config),
     ).at(date_str)
 
 

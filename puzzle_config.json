@@ -35,6 +35,7 @@
     {
       "from": "2026-11-13",
       "stepLimit": 20,
+      "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
       "minPar": 4,
       "maxPar": 7,
       "levels": {

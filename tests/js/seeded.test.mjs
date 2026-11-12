@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { bfsRoutes, cutNeighbors, fnv1a32, gameNumber, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsRoutes, candidatePool, cutNeighbors, excludedWords, fnv1a32, gameNumber, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -65,7 +65,11 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
     const rules = rulesFor(config, p.date);
     assert.equal(rules.stepLimit, p.stepLimit, `${p.date} step limit`);
     if (!cut.has(rules.stepLimit)) cut.set(rules.stepLimit, cutNeighbors(graph.neighbors, rules.stepLimit));
-    const ladder = { index, neighbors: cut.get(rules.stepLimit), candidates, config: rules };
+    // Same pool rule as js/data.js viewOf and Python's ladder_view.
+    const pool = rules.excludeCandidates
+      ? candidatePool(candidates, excludedWords(readJson(rules.excludeCandidates)))
+      : candidates;
+    const ladder = { index, neighbors: cut.get(rules.stepLimit), candidates: pool, config: rules };
     const band = levelBand(p.level, rules);
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
     const got = seededPuzzle(ladder, seedBase(p.date, p.level), band);

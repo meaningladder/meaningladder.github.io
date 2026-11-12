@@ -100,7 +100,7 @@ node --test "tests/js/*.test.mjs"  # JS: game rules + Python/JS seeded parity
 | Preview a puzzle without writing it | `python scripts/generate_puzzle.py --date 2026-11-20 --dry-run` |
 | Same, without calling OpenAI | add `--no-ai` |
 | Generate today + tomorrow | `python scripts/generate_puzzle.py --ahead 1` |
-| Edit start/goal words | edit `scripts/lists/candidates_exclude.txt`, then `python scripts/build_graph.py --candidates-only` and `python scripts/make_fixtures.py` |
+| Drop start/goal words (current era) | edit `scripts/lists/candidates_exclude_2026-11-13.txt` (only before that era is played), then `make era-exclude` |
 | Run the daily job now | GitHub → Actions → Daily puzzle → Run workflow |
 
 ## Secrets
@@ -116,6 +116,13 @@ the run shows a warning.
 seeded puzzles (and the browser fallback) depend on their exact contents.
 Changes go into new `_v2` files plus a `graphVersion` bump in
 `puzzle_config.json`.
+
+A rules era can still shrink the start/goal pool without touching v1: its
+`excludeCandidates` names a generated file (`data/candidates_exclude_<era>.json`,
+built by `scripts/build_era_exclude.py` from a hand-reviewed list plus an
+automatic "neighbors are mostly names" rule). Python and the browser both
+filter the pool with it, so the seeded fallback stays identical. Once an era
+has been played its file is frozen too; later fixes need a new era.
 
 ## Credits
 

@@ -96,6 +96,13 @@ export function rulesFor(config, dateStr) {
 // similarity, so the first 20 ARE the top 20 (Python: ladder_view).
 export const cutNeighbors = (neighbors, k) => neighbors.map((row) => row.slice(0, k));
 
+// An era may drop words from the frozen candidates list (rules.excludeCandidates
+// names a data/candidates_exclude_<era>.json file). Python twins:
+// ladder_core.excluded_words and candidate_pool. The pool keeps the original
+// sorted order, because the seeded pick indexes into it.
+export const excludedWords = (excludeFile) => new Set(Object.values(excludeFile.categories).flat());
+export const candidatePool = (candidates, excluded) => candidates.filter((w) => !excluded.has(w));
+
 export function levelBand(level, config) {
   return { ...config.levels[level], level };
 }

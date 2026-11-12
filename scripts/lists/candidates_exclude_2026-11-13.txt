@@ -1,0 +1,275 @@
+# Start/goal words dropped from candidates_v1.json for the rules era that
+# begins 2026-11-13. candidates_v1.json is frozen (older dates must keep their
+# seeded puzzles), so this list filters it per era instead of editing it.
+# The words stay on the map as steps; they just won't be dealt as start/goal.
+#
+# Build data/candidates_exclude_2026-11-13.json from this file with:
+#     python scripts/build_era_exclude.py
+# That script also adds every candidate whose 10 closest words are mostly
+# names (scripts/lists/names_en.txt), under the category "name_neighbors".
+#
+# FROZEN once 2026-11-13 has been played: changing it changes the seeded
+# fallback puzzles of every date in the era. Later fixes need a new era.
+#
+# Format: "## category" starts a section; one word per line; each word in
+# exactly one section. Found by scanning every candidate's top-10 neighbors.
+
+## name
+# People, characters and name-like words whose neighbors are names or news
+# figures (bush -> gore, dole; potter -> harry, wizard; darling -> chancellor).
+batman
+belle
+bud
+bush
+clarence
+darling
+garner
+gong
+harper
+kohl
+maria
+newt
+potter
+rudd
+shin
+silva
+superman
+
+## brand
+# Companies, products and newspaper titles (delta -> airlines; fox -> network).
+airbus
+brent
+cisco
+dell
+delta
+fox
+herald
+kraft
+mac
+mart
+pal
+tribune
+
+## place
+# Nationalities and fragments of place names (sierra -> leone; rouge -> khmer).
+afghan
+argentine
+costa
+dame
+mayo
+nova
+rouge
+sierra
+turkey
+
+## title
+# Honorifics that in news text sit in front of a name.
+ayatollah
+sheik
+sheikh
+sir
+
+## politics
+# Political labels and roles; their neighborhoods are parties and parliaments.
+cabinet
+caretaker
+centrist
+constituent
+dissident
+feminist
+leftist
+liberal
+nationalist
+ouster
+partisan
+populist
+premier
+reformist
+sectarian
+secular
+separatist
+socialist
+
+## sensitive
+# Grim news topics, in line with the family-friendly pass in candidates_exclude.txt.
+asylum
+captive
+casualty
+checkpoint
+detainee
+exile
+fugitive
+graft
+homeless
+homosexual
+migrant
+plutonium
+roadside
+swine
+uranium
+wreckage
+
+## sense
+# The everyday concrete sense is not the one the map knows best
+# (wing -> nationalist, party; jam -> band, album; rose -> fell, shares).
+billboard
+bore
+buffalo
+circuit
+cone
+crack
+giant
+hedge
+jam
+key
+lance
+mate
+miss
+panel
+post
+rose
+shed
+soap
+sole
+spot
+string
+strip
+sub
+suit
+tie
+wing
+
+## function
+# Mostly used as a verb, adjective, adverb or pronoun, not as a thing.
+accused
+acoustic
+aerospace
+affluent
+auxiliary
+behind
+bolster
+chased
+chosen
+closer
+come
+concentrate
+convert
+cope
+crush
+cure
+curb
+daily
+departed
+die
+dig
+dug
+export
+facing
+favourite
+fell
+felt
+female
+forge
+gather
+generic
+grab
+handle
+hide
+hire
+holy
+immune
+implement
+import
+invite
+longer
+lower
+male
+mini
+monthly
+must
+nobody
+outdoors
+pave
+produce
+pursued
+reach
+read
+refuse
+remains
+salvage
+sang
+scrap
+see
+seizing
+settle
+shake
+shook
+shrink
+slide
+somebody
+someone
+somewhere
+stole
+stopping
+switch
+thus
+till
+tore
+treat
+trigger
+upgrade
+upside
+weekly
+yearly
+
+## abstract
+# Abstract nouns: nothing to picture, and their neighbors are abstract too.
+addition
+area
+casting
+clearing
+commodity
+counter
+covering
+direction
+end
+fallout
+fraction
+hurdle
+individual
+innovation
+insider
+journalism
+landmark
+lining
+material
+middle
+midst
+modeling
+object
+opening
+origin
+outline
+output
+packing
+piece
+place
+position
+region
+rift
+scene
+setting
+side
+solution
+source
+state
+stuff
+suspension
+system
+telecom
+top
+topping
+trend
+vicinity
+whereabouts
+world
