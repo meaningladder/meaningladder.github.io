@@ -440,4 +440,8 @@ The first loosening overshot: top 40 both ways made most ladders 3 steps, and
 the next playtest asked for more steps. Top 25 both ways sits between the two:
 no one-way rejections, about half the ladders 4 steps. Two quick rounds, each
 measured on the real word map before shipping, beat one big guess.
+A third round asked for longer ladders still, so the limit went to top 15 both
+ways: about as many accepted words per step as the old one-way top 20 (22 on
+average), but with no one-way surprises, a signpost and clue hints. Easy is
+par 4, Medium and Hard par 5.
 

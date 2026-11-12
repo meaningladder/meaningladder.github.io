@@ -34,33 +34,33 @@
     },
     {
       "from": "2026-11-13",
-      "stepLimit": 25,
+      "stepLimit": 15,
       "twoWay": true,
       "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
-      "minPar": 2,
-      "maxPar": 5,
+      "minPar": 3,
+      "maxPar": 6,
       "levels": {
         "easy": {
           "label": "Easy",
-          "par": 3,
+          "par": 4,
           "minRoutes": 1,
           "maxRoutes": 100000,
           "minCloserFirstMoves": 3
         },
         "medium": {
           "label": "Medium",
-          "par": 4,
+          "par": 5,
           "minRoutes": 1,
           "maxRoutes": 100000,
-          "minCloserFirstMoves": 3
+          "minCloserFirstMoves": 10
         },
         "hard": {
           "label": "Hard",
-          "par": 4,
+          "par": 5,
           "minRoutes": 1,
           "maxRoutes": 100000,
-          "minCloserFirstMoves": 1,
-          "maxCloserFirstMoves": 2
+          "minCloserFirstMoves": 3,
+          "maxCloserFirstMoves": 9
         }
       }
     }

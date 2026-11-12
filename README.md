@@ -19,7 +19,7 @@ under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
 | From | Legal steps | Easy | Medium | Hard |
 |---|---|---|---|---|
 | 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
-| 2026-11-13 | top 25, links both ways | par 3, 3+ good first moves | par 4, 3+ good first moves | par 4, only 1-2 good first moves |
+| 2026-11-13 | top 15, links both ways | par 4, 3+ good first moves | par 5, 10+ good first moves | par 5, 3-9 good first moves |
 
 A "good first move" is one of the start's legal steps that is one step closer
 to the goal (`minCloserFirstMoves` / `maxCloserFirstMoves` in a level). Par
@@ -31,9 +31,10 @@ of each (already sorted) list, so no data file changes. New puzzle files record
 their `stepLimit`; files without one are from the top-100 era.
 
 From 2026-11-13 links work both ways (`twoWay`): a step counts if either word
-is among the other's 25 closest. Playtests found the one-way top 20 too strict
+is among the other's 15 closest. Playtests found the one-way top 20 too strict
 (champ to dress needed "reigning" from a list of boxing words) and top 40 both
-ways too short (mostly 3 steps); top 25 both ways makes champ to dress par 4.
+ways too short (mostly 3 steps), and top 25 still too short; top 15 both ways
+makes most ladders 4 or 5 steps (champ to dress is par 5).
 An era may also set `minGoalInDegree`: a goal must be a legal step from at
 least that many words (used while the rule was one-way top 20). Goals with few ways in tend to be
 reachable only through a sense players don't expect (anchor via TV
@@ -42,7 +43,7 @@ also shows each shortlisted pair's shortest route and the goal's incoming
 words, so the theme and teaser describe the sense the graph actually uses.
 
 If a step is rejected, it joins a Contexto-style **Tried** list with its rank
-from the current word (under the top-25 rules, #26 was very close). Ranks up
+from the current word (under the top-15 rules, #16 was very close). Ranks up
 to #100 are exact, from the graph. Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,
 1.3 MB, built by `make vectors`), loaded only after the first wrong guess. It's
 free feedback: it never names the right word.
