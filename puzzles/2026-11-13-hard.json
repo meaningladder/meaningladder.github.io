@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "hard",
+  "start": "ferry",
+  "goal": "enzyme",
+  "par": 5,
+  "theme": "Crossings to chemistry",
+  "teaser": "Trade a harbor crossing for a microscopic journey that keeps life's chemistry moving.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 15,
+  "twoWay": true
+}

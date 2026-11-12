@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "easy",
+  "start": "continent",
+  "goal": "pot",
+  "par": 4,
+  "theme": "From maps to meals",
+  "teaser": "Take a tasty detour across the map and end up with dinner bubbling away.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 15,
+  "twoWay": true
+}
