@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "hard",
+  "start": "pop",
+  "goal": "pet",
+  "par": 5,
+  "theme": "From hits to hounds",
+  "teaser": "Follow the beat from the charts toward a furry friend with a wagging tail.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 20
+}
