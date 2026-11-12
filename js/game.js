@@ -12,7 +12,7 @@ import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePr
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
-  medalFor, naturalRoute, costsToGoal, shareText, shortestRoute,
+  medalFor, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
 import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
@@ -600,7 +600,8 @@ function playView(ladder, state, saveKey, date) {
     if (d < 0) {
       state.hint = { word: current, text: `There's no way to ${puzzle.goal} from ${current}. Try Undo.` };
     } else {
-      const next = ladder.words[routeFrom(current)[1]];
+      // Fewest-steps, not gentlest: a hint must always be one step closer (see hintStep).
+      const next = ladder.words[hintStep(ladder.neighbors, dist, costs(), ladder.index.get(current))];
       const tier = state.hint?.word === current ? state.hint.tier + 1 : 1;
       if (tier > 2) return;
       state.hints++;

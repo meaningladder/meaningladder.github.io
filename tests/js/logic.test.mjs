@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, buildReverse, checkStep, closeness, computeStats, costsToGoal, distancesToGoal,
-  localDateStr, medalFor, naturalRoute, shareText, shortestRoute, STEP_COST,
+  hintStep, localDateStr, medalFor, naturalRoute, shareText, shortestRoute, STEP_COST,
 } from "../../js/logic.js";
 
 // ocean -> wave -> signal -> network -> computer, plus a shortcut and a dead end.
@@ -119,6 +119,52 @@ test("shortestRoute follows par on the small graph and reports dead ends", () =>
   assert.deepEqual(route.map((i) => words[i]), ["sea", "ocean", "wave", "signal", "network", "computer"]);
   const toSea = distancesToGoal(reverse, words.length, W.sea);
   assert.equal(shortestRoute(neighbors, toSea, costsToGoal(reverse, words.length, W.sea), W.computer), null);
+});
+
+test("following every hint gets one step closer each time and finishes at par", () => {
+  // start -> mid -> goal is par 2, but mid is start's 50th-closest word.
+  // The gentle way starts with start's #1 word "side", which is FARTHER
+  // (side -> a -> b -> goal is 3 steps), so naturalRoute's first step is
+  // exactly the kind of hint the game would tag "farther".
+  const names = ["start", "side", "a", "b", "mid", "goal", ...Array.from({ length: 48 }, (_, i) => `filler${i}`)];
+  const N = Object.fromEntries(names.map((w, i) => [w, i]));
+  const fillers = names.slice(6).map((w) => N[w]);
+  const nbrs = names.map(() => [N.start]); // fillers are dead ends back to start
+  nbrs[N.start] = [N.side, ...fillers, N.mid];
+  nbrs[N.side] = [N.a];
+  nbrs[N.a] = [N.b];
+  nbrs[N.b] = [N.goal];
+  nbrs[N.mid] = [N.goal];
+  nbrs[N.goal] = [N.start];
+  assert.equal(nbrs[N.start].indexOf(N.mid) + 1, 50);
+  const rev = buildReverse(nbrs);
+  const d = distancesToGoal(rev, names.length, N.goal);
+  const c = costsToGoal(rev, names.length, N.goal);
+  assert.equal(d[N.start], 2);
+  // The premise: the gentle route's first step is farther from the goal.
+  const gentle = naturalRoute(nbrs, c, N.start);
+  assert.equal(names[gentle[1]], "side");
+  assert.ok(d[gentle[1]] > d[N.start]);
+  // Hints: every step is a real neighbor exactly one step closer.
+  const path = [N.start];
+  while (path.at(-1) !== N.goal) {
+    const cur = path.at(-1);
+    const next = hintStep(nbrs, d, c, cur);
+    assert.ok(nbrs[cur].includes(next), "a hint is a legal step");
+    assert.equal(d[next], d[cur] - 1, `hint from ${names[cur]} gets exactly one step closer`);
+    path.push(next);
+  }
+  assert.deepEqual(path.map((i) => names[i]), ["start", "mid", "goal"]);
+  assert.equal(path.length - 1, d[N.start]); // all hints = par = gold
+  // The small graph too: from every word that can reach the goal.
+  const c2 = costsToGoal(reverse, words.length, W.computer);
+  for (let w = 0; w < words.length; w++) {
+    if (dist[w] <= 0) continue;
+    assert.equal(dist[hintStep(neighbors, dist, c2, w)], dist[w] - 1);
+  }
+  assert.equal(hintStep(neighbors, dist, c2, W.computer), -1); // already there
+  const toSea = distancesToGoal(reverse, words.length, W.sea);
+  assert.equal(hintStep(neighbors, toSea, costsToGoal(reverse, words.length, W.sea), W.computer), -1);
 });
 
 test("checkStep accepts neighbors and explains every rejection", () => {

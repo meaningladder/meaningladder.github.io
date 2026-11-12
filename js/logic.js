@@ -148,6 +148,17 @@ export function shortestRoute(neighbors, dist, cost, from) {
   return route;
 }
 
+// The word a hint points to from `from`: the first step of shortestRoute,
+// so every hint gets exactly one step closer and a player who follows hints
+// all the way still finishes at par (gold). naturalRoute can step sideways
+// or away to dodge an awkward leap, which the game then tags "no closer" or
+// "farther"; that gentler route is only for the give-up screen.
+// Returns a word index, or -1 if the goal can't be reached or `from` is it.
+export function hintStep(neighbors, dist, cost, from) {
+  const route = shortestRoute(neighbors, dist, cost, from);
+  return route && route.length > 1 ? route[1] : -1;
+}
+
 // ------------------------------------------------------------ steps
 export function normalize(text) {
   return text.trim().toLowerCase();
