@@ -253,6 +253,48 @@ test("stats and streaks", () => {
   assert.equal(computeStats({}, "2026-11-21").avgOverPar, null);
 });
 
+// ------------------------------------------------------------ undos count as moves
+import { movesOf, movesText } from "../../js/logic.js";
+
+test("moves = steps + undos; old results without undos count 0", () => {
+  assert.equal(movesOf({ steps: 4, undos: 1 }), 5);
+  assert.equal(movesOf({ steps: 4 }), 4);              // saved before undos were tracked
+  assert.equal(movesOf({ steps: 4, undos: null }), 4);
+});
+
+test("undoing a word costs a medal tier", () => {
+  // The exploit: a par-length path reached by undoing two "no closer" words.
+  assert.equal(medalFor(movesOf({ steps: 4, undos: 0 }), 4).id, "gold");
+  assert.equal(medalFor(movesOf({ steps: 4, undos: 1 }), 4).id, "silver");
+  assert.equal(medalFor(movesOf({ steps: 4, undos: 2 }), 4).id, "bronze");
+  assert.equal(medalFor(movesOf({ steps: 5, undos: 3 }), 4).id, "finished");
+  assert.equal(medalFor(movesOf({ steps: 4 }), 4).id, "gold"); // old saves keep their medal
+});
+
+test("moves text spells out undos only when there are some", () => {
+  assert.equal(movesText(4, 0), "4 steps");
+  assert.equal(movesText(1), "1 step");
+  assert.equal(movesText(4, 1), "5 moves (4 steps + 1 undo)");
+  assert.equal(movesText(1, 2), "3 moves (1 step + 2 undos)");
+});
+
+test("share text includes undos", () => {
+  // An undo costs a move, so 4 steps + 1 undo at par 4 is silver, not gold.
+  assert.equal(shareText({ label: "#12", steps: 4, par: 4, undos: 1, distances: [4, 3, 2, 1, 0] }),
+    `Meaning Ladder #12 ${medalFor(5, 4).emoji}\n5 moves (4 steps + 1 undo) · par 4\n🟩🟩🟩✅`);
+  assert.equal(shareText({ label: "#3", steps: 1, par: 3, undos: 2, distances: [3, 4], gaveUp: true }),
+    "Meaning Ladder #3\nGave up after 3 moves (1 step + 2 undos) · par 3\n🟥");
+});
+
+test("avg over par uses moves for new results, steps for old ones", () => {
+  const results = {
+    "2026-11-16:easy": { status: "won", steps: 3, par: 3, undos: 2, playedOn: "2026-11-16" }, // +2
+    "2026-11-16:hard": { status: "won", steps: 4, par: 3, playedOn: "2026-11-16" },           // old: +1
+    "2026-11-17:easy": { status: "won", steps: 3, par: 3, undos: 0, playedOn: "2026-11-17" }, // 0
+  };
+  assert.equal(computeStats(results, "2026-11-17").avgOverPar, 1);
+});
+
 // ------------------------------------------------------------ near-miss + ranks
 import {
   displayRank, nearMiss, nearMissText, rankFill, rankOf, rankTone, sameFamily, scoresFrom, triedOrder,
