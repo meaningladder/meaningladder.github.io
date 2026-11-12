@@ -13,6 +13,7 @@ import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, naturalRoute, costsToGoal, shareText, shortestRoute,
+  classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
 import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
@@ -169,6 +170,32 @@ async function showHelp(k = null) {
   );
 }
 
+// The one pop-up on load. Newcomers get How to play (it already teaches
+// today's rules, so the "New rules" notice is marked seen for them).
+// Returning players who played under an older era get a one-time notice
+// when a new era starts. Never both: two stacked dialogs on load is noise.
+// k = the step limit How to play should explain (see showHelp).
+async function showIntro(k = null) {
+  const newcomer = !store.get("seenHelp");
+  if (newcomer) showHelp(k);
+  let config;
+  try { config = await loadConfig(); } catch { return; }
+  const newest = newestEra(config);
+  if (!newest) return;
+  const seenKey = `seenRules:${newest.from}`;
+  if (newcomer) {
+    // Only once the era has begun: a player who starts the day before the
+    // change still learns the old rules first and needs the notice later.
+    if (today() >= newest.from) store.set(seenKey, true);
+    return;
+  }
+  const dates = playedDates(getResults(), store.keys("game:"));
+  if (!rulesNoticeDue(config, today(), dates, store.get(seenKey))) return;
+  store.set(seenKey, true);
+  const day = (s) => fmt(s, { month: "long", day: "numeric" });
+  openDialog("New rules", h("p", {}, rulesNoticeText(config, day)), [["Got it", null, true]]);
+}
+
 function showStats() {
   const s = computeStats(getResults(), today());
   const { easy, medium, hard } = s.solvedByLevel;
@@ -238,7 +265,8 @@ function dayChip(date, config, results, t, { weekdayLabel = false } = {}) {
   const cls = ["chip", date === t && "today", solved && "won", !solved && touched && "played"]
     .filter(Boolean).join(" ");
   const state = solved ? `, ${solved} of 3 solved, best ${medal.label}` : touched ? ", started" : "";
-  const label = `${longDate(date)}${num ? `, game ${num}` : ""}${state}`;
+  const classic = num ? classicLabel(config, date) : "";
+  const label = `${longDate(date)}${num ? `, game ${num}` : ""}${classic ? `, ${classic}` : ""}${state}`;
   const inner = [
     weekdayLabel ? fmt(date, { weekday: "narrow" }) : null,
     h("b", {}, Number(date.slice(8))),
@@ -310,7 +338,7 @@ async function showHome() {
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics")));
 
-  if (!store.get("seenHelp")) showHelp();           // the only pop-up on load
+  showIntro();                                      // the only pop-up on load
   setTimeout(() => loadLadder().catch(() => {}), 300); // warm the 0.8 MB word map
 }
 
@@ -351,7 +379,14 @@ async function showArchive() {
         dates.map((d) => h("li", {}, dayChip(d, config, results, t))))));
     cursor = addDays(cursor, -1).slice(0, 7) + "-01";
   }
-  render(topbar("Previous games"), ...months);
+  // Once a new era starts, older days still play by their own rules; say so
+  // up front so a top-100 archive day doesn't feel like a bug.
+  const newest = newestEra(config);
+  const before = newest && addDays(newest.from, -1);
+  const classicNote = newest && t >= newest.from && isClassicDay(config, config.launchDate) && h("p", { class: "archive-note" },
+    `Games before ${fmt(newest.from, { month: "long", day: "numeric" })} use classic rules: `
+    + `each step may be any of the previous word's ${rulesFor(config, before).stepLimit} closest words.`);
+  render(topbar("Previous games"), classicNote, ...months);
 }
 
 function topbar(title, menu = null) {
@@ -420,10 +455,12 @@ async function showGame(kind, n, level) {
     return;
   }
   if (token !== routeToken) return;
-  playView(ladderFor(ladder, state.puzzle), state, saveKey, date); // that puzzle's rules
+  // Archive days from an older era say so, since their step limit differs.
+  const classic = date ? classicLabel(config, date) : "";
+  playView(ladderFor(ladder, state.puzzle), state, saveKey, date, classic); // that puzzle's rules
 }
 
-function playView(ladder, state, saveKey, date) {
+function playView(ladder, state, saveKey, date, classic = "") {
   const { puzzle } = state;
   const goalIdx = ladder.index.get(puzzle.goal);
   const dist = distancesToGoal(ladder.reverse, ladder.words.length, goalIdx);
@@ -736,7 +773,7 @@ function playView(ladder, state, saveKey, date) {
     const current = state.path[state.path.length - 1];
     const playing = state.status === "playing";
     const when = state.kind === "daily" ? `Game ${puzzle.gameNumber}, ${shortDate(date)}` : "Unlimited";
-    status.textContent = `${when} · Steps: ${steps} · Par: ${puzzle.par}`;
+    status.textContent = `${when}${classic ? ` · ${classic}` : ""} · Steps: ${steps} · Par: ${puzzle.par}`;
 
     input.placeholder = `Next step from ${current}`;
     form.hidden = !playing;
@@ -862,8 +899,8 @@ function playView(ladder, state, saveKey, date) {
   resolveRanks(); // ranks still pending from before a refresh
   if (state.status === "playing") input.focus();
   // First visit straight to a game (a shared link): explain the rules once,
-  // same as the home screen does.
-  if (!store.get("seenHelp")) showHelp(ladder.config.stepLimit);
+  // same as the home screen does (or announce new rules to a returning player).
+  showIntro(ladder.config.stepLimit);
 }
 
 // ------------------------------------------------------------ start
