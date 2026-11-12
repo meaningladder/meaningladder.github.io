@@ -13,6 +13,7 @@ import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, naturalRoute, costsToGoal, shareText, shortestRoute,
+  bottleneckRoute, GENTLE_RANK,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
 import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
@@ -822,15 +823,25 @@ function playView(ladder, state, saveKey, date) {
   }
 
   // The route paragraph(s) on the result card. Giving up always shows a
-  // par-length route, plus the gentler natural one when that one differs.
+  // par-length route, picked so its weakest link is as strong as possible
+  // (any shortest route will do for par, so show the least noisy one). If
+  // even that needs a link past GENTLE_RANK, a par + 1 route that doesn't
+  // reads better, so it comes second; otherwise the natural route does.
   function routeLines(won, foundIt, hitPar, route, routeSteps) {
     const line = (lead, words, tail = null) => h("p", { class: "route" }, lead, h("b", {}, words.join(" → ")), tail);
     if (!won) {
-      const short = shortestFrom(puzzle.start)?.map((i) => ladder.words[i]);
-      if (!short) return [line("A natural route: ", route)];
+      const from = ladder.index.get(puzzle.start);
+      const best = bottleneckRoute(ladder.neighbors, dist, from);
+      if (!best) return [line("A natural route: ", route)];
+      const toWords = (r) => r.map((i) => ladder.words[i]);
+      const short = toWords(best.route);
+      const plus = best.worst > GENTLE_RANK ? bottleneckRoute(ladder.neighbors, dist, from, puzzle.par + 1) : null;
+      const friendly = plus && plus.worst <= GENTLE_RANK ? toWords(plus.route) : null;
+      const n = (k) => `${k} step${k === 1 ? "" : "s"}`;
       return [
-        line(`One shortest route (${puzzle.par} step${puzzle.par === 1 ? "" : "s"}): `, short),
-        short.join() !== route.join() ? line("A gentler one: ", route, ` (${routeSteps} steps).`) : null,
+        line(`One shortest route (${n(puzzle.par)}): `, short),
+        friendly ? line(`A friendlier one (${n(friendly.length - 1)}): `, friendly)
+          : short.join() !== route.join() ? line("A gentler one: ", route, ` (${n(routeSteps)}).`) : null,
       ];
     }
     if (foundIt) return [line("You found the natural route: ", route)];
