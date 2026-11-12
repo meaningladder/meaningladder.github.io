@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "hard",
+  "start": "costume",
+  "goal": "hydrogen",
+  "par": 4,
+  "theme": "From Masquerade to Molecules",
+  "teaser": "Can a party disguise reach rocket fuel with a little sideline spirit?",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 40,
+  "twoWay": true
+}

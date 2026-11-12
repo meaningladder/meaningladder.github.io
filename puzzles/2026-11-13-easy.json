@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "easy",
+  "start": "lunch",
+  "goal": "radio",
+  "par": 3,
+  "theme": "From bites to broadcasts",
+  "teaser": "Today's midday special comes with a side of voices on the air.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 40,
+  "twoWay": true
+}
