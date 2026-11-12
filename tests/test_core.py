@@ -293,8 +293,9 @@ def test_goals_few_words_step_to_are_rejected(ladder):
     new, old = ladder.at("2026-11-13"), ladder.at("2026-11-12")
     for goal in ("anchor", "butterfly"):
         assert in_degrees(new)[new.index[goal]] < new.config["minGoalInDegree"]
-        v = validate_pair(new, "wing", goal)
+        # "ocean" is an allowed start in both eras ("wing" is excluded from Nov 13 on).
+        v = validate_pair(new, "ocean", goal)
         assert not v.ok and "words step to" in v.reason
-        assert "words step to" not in validate_pair(old, "wing", goal).reason
+        assert "words step to" not in validate_pair(old, "ocean", goal).reason
     # The cached count follows the view: top-100 lists give far more links in.
     assert in_degrees(old)[old.index["anchor"]] > in_degrees(new)[new.index["anchor"]]
