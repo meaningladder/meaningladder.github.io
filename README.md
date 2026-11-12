@@ -19,7 +19,12 @@ under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
 | From | Legal steps | Easy | Medium | Hard |
 |---|---|---|---|---|
 | 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
-| 2026-11-13 | top 20 neighbors | par 4 | par 5 | par 6 |
+| 2026-11-13 | top 20 neighbors | par 4, 3+ good first moves | par 5, 3+ good first moves | par 5, only 1-2 good first moves |
+
+A "good first move" is one of the start's legal steps that is one step closer
+to the goal (`minCloserFirstMoves` / `maxCloserFirstMoves` in a level). Par
+alone mislabeled levels: an Easy with a single right first guess played harder
+than most Mediums, and par 6 pairs were rare and mostly unsolvable by feel.
 
 The graph file always stores the top 100. A tighter era just uses the first N
 of each (already sorted) list, so no data file changes. New puzzle files record

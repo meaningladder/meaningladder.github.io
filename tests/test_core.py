@@ -10,6 +10,7 @@ from ladder_core import (
     LEVELS,
     level_band,
     seed_base,
+    bfs_route_stats,
     bfs_routes,
     fnv1a32,
     game_number,
@@ -46,6 +47,17 @@ def test_bfs_distance_and_routes():
     assert bfs_routes(TINY_NEIGHBORS, A, D) == (2, 2)  # via b or via c
     assert bfs_routes(TINY_NEIGHBORS, A, E) == (3, 2)
     assert bfs_routes(TINY_NEIGHBORS, A, A) == (0, 1)
+
+
+def test_closer_first_moves():
+    """Both of a's first moves (b, c) begin a shortest route to d and to e."""
+    assert bfs_route_stats(TINY_NEIGHBORS, A, D) == (2, 2, 2)
+    assert bfs_route_stats(TINY_NEIGHBORS, A, E) == (3, 2, 2)
+    assert bfs_route_stats(TINY_NEIGHBORS, A, B) == (1, 1, 1)  # only b itself
+    assert bfs_route_stats(TINY_NEIGHBORS, B, A) == (3, 1, 1)
+    assert bfs_route_stats(TINY_NEIGHBORS, A, F) == (None, 0, 0)
+    # A shortcut a -> d makes d's ripple-2 routes irrelevant: only one first move helps.
+    assert bfs_route_stats([[1, 2, 3], [3], [3], [4], [0], [0]], A, E) == (2, 1, 1)
 
 
 def test_bfs_unreachable():
@@ -116,7 +128,7 @@ def test_levels_cover_easy_medium_hard():
     assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
     assert medium["maxRoutes"] < easy["minRoutes"]
     # Top-20 rules (from Nov 13): longer ladders, one par per level.
-    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [4, 5, 6]
+    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [4, 5, 5]
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
 
 
@@ -159,6 +171,25 @@ def test_validator_accepts_and_checks_band():
     assert not validate_pair(lad, "a", "e", {**band, "par": 4}).ok
 
 
+def test_validator_checks_closer_first_moves():
+    lad = tiny_ladder()
+    band = {"par": 3, "minRoutes": 1, "maxRoutes": 9}
+    v = validate_pair(lad, "a", "e", {**band, "minCloserFirstMoves": 2})
+    assert v.ok and v.closer == 2
+    v = validate_pair(lad, "a", "e", {**band, "minCloserFirstMoves": 3})
+    assert not v.ok and "first moves" in v.reason
+    assert not validate_pair(lad, "a", "e", {**band, "maxCloserFirstMoves": 1}).ok
+    assert validate_pair(lad, "a", "e", band).ok  # no limit set: old eras unaffected
+
+
+def test_closer_bands_refuse_wide_step_limits(ladder):
+    """JS tracks first moves in 32-bit masks; Python must refuse what JS can't count."""
+    old = ladder.at("2026-11-12")  # top 100
+    with pytest.raises(ValueError):
+        validate_pair(old, "door", "kidney", {**level_band("hard", old.config),
+                                              "minCloserFirstMoves": 1})
+
+
 # ---------------------------------------------------------------- real data
 @pytest.fixture(scope="module")
 def ladder():
@@ -185,7 +216,7 @@ def test_seeded_puzzle_same_date_same_puzzle(ladder):
     assert first[2].ok and first[2].par == band["par"]
     # Each level of a day is an independent puzzle.
     hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert hard[:2] != first[:2] and hard[2].par == 6  # Nov 17: top-20 rules
+    assert hard[:2] != first[:2] and hard[2].par == 5  # Nov 17: top-20 rules
 
 
 def test_seeded_puzzles_match_fixture(ladder):
@@ -202,11 +233,56 @@ def test_seeded_puzzles_match_fixture(ladder):
 def test_bfs_all_matches_pairwise_bfs():
     from ladder_core import bfs_all
 
-    dist, routes = bfs_all(TINY_NEIGHBORS, A)
+    dist, routes, closer = bfs_all(TINY_NEIGHBORS, A)
     for goal in range(len(TINY_WORDS)):
-        par, n = bfs_routes(TINY_NEIGHBORS, A, goal)
+        if goal == A:
+            continue
+        par, n, c = bfs_route_stats(TINY_NEIGHBORS, A, goal)
         assert dist[goal] == (-1 if par is None else par)
-        assert routes[goal] == n
+        assert (routes[goal], closer[goal]) == (n, c)
+
+
+def _dist_to(neighbors, goal):
+    """Plain BFS on the reversed graph: every word's distance TO `goal`."""
+    rev = [[] for _ in neighbors]
+    for u, row in enumerate(neighbors):
+        for v in row:
+            rev[v].append(u)
+    dist = {goal: 0}
+    frontier = [goal]
+    while frontier:
+        nxt = []
+        for v in frontier:
+            for u in rev[v]:
+                if u not in dist:
+                    dist[u] = dist[v] + 1
+                    nxt.append(u)
+        frontier = nxt
+    return dist
+
+
+def test_closer_first_moves_match_the_definition(ladder):
+    """closer = how many of the start's legal steps sit at distance par-1 from the goal."""
+    nb = ladder.neighbors
+    for s, g in [("cafe", "fuel"), ("grocery", "silicon"), ("jam", "key"),
+                 ("novelist", "butterfly"), ("door", "kidney")]:
+        par, _, closer = bfs_route_stats(nb, ladder.index[s], ladder.index[g])
+        to_goal = _dist_to(nb, ladder.index[g])
+        assert closer == sum(1 for v in nb[ladder.index[s]] if to_goal.get(v) == par - 1), (s, g)
+    # The measured complaint: live Easy puzzles had a single good first move.
+    assert bfs_route_stats(nb, ladder.index["cafe"], ladder.index["fuel"])[2] == 1
+
+
+def test_newest_levels_are_ordered_by_difficulty(ladder):
+    """Easy < Medium < Hard: par never drops, and at equal par the harder level
+    has fewer first moves that get closer (its bands must not overlap)."""
+    bands = [level_band(lv, ladder.config) for lv in LEVELS]
+    for easier, harder in zip(bands, bands[1:]):
+        assert easier["par"] <= harder["par"]
+        if easier["par"] == harder["par"]:
+            assert harder["maxCloserFirstMoves"] < easier["minCloserFirstMoves"]
+    for band in bands:
+        assert band["minCloserFirstMoves"] >= 1  # every level has a good first move
 
 
 def test_shortlist_pairs_all_fit_the_band(ladder):

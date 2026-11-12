@@ -92,63 +92,107 @@ def load_ladder(root: Path = ROOT, config: dict | None = None,
 # ---------------------------------------------------------------- BFS
 def bfs_routes(neighbors: list[list[int]], start: int, goal: int) -> tuple[int | None, int]:
     """Shortest path length from start to goal, and how many shortest routes exist.
+    Returns (None, 0) if unreachable. See bfs_route_stats for how it works."""
+    return bfs_route_stats(neighbors, start, goal)[:2]
+
+
+MAX_TRACKED_FIRST_MOVES = 31  # JS bit masks are 32-bit ints; see bfs_route_stats
+
+
+def bfs_route_stats(neighbors: list[list[int]], start: int,
+                    goal: int) -> tuple[int | None, int, int]:
+    """(par, shortest-route count, closer first moves) for start -> goal.
 
     Level by level, like ripples spreading from a stone dropped in water.
     Every word reached in ripple d inherits the route count of each word in
     ripple d-1 that points to it. We finish the goal's whole ripple before
-    stopping, so the count is complete. Returns (None, 0) if unreachable.
+    stopping, so the count is complete. Returns (None, 0, 0) if unreachable.
+
+    "Closer first moves" = how many of the start's legal steps are one step
+    nearer the goal (begin some shortest route). One full-par route hidden
+    behind a single right first guess is what made "Easy" feel hard, so the
+    level bands can ask for a minimum. It rides along the same BFS: each of
+    the start's neighbors gets a bit, and every word inherits the bits of the
+    words in the previous ripple that point to it, just like route counts.
+    The goal's bits are exactly the first moves that begin a shortest route.
+    JS twin: bfsRouteStats in js/seeded.js (32-bit masks, hence the cap).
     """
     if start == goal:
-        return 0, 1
+        return 0, 1, 0
     dist = {start: 0}
     routes = {start: 1}
-    frontier = [start]
-    d = 0
-    while frontier:
+    moves = {start: 0}
+    frontier = []
+    d = 1
+    for i, v in enumerate(neighbors[start]):  # ripple 1: each first move gets its own bit
+        bit = 1 << i if i < MAX_TRACKED_FIRST_MOVES else 0
+        dv = dist.get(v)
+        if dv is None:
+            dist[v], routes[v], moves[v] = 1, 1, bit
+            frontier.append(v)
+        elif dv == 1:
+            routes[v] += 1
+            moves[v] |= bit
+    while True:
+        if goal in dist:
+            return d, routes[goal], moves[goal].bit_count()
+        if not frontier:
+            return None, 0, 0
         d += 1
         nxt = []
         for u in frontier:
-            ru = routes[u]
+            ru, mu = routes[u], moves[u]
             for v in neighbors[u]:
                 dv = dist.get(v)
                 if dv is None:
                     dist[v] = d
                     routes[v] = ru
+                    moves[v] = mu
                     nxt.append(v)
                 elif dv == d:
                     routes[v] += ru
-        if goal in dist:
-            return d, routes[goal]
+                    moves[v] |= mu
         frontier = nxt
-    return None, 0
 
 
-def bfs_all(neighbors: list[list[int]], start: int) -> tuple[list[int], list[int]]:
-    """Distance and shortest-route count from `start` to EVERY word (-1 = unreachable).
+def bfs_all(neighbors: list[list[int]], start: int) -> tuple[list[int], list[int], list[int]]:
+    """Distance, shortest-route count and closer first moves from `start` to
+    EVERY word (-1 / 0 / 0 = unreachable).
 
-    Same ripple idea as bfs_routes, but it never stops early. One call answers
-    "how far is every possible goal?" for this start word.
+    Same ripple idea as bfs_route_stats, but it never stops early. One call
+    answers "how far is every possible goal?" for this start word. Python
+    only (the shortlist), so the first-move masks need no 32-bit cap here.
     """
     n = len(neighbors)
     dist = [-1] * n
     routes = [0] * n
+    moves = [0] * n
     dist[start], routes[start] = 0, 1
-    frontier = [start]
-    d = 0
+    for i, v in enumerate(neighbors[start]):
+        if dist[v] == -1:
+            dist[v] = 1
+            routes[v] = 1
+        elif dist[v] == 1:
+            routes[v] += 1
+        moves[v] |= 1 << i
+    frontier = [v for v in dict.fromkeys(neighbors[start]) if dist[v] == 1]
+    d = 1
     while frontier:
         d += 1
         nxt = []
         for u in frontier:
-            ru = routes[u]
+            ru, mu = routes[u], moves[u]
             for v in neighbors[u]:
                 if dist[v] == -1:
                     dist[v] = d
                     routes[v] = ru
+                    moves[v] = mu
                     nxt.append(v)
                 elif dist[v] == d:
                     routes[v] += ru
+                    moves[v] |= mu
         frontier = nxt
-    return dist, routes
+    return dist, routes, [m.bit_count() for m in moves]
 
 
 def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = frozenset(),
@@ -164,10 +208,11 @@ def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = fr
     rand = mulberry32(fnv1a32(f"shortlist#{date_str}"))
     out = []
     for start in seeded_sample(pool, starts, f"shortlist-starts#{date_str}"):
-        dist, routes = bfs_all(ladder.neighbors, ladder.index[start])
+        dist, routes, closer = bfs_all(ladder.neighbors, ladder.index[start])
         fits = [g for g in pool if g != start
                 and dist[ladder.index[g]] == band["par"]
-                and band["minRoutes"] <= routes[ladder.index[g]] <= band["maxRoutes"]]
+                and band["minRoutes"] <= routes[ladder.index[g]] <= band["maxRoutes"]
+                and closer_fits(band, closer[ladder.index[g]])]
         for _ in range(min(per_start, len(fits))):
             goal = fits.pop(math.floor(rand() * len(fits)))
             out.append((start, goal, routes[ladder.index[goal]]))
@@ -240,6 +285,18 @@ def level_band(level: str, config: dict) -> dict:
     return band
 
 
+def wants_closer(band: dict | None) -> bool:
+    """Does this level band limit the closer first moves? Only newer eras do."""
+    return bool(band) and ("minCloserFirstMoves" in band or "maxCloserFirstMoves" in band)
+
+
+def closer_fits(band: dict, closer: int) -> bool:
+    """Is `closer` (see bfs_route_stats) inside the band? Missing limits = no limit.
+    JS twin: closerFits in js/seeded.js."""
+    return (band.get("minCloserFirstMoves", 0) <= closer
+            <= band.get("maxCloserFirstMoves", math.inf))
+
+
 def seed_base(date_str: str, level: str) -> str:
     """What the seeded fallback hashes: one independent stream per date AND level."""
     return f"{date_str}:{level}"
@@ -252,6 +309,7 @@ class Verdict:
     reason: str
     par: int | None = None
     routes: int = 0
+    closer: int = 0  # closer first moves, see bfs_route_stats
 
 
 def validate_pair(
@@ -274,7 +332,11 @@ def validate_pair(
     if start == goal:
         return Verdict(False, "start and goal are the same word")
 
-    par, routes = bfs_routes(ladder.neighbors, ladder.index[start], ladder.index[goal])
+    i = ladder.index[start]
+    if wants_closer(band) and len(ladder.neighbors[i]) > MAX_TRACKED_FIRST_MOVES:
+        # The JS twin can't count past 31 first moves, and the two must agree.
+        raise ValueError(f"closer-first-move bands need stepLimit <= {MAX_TRACKED_FIRST_MOVES}")
+    par, routes, closer = bfs_route_stats(ladder.neighbors, i, ladder.index[goal])
     if par is None:
         return Verdict(False, f"no path from {start} to {goal}")
     if not cfg["minPar"] <= par <= cfg["maxPar"]:
@@ -286,7 +348,13 @@ def validate_pair(
         if check_routes and not band["minRoutes"] <= routes <= band["maxRoutes"]:
             return Verdict(False, f"{routes} shortest routes, today needs "
                                   f"{band['minRoutes']}-{band['maxRoutes']}", par, routes)
-    return Verdict(True, "ok", par, routes)
+        # Never relaxed (unlike routes): it is what keeps the level label honest.
+        if wants_closer(band) and not closer_fits(band, closer):
+            return Verdict(False, f"{closer} of {start}'s first moves get closer to {goal}, "
+                                  f"today needs {band.get('minCloserFirstMoves', 0)}-"
+                                  f"{band.get('maxCloserFirstMoves', 'any')}",
+                           par, routes, closer)
+    return Verdict(True, "ok", par, routes, closer)
 
 
 def seeded_puzzle(ladder: Ladder, date_str: str, band: dict) -> tuple[str, str, Verdict, int]:

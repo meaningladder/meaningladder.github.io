@@ -31,7 +31,8 @@ def main() -> None:
             puzzles.append({"date": d, "level": level, "stepLimit": dated.config["stepLimit"],
                             "gameNumber": game_number(day, launch),
                             "start": start, "goal": goal, "par": verdict.par,
-                            "routes": verdict.routes, "attempt": attempt})
+                            "routes": verdict.routes, "closer": verdict.closer,
+                            "attempt": attempt})
             print(f"  {d} {level}: {start} -> {goal} (par {verdict.par}, attempt {attempt})")
 
     fixture = {
@@ -40,7 +41,8 @@ def main() -> None:
         "puzzles": puzzles,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8")
+    # newline="\n": the repo is LF-only, and Windows text mode would write CRLF.
+    OUT.write_text(json.dumps(fixture, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {OUT.relative_to(ROOT)}")
 
 

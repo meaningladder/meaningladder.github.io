@@ -36,31 +36,70 @@ export function mulberry32(seed) {
 // Shortest path length start -> goal and the number of shortest routes.
 // Returns { par: null, routes: 0 } when the goal is unreachable.
 export function bfsRoutes(neighbors, start, goal) {
-  if (start === goal) return { par: 0, routes: 1 };
+  const { par, routes } = bfsRouteStats(neighbors, start, goal);
+  return { par, routes };
+}
+
+// Python twin: MAX_TRACKED_FIRST_MOVES. The masks below are 32-bit ints and
+// bit 31 is the sign bit, so we track at most 31 first moves.
+export const MAX_TRACKED_FIRST_MOVES = 31;
+
+// Python twin: bfs_route_stats. Same ripples, plus "closer first moves": how
+// many of the start's legal steps begin some shortest route. Each first move
+// gets a bit; every word ORs in the bits of the previous-ripple words that
+// point to it (like route counts), so the goal's bits are the helpful moves.
+// Returns { par: null, routes: 0, closer: 0 } when the goal is unreachable,
+// or further than maxDepth: the seeded loop only wants one par, and the last
+// ripples are by far the biggest, so stopping there keeps the browser fast.
+export function bfsRouteStats(neighbors, start, goal, maxDepth = Infinity) {
+  if (start === goal) return { par: 0, routes: 1, closer: 0 };
   const dist = new Map([[start, 0]]);
   const routes = new Map([[start, 1]]);
-  let frontier = [start];
-  let d = 0;
-  while (frontier.length) {
+  const moves = new Map([[start, 0]]);
+  let frontier = [];
+  let d = 1;
+  neighbors[start].forEach((v, i) => { // ripple 1: each first move gets its own bit
+    const bit = i < MAX_TRACKED_FIRST_MOVES ? 1 << i : 0;
+    const dv = dist.get(v);
+    if (dv === undefined) {
+      dist.set(v, 1);
+      routes.set(v, 1);
+      moves.set(v, bit);
+      frontier.push(v);
+    } else if (dv === 1) {
+      routes.set(v, routes.get(v) + 1);
+      moves.set(v, moves.get(v) | bit);
+    }
+  });
+  for (;;) {
+    if (dist.has(goal)) return { par: d, routes: routes.get(goal), closer: popcount(moves.get(goal)) };
+    if (!frontier.length || d >= maxDepth) return { par: null, routes: 0, closer: 0 };
     d += 1;
     const next = [];
     for (const u of frontier) {
       const ru = routes.get(u);
+      const mu = moves.get(u);
       for (const v of neighbors[u]) {
         const dv = dist.get(v);
         if (dv === undefined) {
           dist.set(v, d);
           routes.set(v, ru);
+          moves.set(v, mu);
           next.push(v);
         } else if (dv === d) {
           routes.set(v, routes.get(v) + ru);
+          moves.set(v, moves.get(v) | mu);
         }
       }
     }
-    if (dist.has(goal)) return { par: d, routes: routes.get(goal) };
     frontier = next;
   }
-  return { par: null, routes: 0 };
+}
+
+function popcount(m) {
+  let c = 0;
+  for (; m; m &= m - 1) c++;
+  return c;
 }
 
 // ------------------------------------------------------------ dates
@@ -100,6 +139,11 @@ export function levelBand(level, config) {
   return { ...config.levels[level], level };
 }
 
+// Python twins: wants_closer and closer_fits. Only newer eras set these limits.
+const wantsCloser = (band) => "minCloserFirstMoves" in band || "maxCloserFirstMoves" in band;
+export const closerFits = (band, closer) =>
+  (band.minCloserFirstMoves ?? 0) <= closer && closer <= (band.maxCloserFirstMoves ?? Infinity);
+
 // What the seeded fallback hashes: one independent stream per date AND level
 // (Python: ladder_core.seed_base). e.g. "2026-11-12:hard".
 export const seedBase = (dateStr, level) => `${dateStr}:${level}`;
@@ -109,11 +153,20 @@ export const seedBase = (dateStr, level) => `${dateStr}:${level}`;
 function check(ladder, start, goal, band, checkRoutes) {
   const { config } = ladder;
   if (start === goal) return null;
-  const { par, routes } = bfsRoutes(ladder.neighbors, ladder.index.get(start), ladder.index.get(goal));
+  const i = ladder.index.get(start);
+  if (wantsCloser(band) && ladder.neighbors[i].length > MAX_TRACKED_FIRST_MOVES) {
+    // Python counts any number; the two must agree, so refuse like Python does.
+    throw new Error(`closer-first-move bands need stepLimit <= ${MAX_TRACKED_FIRST_MOVES}`);
+  }
+  // Depth capped at band.par: deeper pairs fail the par check below anyway, so
+  // the chosen puzzle is the same as Python's uncapped validate_pair picks.
+  const { par, routes, closer } = bfsRouteStats(ladder.neighbors, i, ladder.index.get(goal), band.par);
   if (par === null || par < config.minPar || par > config.maxPar) return null;
   if (par !== band.par) return null;
   if (checkRoutes && (routes < band.minRoutes || routes > band.maxRoutes)) return null;
-  return { par, routes };
+  // Never relaxed (unlike routes): it is what keeps the level label honest.
+  if (wantsCloser(band) && !closerFits(band, closer)) return null;
+  return { par, routes, closer };
 }
 
 export function seededPuzzle(ladder, dateStr, band) {
@@ -124,7 +177,7 @@ export function seededPuzzle(ladder, dateStr, band) {
     const start = cands[Math.floor(rand() * n)];
     const goal = cands[Math.floor(rand() * n)];
     const ok = check(ladder, start, goal, band, attempt < RELAX_AFTER);
-    if (ok) return { start, goal, par: ok.par, routes: ok.routes, attempt };
+    if (ok) return { start, goal, par: ok.par, routes: ok.routes, closer: ok.closer, attempt };
   }
   throw new Error(`no seeded puzzle for ${dateStr}`);
 }
