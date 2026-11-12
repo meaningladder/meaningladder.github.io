@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  betterMedal, buildReverse, closerSteps, distancesToGoal, hintText, hintTier,
+  betterMedal, buildReverse, closerSteps, clueFor, clueText, distancesToGoal, hintTier,
   medalFor, resultMedal, upgradeHintState,
 } from "../../js/logic.js";
 
@@ -51,20 +51,30 @@ test("closerSteps lists the valid steps that are one step nearer the goal", () =
   assert.deepEqual(closerSteps(neighbors, dist, W.computer), []);    // already the goal
 });
 
-test("tier-1 hint text gives a count and a letter, not the distance", () => {
-  const t1 = hintText(1, { current: "ocean", next: "wave", closer: 3, total: 20 });
-  assert.equal(t1, "3 of 20 words from ocean get closer. One starts with “w”. (Hint again to reveal it.)");
-  assert.ok(!/step/.test(t1)); // the path bars already show steps to go
-  assert.match(hintText(1, { current: "ocean", next: "wave", closer: 1, total: 20 }),
-    /^1 of 20 words from ocean gets closer\. It starts with “w”\./);
-  assert.match(hintText(1, { current: "ocean", next: "sea", closer: 2, total: 20, nextIsCloser: false }),
-    /A smoother step starts with “s”\./);
-  assert.equal(hintText(2, { current: "ocean", next: "wave", closer: 3, total: 20 }), "Try “wave”.");
+test("a clue points at the word without naming it", () => {
+  // coffee's closest words, most similar first.
+  const names = ["coffee", "coffees", "espresso", "cafe", "tea", "beans", "coffeehouse", "fuel", "milk"];
+  const lad = { words: names, neighbors: [[1, 2, 3, 4, 5, 6, 7, 8]] };
+  // On the path: cafe (the current word). Goal: fuel.
+  const clue = clueFor(lad, ["lunch", "cafe"], 0, "fuel");
+  // Skips coffees (a form), cafe (on the path), coffeehouse (contains it), fuel (the goal).
+  assert.deepEqual(clue, { related: ["espresso", "tea", "beans"], length: 6, first: "c" });
+  assert.equal(clueText(clue), "Think of: espresso, tea, beans. 6 letters, starts with “c”.");
+  assert.ok(!clueText(clue).includes("coffee"));
+  assert.doesNotMatch(clueText(clue), /[–—]/);
+  // Nothing usable left: just the shape of the word.
+  const bare = clueFor({ words: ["tea", "teas"], neighbors: [[1], [0]] }, ["x"], 0);
+  assert.deepEqual(bare.related, []);
+  assert.equal(clueText(bare), "3 letters, starts with “t”.");
 });
 
 test("hint memory: tiers per word, and old saves upgrade without losing their hint", () => {
-  const fresh = upgradeHintState({ path: ["ocean"], hints: 1, hintsAt: { ocean: 1 }, reveals: 0 });
-  assert.equal(hintTier(fresh, "ocean"), 1);
+  const fresh = upgradeHintState({ path: ["ocean"], hints: 1, hintsAt: { ocean: 1 }, reveals: 0, clues: true });
+  assert.equal(hintTier(fresh, "ocean"), 1); // a clue stays a clue
+  // A save from when one hint showed the word: it stays revealed.
+  const shown = upgradeHintState({ path: ["ocean"], hints: 1, hintsAt: { ocean: 1, sea: 0 } });
+  assert.deepEqual(shown.hintsAt, { ocean: 2, sea: 0 });
+  assert.equal(shown.clues, true);
   assert.equal(hintTier(fresh, "wave"), null);
   assert.equal(hintTier(fresh, "constructor"), null); // no prototype leaks
 

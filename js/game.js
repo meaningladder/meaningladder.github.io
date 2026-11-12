@@ -14,7 +14,7 @@ import {
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, clueFor, clueText, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -164,7 +164,7 @@ async function showHelp(k = null) {
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
       h("li", {}, `Each word must be close in meaning to the one before it (one of its ${k} closest words).${eraNote}`),
       h("li", {}, "Each word is a rung. A word one step closer lifts you one rung. A word that isn't closer keeps you level or drops you down."),
-      h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it, and a hint costs one move. Reach the goal in ",
+      h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it. A hint costs one move: first a clue, then the word if you ask again. Reach the goal in ",
         h("b", {}, "par"), " moves for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
     h("ol", { class: "example ladder" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
@@ -402,9 +402,10 @@ function topbar(title, menu = null) {
 // ------------------------------------------------------------ game screen
 function newState(kind, puzzle) {
   // moves: the score. +1 for every word played and every hint; Undo never
-  // takes one back. hintsAt: words whose hint was shown ({ word: 1 }, 0 = the
-  // free dead-end note), so Undo back to a word shows its hint again for free.
-  const state = { kind, puzzle, path: [puzzle.start], moves: 0, hints: 0, hintsAt: {}, status: "playing" };
+  // takes one back. hintsAt: the hint shown at each word (1 = a clue, 2 = the
+  // word itself, 0 = the free dead-end note), so Undo back to a word shows
+  // its hint again for free. clues: marks saves that use those tier meanings.
+  const state = { kind, puzzle, path: [puzzle.start], moves: 0, hints: 0, hintsAt: {}, clues: true, status: "playing" };
   // The day a daily ladder was opened, so finishing it after midnight still
   // counts for the streak of the day it belongs to.
   if (kind === "daily") state.startedOn = today();
@@ -554,7 +555,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
   const undoBtn = h("button", { class: "btn btn-quiet", onClick: undo,
     title: "Take back your last word (the move still counts)" }, "Undo");
   const hintBtn = h("button", { class: "btn btn-quiet", onClick: hint,
-    title: "Show a next word (costs one move)" }, "Hint");
+    title: "A clue first, then the word. Each costs one move." }, "Hint");
   const actions = h("div", { class: "actions" }, undoBtn, hintBtn);
 
   render(topbar(state.kind === "daily" ? `Game ${puzzle.gameNumber}` : "Unlimited", menuWrap),
@@ -638,10 +639,11 @@ function playView(ladder, state, saveKey, date, classic = "") {
     if (stepsTo(current) < 0) {
       state.hintsAt[current] = 0; // the dead-end note is free
     } else {
-      if (hintTier(state, current) != null) return; // already shown here: free to see again
+      const tier = (hintTier(state, current) ?? 0) + 1; // 1 = a clue, 2 = the word
+      if (tier > 2) return; // already revealed here: free to see again
       state.hints++;
-      state.moves++; // a hint costs one move
-      state.hintsAt[current] = 1;
+      state.moves++; // each hint costs one move
+      state.hintsAt[current] = tier;
     }
     error = null;
     rejected = null;
@@ -650,12 +652,14 @@ function playView(ladder, state, saveKey, date, classic = "") {
     input.focus();
   }
 
-  // The hint for a word: one word that gets one step closer (see hintStep).
+  // The hint for a word points at one word that gets one step closer (see
+  // hintStep): first a clue that never names it, then the word itself.
   // Deterministic, so revisiting the word shows the same hint.
   function hintLine(current, tier) {
     if (stepsTo(current) < 0 || !tier) return `There's no way to ${puzzle.goal} from ${current}. Undo to go back.`;
-    const next = ladder.words[hintStep(ladder.neighbors, dist, costs(), ladder.index.get(current))];
-    return `Try “${next}”.`;
+    const next = hintStep(ladder.neighbors, dist, costs(), ladder.index.get(current));
+    if (tier >= 2) return `Try “${ladder.words[next]}”.`;
+    return clueText(clueFor(ladder, state.path, next, puzzle.goal));
   }
 
   function confirmGiveUp() {
@@ -872,7 +876,9 @@ function playView(ladder, state, saveKey, date, classic = "") {
     feedback.hidden = !playing;
     actions.hidden = !playing;
     undoBtn.disabled = steps === 0;
-    hintBtn.disabled = hintTier(state, current) != null;
+    // After the clue, the same button reveals the word (one more move).
+    hintBtn.disabled = hintTier(state, current) >= 2;
+    hintBtn.textContent = hintTier(state, current) === 1 ? "Reveal word" : "Hint";
 
     // Feedback slot: exactly one thing.
     if (!playing) feedback.replaceChildren();

@@ -481,18 +481,29 @@ export function closerSteps(neighbors, dist, from) {
   return neighbors[from].filter((v) => dist[v] === d - 1);
 }
 
-// Text for a hint at one tier. Tier 1 adds information the path bars don't
-// already show (how many of the valid steps get closer, plus a first letter);
-// tier 2 reveals the word. `closer` is how many of the `total` valid steps get
-// closer. `next` is the hinted word; it may sit off the shortest path (a
-// gentler route), so the letter clue is worded to match.
-export function hintText(tier, { current, next, closer, total, nextIsCloser = true }) {
-  if (tier >= 2) return `Try “${next}”.`;
-  const n = closer;
-  const count = `${n} of ${total} words from ${current} ${n === 1 ? "gets" : "get"} closer.`;
-  const clue = !nextIsCloser ? `A smoother step starts with “${next[0]}”.`
-    : n === 1 ? `It starts with “${next[0]}”.` : `One starts with “${next[0]}”.`;
-  return `${count} ${clue} (Hint again to reveal it.)`;
+// A clue for the hinted word `next` that never names it: up to three of its
+// own closest words, its length and its first letter. Skipped as clue words:
+// forms of the answer (formOf) and anything that contains it or sits inside
+// it, since those give it away; words already on the player's path, the
+// current word among them, since they say nothing new; and the goal.
+export function clueFor(ladder, path, next, goal = null) {
+  const word = ladder.words[next];
+  const related = [];
+  for (const idx of ladder.neighbors[next]) {
+    const w = ladder.words[idx];
+    if (w === goal || path.includes(w)) continue;
+    if (formOf(w, word) || w.includes(word) || word.includes(w)) continue;
+    if (related.some((r) => formOf(r, w))) continue; // not "room, rooms"
+    related.push(w);
+    if (related.length === 3) break;
+  }
+  return { related, length: word.length, first: word[0] };
+}
+
+// "Think of: espresso, tea, beans. 6 letters, starts with “c”."
+export function clueText({ related, length, first }) {
+  const shape = `${length} letter${length === 1 ? "" : "s"}, starts with “${first}”.`;
+  return related.length ? `Think of: ${related.join(", ")}. ${shape}` : shape[0].toUpperCase() + shape.slice(1);
 }
 
 // Hint tier stored for a word, or null. hasOwn, because a word like
@@ -505,6 +516,12 @@ export function upgradeHintState(state) {
   if (!state.hintsAt) {
     state.hintsAt = {};
     if (state.hint?.word && state.hint.tier) state.hintsAt[state.hint.word] = state.hint.tier;
+  }
+  // Tiers now mean 1 = clue, 2 = the word. A save without `clues` is from when
+  // one hint showed the word outright: keep what the player already paid for.
+  if (!state.clues) {
+    for (const w of Object.keys(state.hintsAt)) if (state.hintsAt[w] === 1) state.hintsAt[w] = 2;
+    state.clues = true;
   }
   state.reveals ??= Object.values(state.hintsAt).filter((t) => t >= 2).length;
   delete state.hint;
