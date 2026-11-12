@@ -85,7 +85,8 @@ def ladder_view(ladder: Ladder, rules: dict) -> Ladder:
     The start/goal pool drops the era's "excludeCandidates" words, if any."""
     full = ladder.full_neighbors or ladder.neighbors
     k = rules.get("stepLimit", DEFAULT_STEP_LIMIT)
-    view = replace(ladder, neighbors=[row[:k] for row in full], full_neighbors=full,
+    legal = two_way_neighbors(full, k) if rules.get("twoWay") else [row[:k] for row in full]
+    view = replace(ladder, neighbors=legal, full_neighbors=full,
                    config=rules, in_degree=None)  # new lists, so recount on demand
     if ladder.all_candidates is None:  # hand-made test ladders: pool as given
         return view
@@ -93,6 +94,48 @@ def ladder_view(ladder: Ladder, rules: dict) -> Ladder:
     pool = candidate_pool(ladder.all_candidates, ladder.exclusions[path]) if path \
         else ladder.all_candidates
     return replace(view, candidates=pool, candidate_set=set(pool))
+
+
+def two_way_neighbors(full: list[list[int]], k: int) -> list[list[int]]:
+    """Legal steps when links work both ways: a word's own top k (most
+    similar first), then every word that has it in ITS top k, ordered by the
+    rank that word gives it, then by index. Playtesters were rejected for
+    natural steps that only ran one way (champ -> reigning). The graph is then
+    undirected. JS twin: twoWayNeighbors in js/seeded.js (same order)."""
+    extra: list[list[tuple[int, int]]] = [[] for _ in full]
+    for u, row in enumerate(full):
+        for r, v in enumerate(row[:k]):
+            extra[v].append((r, u))
+    out = []
+    for v, row in enumerate(full):
+        own = list(row[:k])
+        seen = set(own)
+        for _, u in sorted(extra[v]):
+            if u not in seen:
+                seen.add(u)
+                own.append(u)
+        out.append(own)
+    return out
+
+
+def closer_first_moves(neighbors: list[list[int]], start: int, goal: int, par: int) -> int:
+    """How many of the start's legal steps are one step nearer the goal, for an
+    UNDIRECTED graph (two-way eras): one BFS from the goal, depth par - 1.
+    Two-way lists can hold more than 31 words, which the bit masks in
+    bfs_route_stats can't track in JS. JS twin: closerFirstMoves."""
+    if par < 1:
+        return 0
+    dist = {goal: 0}
+    frontier = [goal]
+    for d in range(1, par):
+        nxt = []
+        for u in frontier:
+            for v in neighbors[u]:
+                if v not in dist:
+                    dist[v] = d
+                    nxt.append(v)
+        frontier = nxt
+    return sum(1 for v in neighbors[start] if dist.get(v) == par - 1)
 
 
 def load_exclusions(root: Path, config: dict) -> dict[str, frozenset[str]]:
@@ -429,10 +472,13 @@ def validate_pair(
                               f"'{goal}', today needs {min_in}")
 
     i = ladder.index[start]
-    if wants_closer(band) and len(ladder.neighbors[i]) > MAX_TRACKED_FIRST_MOVES:
+    two_way = bool(cfg.get("twoWay"))
+    if wants_closer(band) and not two_way and len(ladder.neighbors[i]) > MAX_TRACKED_FIRST_MOVES:
         # The JS twin can't count past 31 first moves, and the two must agree.
         raise ValueError(f"closer-first-move bands need stepLimit <= {MAX_TRACKED_FIRST_MOVES}")
     par, routes, closer = bfs_route_stats(ladder.neighbors, i, ladder.index[goal])
+    if two_way and par is not None:
+        closer = closer_first_moves(ladder.neighbors, i, ladder.index[goal], par)
     if par is None:
         return Verdict(False, f"no path from {start} to {goal}")
     if not cfg["minPar"] <= par <= cfg["maxPar"]:

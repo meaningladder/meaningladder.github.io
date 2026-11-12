@@ -1,19 +1,19 @@
 """Split the word graph into the compact files the browser loads.
 
-    python scripts/build_graph_bin.py        # writes data/graph_vN_{head,tail}.bin + graph_vN_words.json
+    python scripts/build_graph_bin.py        # writes data/graph_vN_wide{_head,_tail}.bin + graph_vN_wide.json
 
 graph_vN.json stays the source of truth (Python and the tests read it). This
 is the SAME data in a lighter shape for phones, not a new graph version:
 
-  graph_vN_words.json  the word list and the layout below (~85 KB gzipped)
-  graph_vN_head.bin    each word's first HEAD neighbors  (n x HEAD uint16, little-endian)
-  graph_vN_tail.bin    neighbors HEAD+1..100             (n x (100-HEAD) uint16)
+  graph_vN_wide.json      the word list and the layout below (~85 KB gzipped)
+  graph_vN_wide_head.bin  each word's first HEAD neighbors  (n x HEAD uint16, little-endian)
+  graph_vN_wide_tail.bin  neighbors HEAD+1..100             (n x (100-HEAD) uint16)
 
-Neighbor lists are sorted by similarity, so the head IS each word's top 20,
-which is all today's rules (stepLimit 20) need. The browser loads the head
-first (~0.8 MB) and fetches the tail in the background: only archive games
-from the top-100 era and exact #21-#100 ranks in the Tried list need it.
-Raw JSON was 4.7 MB gzipped.
+Neighbor lists are sorted by similarity, so the head IS each word's top 40,
+which is all today's rules (top 40, links both ways) need: the two-way lists
+are built from the top 40 of every word. The browser loads the head first
+(~1.6 MB) and fetches the tail only for top-100-era archive games and exact
+#41-#100 ranks in the Tried list.
 """
 from __future__ import annotations
 
@@ -24,7 +24,10 @@ import numpy as np
 
 from ladder_core import ROOT
 
-HEAD = 20  # = the newest era's stepLimit; a later era with a bigger limit just waits for the tail
+HEAD = 40  # = the newest era's stepLimit; a later era with a bigger limit just waits for the tail
+# The files carry a new name whenever HEAD changes: the service worker caches
+# data files forever by name, so new contents under an old name would mix.
+NAME = "wide"
 
 
 def split(neighbors: list[list[int]], head: int = HEAD) -> tuple[bytes, bytes]:
@@ -42,11 +45,11 @@ def main() -> int:
 
     head, tail = split(neighbors)
     data = ROOT / "data"
-    (data / f"graph_v{v}_head.bin").write_bytes(head)
-    (data / f"graph_v{v}_tail.bin").write_bytes(tail)
+    (data / f"graph_v{v}_{NAME}_head.bin").write_bytes(head)
+    (data / f"graph_v{v}_{NAME}_tail.bin").write_bytes(tail)
     header = {"version": 1, "graphVersion": v, "count": len(words), "head": HEAD,
               "tail": width - HEAD, "dtype": "uint16le", "words": words}
-    (data / f"graph_v{v}_words.json").write_bytes((json.dumps(header, separators=(",", ":")) + "\n").encode())
+    (data / f"graph_v{v}_{NAME}.json").write_bytes((json.dumps(header, separators=(",", ":")) + "\n").encode())
     print(f"head {len(head) / 1e6:.2f} MB, tail {len(tail) / 1e6:.2f} MB, {len(words):,} words")
     return 0
 

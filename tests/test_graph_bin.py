@@ -16,7 +16,7 @@ def graph():
 
 @pytest.fixture(scope="module")
 def header():
-    return json.loads((DATA / "graph_v1_words.json").read_text(encoding="utf-8"))
+    return json.loads((DATA / "graph_v1_wide.json").read_text(encoding="utf-8"))
 
 
 def test_words_and_layout_match(graph, header):
@@ -27,8 +27,8 @@ def test_words_and_layout_match(graph, header):
 
 def test_head_plus_tail_is_the_graph(graph, header):
     n, h, t = header["count"], header["head"], header["tail"]
-    head = np.frombuffer((DATA / "graph_v1_head.bin").read_bytes(), dtype="<u2").reshape(n, h)
-    tail = np.frombuffer((DATA / "graph_v1_tail.bin").read_bytes(), dtype="<u2").reshape(n, t)
+    head = np.frombuffer((DATA / "graph_v1_wide_head.bin").read_bytes(), dtype="<u2").reshape(n, h)
+    tail = np.frombuffer((DATA / "graph_v1_wide_tail.bin").read_bytes(), dtype="<u2").reshape(n, t)
     assert np.array_equal(np.hstack([head, tail]), np.asarray(graph["neighbors"]))
 
 

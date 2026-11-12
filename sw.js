@@ -24,7 +24,7 @@ self.addEventListener("install", (event) => {
       // Each era's start/goal exclusion file too: loadLadder needs all of them.
       // They don't match VERSIONED, so they stay network-first like the config.
       const excludes = rules.map((e) => e.excludeCandidates).filter(Boolean);
-      await Promise.allSettled([`data/graph_v${v}_words.json`, `data/graph_v${v}_head.bin`,
+      await Promise.allSettled([`data/graph_v${v}_wide.json`, `data/graph_v${v}_wide_head.bin`,
         `data/candidates_v${v}.json`, ...excludes].map((url) => cache.add(url)));
     } catch { /* offline during install: they get cached on first use instead */ }
     await self.skipWaiting();

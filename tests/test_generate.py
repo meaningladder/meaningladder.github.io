@@ -12,9 +12,9 @@ from generate_puzzle import make_puzzle, recent_words, write_puzzle
 from ladder_core import level_band, load_ladder, validate_pair
 
 DAY = date(2026, 11, 17)
-LEVEL = "medium"  # par 5 under the top-20 rules (from Nov 13)
+LEVEL = "medium"  # par 3 under the top-40 two-way rules (from Nov 13)
 SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
-               "source", "graphVersion", "stepLimit"}
+               "source", "graphVersion", "stepLimit", "twoWay"}
 
 
 @pytest.fixture(scope="module")
@@ -93,7 +93,7 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
     assert p1["par"] == level_band(LEVEL, ladder.config)["par"]
     assert p1["level"] == LEVEL
     assert p1["gameNumber"] == 17  # launch 2026-11-01 is game 1
-    assert p1["stepLimit"] == 20 and p1["par"] == 5  # Nov 17: top-20 rules
+    assert p1["stepLimit"] == 40 and p1["par"] == 3 and p1["twoWay"] is True  # Nov 17
 
 
 def test_puzzles_follow_their_dates_rules(ladder):
@@ -101,13 +101,14 @@ def test_puzzles_follow_their_dates_rules(ladder):
     old = make_puzzle(ladder, date(2026, 11, 12), "hard", set(), None, quiet)
     new = make_puzzle(ladder, date(2026, 11, 13), "hard", set(), None, quiet)
     assert (old["stepLimit"], old["par"]) == (100, 4)
-    assert (new["stepLimit"], new["par"]) == (20, 5)
+    assert (new["stepLimit"], new["par"], new["twoWay"]) == (40, 4, True)
+    assert old["twoWay"] is False
     # Each new-era level's first-move band holds for the seeded pick.
     for level in ("easy", "medium", "hard"):
         p = make_puzzle(ladder, date(2026, 11, 20), level, set(), None, quiet)
         band = level_band(level, ladder.at("2026-11-20").config)
         v = validate_pair(ladder.at("2026-11-20"), p["start"], p["goal"], band)
-        assert v.ok and band["minCloserFirstMoves"] <= v.closer
+        assert v.ok and band.get("minCloserFirstMoves", 0) <= v.closer
 
 
 def test_write_never_overwrites(tmp_path, ladder):

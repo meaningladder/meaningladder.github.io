@@ -414,3 +414,25 @@ The design-system pass did the same at a smaller scale. 14 font sizes became
 6 tokens. The "you are here" outline was written 4 times; now it's one rule,
 and it no longer makes elements shift by a pixel. Leftover near-miss code went too.
 
+---
+
+## Loosening the rule: playtests beat theory
+
+The top-20 rule looked principled on paper: every step clearly related. A real
+player then hit champ to dress and gave up. Champ's 20 closest words were all
+boxing; the only way out was "reigning" (to crown, princess, bride, dress), and
+nothing on screen pointed at royalty. Half of all links also ran only one way,
+so obvious guesses were rejected for a reason players can't see.
+
+Two fixes, each aimed at a different cause:
+- **Direction, not just distance:** a signpost word on a middle rung, taken
+  from a real route, so a long ladder has a visible heading.
+- **Fewer pointless rejections:** a step now counts if *either* word is in the
+  other's top 40. The graph becomes undirected, champ to dress is par 3 with 8
+  good first moves instead of 1, and "one-way" stops being a thing to explain.
+
+Both used the same safety rails as before: the change lives in a rules era,
+past days keep their rules, Python and JS build the two-way lists in the exact
+same order (the parity tests prove it), and new browser files get a new name
+(`graph_v1_wide_*`) because the service worker caches data files forever by name.
+

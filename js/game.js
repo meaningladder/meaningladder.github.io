@@ -136,12 +136,13 @@ function openDialog(title, body, actions = [["Close", null]]) {
 
 // k = the step limit to explain: a game passes its own (archive days keep
 // their era's rules); null = today's rules (home screen).
-async function showHelp(k = null) {
+async function showHelp(k = null, twoWay = null) {
   store.set("seenHelp", true);
   let eraNote = "";
   try {
     const config = await loadConfig();
-    k ??= rulesFor(config, today()).stepLimit ?? DEFAULT_STEP_LIMIT;
+    const todays = rulesFor(config, today());
+    if (k == null) { k = todays.stepLimit ?? DEFAULT_STEP_LIMIT; twoWay ??= Boolean(todays.twoWay); }
     // A note about the other era, built from config.rules (not hard-coded).
     const eras = config.rules ?? [];
     const newest = eras[eras.length - 1];
@@ -152,6 +153,7 @@ async function showHelp(k = null) {
         : ` (Ladders from ${day(newest.from)} on use the top ${newest.stepLimit}.)`;
     } // Today's rules need no history lesson: the note only explains a different era.
   } catch { k ??= DEFAULT_STEP_LIMIT; }
+  const twoWayHelp = Boolean(twoWay);
   const ex = (word, d, { latest = false, isStart = false } = {}) => {
     const { tone, fill } = closeness(d);
     return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}`, style: `--fill:${fill}%` },
@@ -162,7 +164,7 @@ async function showHelp(k = null) {
   openDialog("How to play", h("div", {},
     h("ol", { class: "rules" },
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
-      h("li", {}, `Each word must be close in meaning to the one before it (one of its ${k} closest words).${eraNote}`),
+      h("li", {}, `Each word must be close in meaning to the one before it (${twoWayHelp ? `either word among the other's ${k} closest` : `one of its ${k} closest words`}).${eraNote}`),
       h("li", {}, "Each word is a rung. A word one step closer lifts you one rung. A word that isn't closer keeps you level or drops you down."),
       h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it. A hint costs one move: first a clue, then the word if you ask again. Reach the goal in ",
         h("b", {}, "par"), " moves for gold.")),
@@ -567,7 +569,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     ["Hint", hint, () => state.status === "playing"],
     ["Give up", confirmGiveUp, () => state.status === "playing"],
     ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
-    ["How to play", () => showHelp(ladder.config.stepLimit), () => true],
+    ["How to play", () => showHelp(ladder.config.stepLimit, ladder.config.twoWay), () => true],
     ["Statistics", showStats, () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
   ];

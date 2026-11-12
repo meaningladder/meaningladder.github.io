@@ -128,8 +128,9 @@ def test_levels_cover_easy_medium_hard():
     assert easy["level"] == "easy" and easy["label"] == "Easy"
     assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
     assert medium["maxRoutes"] < easy["minRoutes"]
-    # Top-20 rules (from Nov 13): longer ladders, one par per level.
-    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [4, 5, 5]
+    # Top-40 two-way rules (from Nov 13): Easy and Medium par 3 (Easy has more
+    # good first moves), Hard one step longer.
+    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [3, 3, 4]
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
 
 
@@ -141,12 +142,14 @@ def test_rules_eras_pick_by_date():
     assert [e["from"] for e in cfg["rules"]] == sorted(e["from"] for e in cfg["rules"])
     assert rules_for(cfg, "2026-11-01")["stepLimit"] == 100
     assert rules_for(cfg, "2026-11-12")["stepLimit"] == 100
-    assert rules_for(cfg, "2026-11-13")["stepLimit"] == 20
-    assert rules_for(cfg, "2030-01-01")["stepLimit"] == 20
-    assert rules_for(cfg, None)["stepLimit"] == 20  # Unlimited: newest rules
-    # The goal in-degree rule is new with the top-20 era; older dates never had it.
-    assert "minGoalInDegree" not in rules_for(cfg, "2026-11-12")
-    assert rules_for(cfg, "2026-11-13")["minGoalInDegree"] == 12
+    assert rules_for(cfg, "2026-11-13")["stepLimit"] == 40
+    assert rules_for(cfg, "2030-01-01")["stepLimit"] == 40
+    assert rules_for(cfg, None)["stepLimit"] == 40  # Unlimited: newest rules
+    # Links work both ways from Nov 13; older dates stay one-way.
+    assert rules_for(cfg, "2026-11-13")["twoWay"] is True
+    assert "twoWay" not in rules_for(cfg, "2026-11-12")
+    # Every word now has 40+ links in, so the thin-goal rule is gone.
+    assert "minGoalInDegree" not in rules_for(cfg, "2026-11-13")
     merged = rules_for(cfg, "2026-11-13")
     assert "rules" not in merged and merged["launchDate"] == cfg["launchDate"]
 
@@ -225,15 +228,23 @@ def ladder():
 
 
 def test_ladder_view_cuts_neighbor_lists(ladder):
+    from ladder_core import ladder_view
+
     old, new = ladder.at("2026-11-12"), ladder.at("2026-11-13")
+    top20 = ladder_view(ladder, {**new.config, "stepLimit": 20, "twoWay": False})
     i = ladder.index["door"]
-    assert len(old.neighbors[i]) == 100 and len(new.neighbors[i]) == 20
-    assert new.neighbors[i] == old.neighbors[i][:20]  # lists are sorted: first 20 = top 20
+    assert len(old.neighbors[i]) == 100 and len(top20.neighbors[i]) == 20
+    assert top20.neighbors[i] == old.neighbors[i][:20]  # lists are sorted: first 20 = top 20
     assert new.full_neighbors[i] == old.neighbors[i]
-    # Same pair, tighter steps, longer ladder.
+    # Two-way: own top 40 first, then words that list door in their top 40.
+    assert new.neighbors[i][:40] == old.neighbors[i][:40] and len(new.neighbors[i]) >= 40
+    assert all(i in new.neighbors[v] for v in new.neighbors[i])  # undirected
+    # The same pair under each rule: top 100 par 4, top 20 one-way par 6,
+    # top 40 both ways par 3 (the playtest said the strict one wasn't fun).
     k = ladder.index["kidney"]
     assert bfs_routes(old.neighbors, i, k)[0] == 4
-    assert bfs_routes(new.neighbors, i, k)[0] == 6
+    assert bfs_routes(top20.neighbors, i, k)[0] == 6
+    assert bfs_routes(new.neighbors, i, k)[0] == 3
 
 
 def test_new_era_drops_excluded_start_goal_words(ladder):
@@ -278,7 +289,7 @@ def test_seeded_puzzle_same_date_same_puzzle(ladder):
     assert first[2].ok and first[2].par == band["par"]
     # Each level of a day is an independent puzzle.
     hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert hard[:2] != first[:2] and hard[2].par == 5  # Nov 17: top-20 rules
+    assert hard[:2] != first[:2] and hard[2].par == 4  # Nov 17: top-40 two-way rules
 
 
 def test_seeded_puzzles_match_fixture(ladder):
@@ -325,7 +336,10 @@ def _dist_to(neighbors, goal):
 
 def test_closer_first_moves_match_the_definition(ladder):
     """closer = how many of the start's legal steps sit at distance par-1 from the goal."""
-    nb = ladder.neighbors
+    from ladder_core import closer_first_moves, ladder_view
+
+    # The bit-mask count (one-way eras, at most 31 first moves): top 20 one-way.
+    nb = ladder_view(ladder, {**ladder.config, "stepLimit": 20, "twoWay": False}).neighbors
     for s, g in [("cafe", "fuel"), ("grocery", "silicon"), ("jam", "key"),
                  ("novelist", "butterfly"), ("door", "kidney")]:
         par, _, closer = bfs_route_stats(nb, ladder.index[s], ladder.index[g])
@@ -333,6 +347,13 @@ def test_closer_first_moves_match_the_definition(ladder):
         assert closer == sum(1 for v in nb[ladder.index[s]] if to_goal.get(v) == par - 1), (s, g)
     # The measured complaint: live Easy puzzles had a single good first move.
     assert bfs_route_stats(nb, ladder.index["cafe"], ladder.index["fuel"])[2] == 1
+    # Two-way eras count with one BFS from the goal; same definition.
+    two = ladder.neighbors
+    for s, g in [("champ", "dress"), ("cafe", "fuel"), ("door", "kidney")]:
+        par = bfs_route_stats(two, ladder.index[s], ladder.index[g])[0]
+        to_goal = _dist_to(two, ladder.index[g])
+        assert closer_first_moves(two, ladder.index[s], ladder.index[g], par) == \
+            sum(1 for v in two[ladder.index[s]] if to_goal.get(v) == par - 1), (s, g)
 
 
 def test_newest_levels_are_ordered_by_difficulty(ladder):
@@ -344,7 +365,7 @@ def test_newest_levels_are_ordered_by_difficulty(ladder):
         if easier["par"] == harder["par"]:
             assert harder["maxCloserFirstMoves"] < easier["minCloserFirstMoves"]
     for band in bands:
-        assert band["minCloserFirstMoves"] >= 1  # every level has a good first move
+        assert band.get("minCloserFirstMoves", 1) >= 1  # every level has a good first move
 
 
 def test_shortlist_pairs_all_fit_the_band(ladder):
@@ -366,7 +387,13 @@ def test_goals_few_words_step_to_are_rejected(ladder):
     (Nov 13 Hard) via moths and swim strokes: unfair under the top-20 rules."""
     from ladder_core import in_degrees
 
-    new, old = ladder.at("2026-11-13"), ladder.at("2026-11-12")
+    from ladder_core import ladder_view
+
+    # The rule itself, on the one-way top-20 lists where it was needed (the
+    # two-way era drops it: every word has 40+ links in).
+    new = ladder_view(ladder, {**ladder.at("2026-11-13").config, "stepLimit": 20,
+                               "twoWay": False, "minGoalInDegree": 12})
+    old = ladder.at("2026-11-12")
     for goal in ("anchor", "butterfly"):
         assert in_degrees(new)[new.index[goal]] < new.config["minGoalInDegree"]
         # "ocean" is an allowed start in both eras ("wing" is excluded from Nov 13 on).

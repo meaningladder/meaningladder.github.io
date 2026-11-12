@@ -34,33 +34,32 @@
     },
     {
       "from": "2026-11-13",
-      "stepLimit": 20,
-      "minGoalInDegree": 12,
+      "stepLimit": 40,
+      "twoWay": true,
       "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
-      "minPar": 4,
-      "maxPar": 7,
+      "minPar": 2,
+      "maxPar": 5,
       "levels": {
         "easy": {
           "label": "Easy",
-          "par": 4,
+          "par": 3,
           "minRoutes": 1,
           "maxRoutes": 100000,
-          "minCloserFirstMoves": 3
+          "minCloserFirstMoves": 6
         },
         "medium": {
           "label": "Medium",
-          "par": 5,
+          "par": 3,
           "minRoutes": 1,
           "maxRoutes": 100000,
-          "minCloserFirstMoves": 3
+          "minCloserFirstMoves": 2,
+          "maxCloserFirstMoves": 5
         },
         "hard": {
           "label": "Hard",
-          "par": 5,
+          "par": 4,
           "minRoutes": 1,
-          "maxRoutes": 100000,
-          "minCloserFirstMoves": 1,
-          "maxCloserFirstMoves": 2
+          "maxRoutes": 100000
         }
       }
     }

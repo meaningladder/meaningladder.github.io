@@ -80,7 +80,7 @@ era-exclude: ## Rebuild the 2026-11-13 era's start/goal exclusions after editing
 	$(PY) scripts/make_fixtures.py
 	@echo "Seeded puzzles of the era changed: review, then commit data/ and tests/fixtures/ together."
 
-graph-bin: ## Split the graph into the files the browser loads (data/graph_v1_{head,tail}.bin + _words.json)
+graph-bin: ## Split the graph into the files the browser loads (data/graph_v1_wide{_head,_tail}.bin + _wide.json)
 	$(PY) scripts/build_graph_bin.py
 
 vectors: ## Build data/vectors_v1.bin, the compact vectors behind wrong-guess ranks

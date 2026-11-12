@@ -66,8 +66,7 @@ test("notice text is built from the eras", () => {
 
 test("the real config announces the November 13 change", () => {
   assert.equal(rulesNoticeText(config, fixedDay),
-    "From November 13, each step must be one of the previous word's 20 closest words (it was 100)."
-    + " Ladders are longer: par 4 for Easy, 5 for Medium and 5 for Hard.");
+    "From November 13, a step counts if either word is among the other's 40 closest words.");
 });
 
 test("notice text has no em or en dashes", () => {

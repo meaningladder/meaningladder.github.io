@@ -94,6 +94,7 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         "source": source,
         "graphVersion": cfg["graphVersion"],
         "stepLimit": cfg["stepLimit"],
+        "twoWay": bool(cfg.get("twoWay")),
     }
 
 

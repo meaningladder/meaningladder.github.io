@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, cutNeighbors, excludedWords, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -41,9 +41,11 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   const config = readJson("puzzle_config.json");
   assert.equal(rulesFor(config, "2026-11-01").stepLimit, 100);
   assert.equal(rulesFor(config, "2026-11-12").stepLimit, 100);
-  assert.equal(rulesFor(config, "2026-11-13").stepLimit, 20);
-  assert.equal(rulesFor(config, null).stepLimit, 20); // Unlimited: newest rules
-  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 5);
+  assert.equal(rulesFor(config, "2026-11-13").stepLimit, 40);
+  assert.equal(rulesFor(config, "2026-11-13").twoWay, true);
+  assert.equal(rulesFor(config, "2026-11-12").twoWay, undefined); // older days stay one-way
+  assert.equal(rulesFor(config, null).stepLimit, 40); // Unlimited: newest rules
+  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 4);
   assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
@@ -82,12 +84,14 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
   for (const p of fixture.puzzles) {
     const rules = rulesFor(config, p.date);
     assert.equal(rules.stepLimit, p.stepLimit, `${p.date} step limit`);
-    if (!cut.has(rules.stepLimit)) cut.set(rules.stepLimit, cutNeighbors(graph.neighbors, rules.stepLimit));
+    const key = `${rules.stepLimit}|${Boolean(rules.twoWay)}`;
+    if (!cut.has(key)) cut.set(key, rules.twoWay ? twoWayNeighbors(graph.neighbors, rules.stepLimit)
+      : cutNeighbors(graph.neighbors, rules.stepLimit));
     // Same pool rule as js/data.js viewOf and Python's ladder_view.
     const pool = rules.excludeCandidates
       ? candidatePool(candidates, excludedWords(readJson(rules.excludeCandidates)))
       : candidates;
-    const ladder = { index, neighbors: cut.get(rules.stepLimit), candidates: pool, config: rules };
+    const ladder = { index, neighbors: cut.get(key), candidates: pool, config: rules };
     const band = levelBand(p.level, rules);
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
     const got = seededPuzzle(ladder, seedBase(p.date, p.level), band);
@@ -118,3 +122,19 @@ test("inDegrees counts legal steps into each word, and seededPuzzle skips thin g
   // No field (older eras): no check, same as Python.
   assert.equal(seededPuzzle(ladder({}), "t", band).par, 3);
 });
+
+test("two-way links: own top k first, then reverse links by the rank they give", () => {
+  // 0's top 1 is 1; 2 lists 0 first; 3 lists 0 second.
+  const full = [[1, 2], [2, 0], [0, 1], [1, 0]];
+  assert.deepEqual(twoWayNeighbors(full, 1), [[1, 2], [2, 0, 3], [0, 1], [1]]);
+  // Undirected: every link runs both ways.
+  const nb = twoWayNeighbors(full, 2);
+  nb.forEach((row, u) => row.forEach((v) => assert.ok(nb[v].includes(u), `${u}-${v}`)));
+});
+
+test("closerFirstMoves counts the start's neighbors one step nearer the goal", () => {
+  const nb = twoWayNeighbors([[1, 2], [3], [3], [], [0]], 2); // 0-1, 0-2, 1-3, 2-3, 0-4
+  assert.equal(closerFirstMoves(nb, 0, 3, 2), 2); // via 1 and via 2
+  assert.equal(closerFirstMoves(nb, 4, 3, 3), 1); // only via 0
+});
+

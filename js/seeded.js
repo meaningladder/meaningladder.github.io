@@ -135,6 +135,39 @@ export function rulesFor(config, dateStr) {
 // similarity, so the first 20 ARE the top 20 (Python: ladder_view).
 export const cutNeighbors = (neighbors, k) => neighbors.map((row) => row.slice(0, k));
 
+// Legal steps when links work both ways: a word's own top k, then every word
+// that has it in ITS top k, ordered by the rank that word gives it, then by
+// index. Python twin: two_way_neighbors (same order, so seeded picks match).
+export function twoWayNeighbors(full, k) {
+  const extra = full.map(() => []);
+  full.forEach((row, u) => {
+    const n = Math.min(k, row.length);
+    for (let r = 0; r < n; r++) extra[row[r]].push([r, u]);
+  });
+  return full.map((row, v) => {
+    const own = row.slice(0, k);
+    const seen = new Set(own);
+    extra[v].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    for (const [, u] of extra[v]) if (!seen.has(u)) { seen.add(u); own.push(u); }
+    return own;
+  });
+}
+
+// Closer first moves on an UNDIRECTED graph (two-way eras): one BFS from the
+// goal, depth par - 1. Two-way lists can exceed the 31 first moves the bit
+// masks in bfsRouteStats track. Python twin: closer_first_moves.
+export function closerFirstMoves(neighbors, start, goal, par) {
+  if (par < 1) return 0;
+  const dist = new Map([[goal, 0]]);
+  let frontier = [goal];
+  for (let d = 1; d < par; d++) {
+    const nxt = [];
+    for (const u of frontier) for (const v of neighbors[u]) if (!dist.has(v)) { dist.set(v, d); nxt.push(v); }
+    frontier = nxt;
+  }
+  return neighbors[start].filter((v) => dist.get(v) === par - 1).length;
+}
+
 // For every word, how many words have it among their legal steps (Python:
 // in_degrees). A goal few words point to is often reachable only through
 // one unexpected sense, so eras with "minGoalInDegree" skip such goals.
@@ -172,17 +205,20 @@ function check(ladder, start, goal, band, checkRoutes, inDeg) {
   if (start === goal) return null;
   if (inDeg && inDeg[ladder.index.get(goal)] < config.minGoalInDegree) return null;
   const i = ladder.index.get(start);
-  if (wantsCloser(band) && ladder.neighbors[i].length > MAX_TRACKED_FIRST_MOVES) {
+  const twoWay = Boolean(config.twoWay);
+  if (wantsCloser(band) && !twoWay && ladder.neighbors[i].length > MAX_TRACKED_FIRST_MOVES) {
     // Python counts any number; the two must agree, so refuse like Python does.
     throw new Error(`closer-first-move bands need stepLimit <= ${MAX_TRACKED_FIRST_MOVES}`);
   }
   // Depth capped at band.par: deeper pairs fail the par check below anyway, so
   // the chosen puzzle is the same as Python's uncapped validate_pair picks.
-  const { par, routes, closer } = bfsRouteStats(ladder.neighbors, i, ladder.index.get(goal), band.par);
+  const stats = bfsRouteStats(ladder.neighbors, i, ladder.index.get(goal), band.par);
+  const { par, routes } = stats;
   if (par === null || par < config.minPar || par > config.maxPar) return null;
   if (par !== band.par) return null;
   if (checkRoutes && (routes < band.minRoutes || routes > band.maxRoutes)) return null;
   // Never relaxed (unlike routes): it is what keeps the level label honest.
+  const closer = twoWay ? closerFirstMoves(ladder.neighbors, i, ladder.index.get(goal), par) : stats.closer;
   if (wantsCloser(band) && !closerFits(band, closer)) return null;
   return { par, routes, closer };
 }

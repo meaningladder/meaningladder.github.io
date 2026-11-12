@@ -683,7 +683,10 @@ export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium",
   if (!newest) return "";
   const old = config.rules[config.rules.length - 2];
   const was = old.stepLimit !== newest.stepLimit ? ` (it was ${old.stepLimit})` : "";
-  const parts = [`From ${dayText(newest.from)}, each step must be one of the previous word's ${newest.stepLimit} closest words${was}.`];
+  // Two-way eras: a step counts if EITHER word is among the other's closest.
+  const parts = [newest.twoWay && !old.twoWay
+    ? `From ${dayText(newest.from)}, a step counts if either word is among the other's ${newest.stepLimit} closest words.`
+    : `From ${dayText(newest.from)}, each step must be one of the previous word's ${newest.stepLimit} closest words${was}.`];
   const pars = (era) => levelOrder.map((lv) => era.levels?.[lv]?.par).filter((p) => p != null);
   const now = pars(newest);
   const before = pars(old);

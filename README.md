@@ -19,7 +19,7 @@ under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
 | From | Legal steps | Easy | Medium | Hard |
 |---|---|---|---|---|
 | 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
-| 2026-11-13 | top 20 neighbors | par 4, 3+ good first moves | par 5, 3+ good first moves | par 5, only 1-2 good first moves |
+| 2026-11-13 | top 40, links both ways | par 3, 6+ good first moves | par 3, 2-5 good first moves | par 4 |
 
 A "good first move" is one of the start's legal steps that is one step closer
 to the goal (`minCloserFirstMoves` / `maxCloserFirstMoves` in a level). Par
@@ -30,15 +30,18 @@ The graph file always stores the top 100. A tighter era just uses the first N
 of each (already sorted) list, so no data file changes. New puzzle files record
 their `stepLimit`; files without one are from the top-100 era.
 
-From 2026-11-13 an era may also set `minGoalInDegree` (12): a goal must be a
-legal step from at least that many words. Goals with few ways in tend to be
+From 2026-11-13 links work both ways (`twoWay`): a step counts if either word
+is among the other's 40 closest. A playtest found the one-way top 20 too strict
+(champ to dress needed "reigning" from a list of boxing words); now it's par 3.
+An era may also set `minGoalInDegree`: a goal must be a legal step from at
+least that many words (used while the rule was one-way top 20). Goals with few ways in tend to be
 reachable only through a sense players don't expect (anchor via TV
 presenters), so the generator and the seeded fallback skip them. The AI prompt
 also shows each shortlisted pair's shortest route and the goal's incoming
 words, so the theme and teaser describe the sense the graph actually uses.
 
 If a step is rejected, it joins a Contexto-style **Tried** list with its rank
-from the current word (under the top-20 rules, #21 was very close). Ranks up
+from the current word (under the top-40 rules, #41 was very close). Ranks up
 to #100 are exact, from the graph. Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,
 1.3 MB, built by `make vectors`), loaded only after the first wrong guess. It's
 free feedback: it never names the right word.
@@ -50,8 +53,8 @@ ONE TIME (offline, scripts/build_graph.py)
   GloVe 300d → filtered 20k vocabulary → top-100 neighbors (directed graph)
   → data/graph_v1.json, data/candidates_v1.json            (frozen, versioned)
   → scripts/build_graph_bin.py (make graph-bin): the same graph split for the browser
-    graph_v1_words.json + graph_v1_head.bin (top 20, ~0.8 MB) + graph_v1_tail.bin
-    (ranks 21-100, ~3 MB, loaded only for top-100-era games and exact Tried ranks)
+    graph_v1_wide.json + graph_v1_wide_head.bin (top 40, ~1.6 MB) + graph_v1_wide_tail.bin
+    (ranks 41-100, ~2.4 MB, loaded only for top-100-era games and exact Tried ranks)
 
 BROWSER (static, GitHub Pages)
   sw.js caches the frozen data files and keeps a copy of the app for offline play;

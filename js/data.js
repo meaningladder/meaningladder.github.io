@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -44,11 +44,11 @@ export function loadLadder() {
     // loudly, since the seeded puzzles depend on the exact pool.
     const excludePaths = [...new Set((config.rules ?? []).map((e) => e.excludeCandidates).filter(Boolean))];
     const [meta, cands, ...excludeFiles] = await Promise.all([
-      getJson(`data/graph_v${v}_words.json`),
+      getJson(`data/graph_v${v}_wide.json`),
       getJson(`data/candidates_v${v}.json`),
       ...excludePaths.map((p) => getJson(p)),
     ]);
-    const head = await getRows(`data/graph_v${v}_head.bin`, meta.count, meta.head);
+    const head = await getRows(`data/graph_v${v}_wide_head.bin`, meta.count, meta.head);
     const base = {
       words: meta.words,
       index: new Map(meta.words.map((w, i) => [w, i])),
@@ -60,7 +60,7 @@ export function loadLadder() {
       views: new Map(),
     };
     let tailPromise = null;
-    base.loadFull = () => (tailPromise ??= getRows(`data/graph_v${v}_tail.bin`, meta.count, meta.tail)
+    base.loadFull = () => (tailPromise ??= getRows(`data/graph_v${v}_wide_tail.bin`, meta.count, meta.tail)
       .then((tail) => {
         const full = head.map((row, i) => row.concat(tail[i]));
         base.neighbors = full;
@@ -114,15 +114,18 @@ export function loadVectors() {
 function viewOf(base, rules) {
   const k = rules.stepLimit ?? DEFAULT_STEP_LIMIT;
   if (base.complete === false && k > base.neighbors[0].length) throw new Error(`stepLimit ${k} needs the full word map: await readyFor first`);
-  const key = `${rules.from ?? ""}|${k}`;
+  const twoWay = Boolean(rules.twoWay);
+  const key = `${rules.from ?? ""}|${k}|${twoWay ? "both" : "one"}`;
   let view = base.views.get(key);
   if (!view) {
-    const neighbors = k >= base.neighbors[0].length ? base.neighbors : cutNeighbors(base.neighbors, k);
+    // Two-way eras: a link counts if either word is in the other's top k.
+    const neighbors = twoWay ? twoWayNeighbors(base.neighbors, k)
+      : k >= base.neighbors[0].length ? base.neighbors : cutNeighbors(base.neighbors, k);
     const candidates = rules.excludeCandidates
       ? candidatePool(base.candidates, base.exclusions.get(rules.excludeCandidates))
       : base.candidates;
     view = { ...base, neighbors, fullNeighbors: base.neighbors, reverse: buildReverse(neighbors),
-             inDegree: inDegrees(neighbors), candidates, config: { ...rules, stepLimit: k } };
+             inDegree: inDegrees(neighbors), candidates, config: { ...rules, stepLimit: k, twoWay } };
     base.views.set(key, view);
   }
   return view;
@@ -136,7 +139,11 @@ export const ladderAt = (base, dateStr) => viewOf(base, rulesFor(base.config, da
 // one saved before stepLimit existed was played on the original top 100.
 function puzzleRules(base, puzzle) {
   const rules = rulesFor(base.config, puzzle.date ?? (puzzle.stepLimit == null ? base.config.launchDate : null));
-  return { rules, k: puzzle.stepLimit ?? rules.stepLimit ?? DEFAULT_STEP_LIMIT };
+  const k = puzzle.stepLimit ?? rules.stepLimit ?? DEFAULT_STEP_LIMIT;
+  // Daily puzzles go by their date's rules. An Unlimited game saved before
+  // two-way links existed has no stamp: it keeps one-way links.
+  const twoWay = puzzle.twoWay ?? (puzzle.date ? Boolean(rules.twoWay) : false);
+  return { rules: { ...rules, twoWay }, k };
 }
 
 // Await before ladderFor: loads the tail if this puzzle's rules need it.
@@ -169,7 +176,7 @@ export async function loadDailyPuzzle(base, dateStr, level) {
     gameNumber: gameNumber(dateStr, config.launchDate),
     start: s.start, goal: s.goal, par: s.par,
     theme: "Daily ladder", teaser: "",
-    source: "seeded", graphVersion: config.graphVersion, stepLimit: config.stepLimit,
+    source: "seeded", graphVersion: config.graphVersion, stepLimit: config.stepLimit, twoWay: Boolean(config.twoWay),
   };
 }
 
@@ -184,7 +191,7 @@ export async function makePracticePuzzle(base, level) {
   return {
     date: null, gameNumber: null, level, start: s.start, goal: s.goal, par: s.par,
     theme: "Unlimited ladder", teaser: `Level: ${band.label}.`, source: "practice",
-    graphVersion: ladder.config.graphVersion, stepLimit: ladder.config.stepLimit,
+    graphVersion: ladder.config.graphVersion, stepLimit: ladder.config.stepLimit, twoWay: Boolean(ladder.config.twoWay),
   };
 }
 
