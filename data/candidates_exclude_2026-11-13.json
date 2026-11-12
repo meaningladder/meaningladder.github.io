@@ -1,0 +1,17 @@
+{
+  "from": "2026-11-13",
+  "graphVersion": 1,
+  "source": "scripts/lists/candidates_exclude_2026-11-13.txt",
+  "categories": {
+    "abstract": ["addition", "area", "casting", "clearing", "commodity", "counter", "covering", "direction", "end", "fallout", "fraction", "hurdle", "individual", "innovation", "insider", "journalism", "landmark", "lining", "material", "middle", "midst", "modeling", "object", "opening", "origin", "outline", "output", "packing", "piece", "place", "position", "region", "rift", "scene", "setting", "side", "solution", "source", "state", "stuff", "suspension", "system", "telecom", "top", "topping", "trend", "vicinity", "whereabouts", "world"],
+    "brand": ["airbus", "brent", "cisco", "dell", "delta", "fox", "herald", "kraft", "mac", "mart", "pal", "tribune"],
+    "function": ["accused", "acoustic", "aerospace", "affluent", "auxiliary", "behind", "bolster", "chased", "chosen", "closer", "come", "concentrate", "convert", "cope", "crush", "curb", "cure", "daily", "departed", "die", "dig", "dug", "export", "facing", "favourite", "fell", "felt", "female", "forge", "gather", "generic", "grab", "handle", "hide", "hire", "holy", "immune", "implement", "import", "invite", "longer", "lower", "male", "mini", "monthly", "must", "nobody", "outdoors", "pave", "produce", "pursued", "reach", "read", "refuse", "remains", "salvage", "sang", "scrap", "see", "seizing", "settle", "shake", "shook", "shrink", "slide", "somebody", "someone", "somewhere", "stole", "stopping", "switch", "thus", "till", "tore", "treat", "trigger", "upgrade", "upside", "weekly", "yearly"],
+    "name": ["batman", "belle", "bud", "bush", "clarence", "darling", "garner", "gong", "harper", "kohl", "maria", "newt", "potter", "rudd", "shin", "silva", "superman"],
+    "place": ["afghan", "argentine", "costa", "dame", "mayo", "nova", "rouge", "sierra", "turkey"],
+    "politics": ["cabinet", "caretaker", "centrist", "constituent", "dissident", "feminist", "leftist", "liberal", "nationalist", "ouster", "partisan", "populist", "premier", "reformist", "sectarian", "secular", "separatist", "socialist"],
+    "sense": ["billboard", "bore", "buffalo", "circuit", "cone", "crack", "giant", "hedge", "jam", "key", "lance", "mate", "miss", "panel", "post", "rose", "shed", "soap", "sole", "spot", "string", "strip", "sub", "suit", "tie", "wing"],
+    "sensitive": ["asylum", "captive", "casualty", "checkpoint", "detainee", "exile", "fugitive", "graft", "homeless", "homosexual", "migrant", "plutonium", "roadside", "swine", "uranium", "wreckage"],
+    "title": ["ayatollah", "sheik", "sheikh", "sir"],
+    "name_neighbors": ["amir", "baker", "ben", "billy", "bobby", "brad", "buck", "butler", "chuck", "cole", "dale", "donna", "fisher", "freeman", "hank", "heather", "hunter", "jimmy", "john", "khan", "kirk", "mack", "malik", "marc", "max", "mike", "murphy", "porter", "robin", "stein", "victor", "weaver"]
+  }
+}

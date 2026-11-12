@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, cutNeighbors, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -39,9 +39,14 @@ export function loadLadder() {
   return (ladderPromise ??= (async () => {
     const config = await loadConfig();
     const v = config.graphVersion;
-    const [meta, cands] = await Promise.all([
+    // Every era's start/goal exclusion file (a few KB each). Loaded up front,
+    // not per era, so views stay synchronous; a missing file must fail
+    // loudly, since the seeded puzzles depend on the exact pool.
+    const excludePaths = [...new Set((config.rules ?? []).map((e) => e.excludeCandidates).filter(Boolean))];
+    const [meta, cands, ...excludeFiles] = await Promise.all([
       getJson(`data/graph_v${v}_words.json`),
       getJson(`data/candidates_v${v}.json`),
+      ...excludePaths.map((p) => getJson(p)),
     ]);
     const head = await getRows(`data/graph_v${v}_head.bin`, meta.count, meta.head);
     const base = {
@@ -49,7 +54,8 @@ export function loadLadder() {
       index: new Map(meta.words.map((w, i) => [w, i])),
       neighbors: head, // grows to the full top-100 lists once the tail arrives
       complete: false, // true once the tail is in
-      candidates: cands.words,
+      candidates: cands.words, // the whole frozen list; a view may drop some
+      exclusions: new Map(excludePaths.map((p, i) => [p, excludedWords(excludeFiles[i])])),
       config,
       views: new Map(),
     };
@@ -112,8 +118,11 @@ function viewOf(base, rules) {
   let view = base.views.get(key);
   if (!view) {
     const neighbors = k >= base.neighbors[0].length ? base.neighbors : cutNeighbors(base.neighbors, k);
+    const candidates = rules.excludeCandidates
+      ? candidatePool(base.candidates, base.exclusions.get(rules.excludeCandidates))
+      : base.candidates;
     view = { ...base, neighbors, fullNeighbors: base.neighbors, reverse: buildReverse(neighbors),
-             inDegree: inDegrees(neighbors), config: { ...rules, stepLimit: k } };
+             inDegree: inDegrees(neighbors), candidates, config: { ...rules, stepLimit: k } };
     base.views.set(key, view);
   }
   return view;

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from ladder_core import (
+    ROOT,
     Ladder,
     LEVELS,
     level_band,
@@ -202,6 +203,40 @@ def test_ladder_view_cuts_neighbor_lists(ladder):
     k = ladder.index["kidney"]
     assert bfs_routes(old.neighbors, i, k)[0] == 4
     assert bfs_routes(new.neighbors, i, k)[0] == 6
+
+
+def test_new_era_drops_excluded_start_goal_words(ladder):
+    """Names and abstract words leave the start/goal pool from 2026-11-13 on;
+    older dates keep the whole frozen v1 list (their seeded puzzles must not move)."""
+    from ladder_core import excluded_words
+
+    old, new = ladder.at("2026-11-12"), ladder.at("2026-11-13")
+    path = new.config["excludeCandidates"]
+    excluded = excluded_words(json.loads((ROOT / path).read_text(encoding="utf-8")))
+    assert "excludeCandidates" not in old.config
+    assert old.candidates == ladder.all_candidates  # untouched before the era
+    assert new.candidates == [w for w in old.candidates if w not in excluded]  # order kept
+    assert len(new.candidates) == len(old.candidates) - len(excluded)
+    for w in ("billy", "batman", "ayatollah", "behind", "wing", "jam", "afghan"):
+        assert w in excluded and w in old.candidate_set and w not in new.candidate_set
+        assert w in new.index  # still a legal step on the map
+    v = validate_pair(new, "billy", "volcano")
+    assert not v.ok and "not an allowed start/goal" in v.reason
+    assert ladder.at(None).candidates == new.candidates  # Unlimited: newest rules
+    assert new.at("2026-11-12").candidates == old.candidates  # a view re-views cleanly
+
+
+def test_era_exclusion_file_is_up_to_date():
+    """data/candidates_exclude_2026-11-13.json is generated: hand edits to it,
+    or to the .txt / names list without a rebuild, would drift apart."""
+    from build_era_exclude import ERA, build, render
+
+    obj = build()
+    out = ROOT / "data" / f"candidates_exclude_{ERA}.json"
+    assert out.read_text(encoding="utf-8") == render(obj)
+    words = [w for ws in obj["categories"].values() for w in ws]
+    assert len(words) == len(set(words))  # one category per word
+    assert {"billy", "bobby", "ben", "amir"} <= set(obj["categories"]["name_neighbors"])
 
 
 def test_seeded_puzzle_same_date_same_puzzle(ladder):

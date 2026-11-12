@@ -524,3 +524,37 @@ test("rules views: a cut step limit rejects far neighbors and ranks them exactly
   assert.equal(ladderFor(base, { date: null, stepLimit: 20 }).config.stepLimit, 20);
   assert.equal(ladderFor(base, { date: null }).config.stepLimit, 100);
 });
+
+test("rules views: an era's excludeCandidates file shrinks the start/goal pool, older eras keep it", async () => {
+  const { ladderAt } = await import("../../js/data.js");
+  const { excludedWords } = await import("../../js/seeded.js");
+  const words = ["apple", "billy", "behind", "volcano"];
+  const path = "data/candidates_exclude_test.json";
+  const file = { from: "2026-11-13", categories: { name_neighbors: ["billy"], function: ["behind"] } };
+  const base = {
+    words, index: new Map(words.map((w, i) => [w, i])), neighbors: words.map(() => [0]),
+    candidates: words, exclusions: new Map([[path, excludedWords(file)]]), views: new Map(),
+    config: { launchDate: "2026-11-01", rules: [
+      { from: "2026-11-01", stepLimit: 100, minPar: 1, maxPar: 6, levels: {} },
+      { from: "2026-11-13", stepLimit: 20, minPar: 1, maxPar: 6, levels: {}, excludeCandidates: path }] },
+  };
+  assert.deepEqual(ladderAt(base, "2026-11-12").candidates, words);
+  assert.deepEqual(ladderAt(base, "2026-11-13").candidates, ["apple", "volcano"]); // order kept
+  assert.deepEqual(ladderAt(base, null).candidates, ["apple", "volcano"]); // Unlimited
+  assert.equal(ladderAt(base, "2026-11-13").index.get("billy"), 1); // still on the map
+});
+
+test("the real exclusion file covers the reported words and only drops real candidates", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { excludedWords, rulesFor } = await import("../../js/seeded.js");
+  const root = new URL("../../", import.meta.url);
+  const read = (p) => JSON.parse(readFileSync(new URL(p, root), "utf8"));
+  const config = read("puzzle_config.json");
+  assert.equal(rulesFor(config, "2026-11-12").excludeCandidates, undefined); // past dates untouched
+  const path = rulesFor(config, "2026-11-13").excludeCandidates;
+  const excluded = excludedWords(read(path));
+  const cands = new Set(read(`data/candidates_v${config.graphVersion}.json`).words);
+  for (const w of ["batman", "billy", "bobby", "ben", "amir", "ayatollah", "afghan", "argentine",
+    "behind", "bolster", "bore", "wing", "jam"]) assert.ok(excluded.has(w), w);
+  for (const w of excluded) assert.ok(cands.has(w), `${w} is not a candidate`);
+});

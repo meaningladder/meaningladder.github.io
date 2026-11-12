@@ -23,7 +23,7 @@ NOAI  ?=
 UI_FILES := index.html style.css js/game.js js/data.js js/seeded.js js/icons.js
 
 .DEFAULT_GOAL := help
-.PHONY: help setup test test-py test-js check audit graph graph-bin candidates fixtures vectors \
+.PHONY: help setup test test-py test-js check audit graph graph-bin candidates era-exclude fixtures vectors \
         serve preview puzzles cloud-dry-run cloud-status secret-check redeploy clean
 
 help: ## List all targets
@@ -74,6 +74,11 @@ candidates: ## Rebuild start/goal words after editing scripts/lists/candidates_e
 	$(PY) scripts/build_graph.py --candidates-only
 	$(PY) scripts/make_fixtures.py
 	@echo "Seeded puzzles changed: review, then commit data/ and tests/fixtures/ together."
+
+era-exclude: ## Rebuild the 2026-11-13 era's start/goal exclusions after editing scripts/lists/candidates_exclude_2026-11-13.txt
+	$(PY) scripts/build_era_exclude.py
+	$(PY) scripts/make_fixtures.py
+	@echo "Seeded puzzles of the era changed: review, then commit data/ and tests/fixtures/ together."
 
 graph-bin: ## Split the graph into the files the browser loads (data/graph_v1_{head,tail}.bin + _words.json)
 	$(PY) scripts/build_graph_bin.py

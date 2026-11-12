@@ -117,21 +117,21 @@
       "level": "easy",
       "stepLimit": 20,
       "gameNumber": 16,
-      "start": "sink",
-      "goal": "miniature",
+      "start": "timber",
+      "goal": "urine",
       "par": 4,
-      "routes": 1,
-      "attempt": 0
+      "routes": 2,
+      "attempt": 2
     },
     {
       "date": "2026-11-16",
       "level": "medium",
       "stepLimit": 20,
       "gameNumber": 16,
-      "start": "face",
-      "goal": "infant",
+      "start": "executive",
+      "goal": "hub",
       "par": 5,
-      "routes": 2,
+      "routes": 17,
       "attempt": 0
     },
     {
@@ -139,19 +139,19 @@
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 16,
-      "start": "winner",
-      "goal": "torpedo",
+      "start": "pitcher",
+      "goal": "brook",
       "par": 6,
-      "routes": 49,
-      "attempt": 46
+      "routes": 5,
+      "attempt": 16
     },
     {
       "date": "2026-11-17",
       "level": "easy",
       "stepLimit": 20,
       "gameNumber": 17,
-      "start": "ankle",
-      "goal": "marble",
+      "start": "apartment",
+      "goal": "man",
       "par": 4,
       "routes": 1,
       "attempt": 1
@@ -161,65 +161,65 @@
       "level": "medium",
       "stepLimit": 20,
       "gameNumber": 17,
-      "start": "anchor",
-      "goal": "bike",
+      "start": "critic",
+      "goal": "province",
       "par": 5,
-      "routes": 40,
-      "attempt": 4
+      "routes": 1,
+      "attempt": 1
     },
     {
       "date": "2026-11-17",
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 17,
-      "start": "block",
-      "goal": "bird",
+      "start": "sodium",
+      "goal": "idol",
       "par": 6,
-      "routes": 112,
-      "attempt": 29
+      "routes": 13,
+      "attempt": 24
     },
     {
       "date": "2026-11-18",
       "level": "easy",
       "stepLimit": 20,
       "gameNumber": 18,
-      "start": "alley",
-      "goal": "nationalist",
-      "par": 4,
-      "routes": 2,
-      "attempt": 9
-    },
-    {
-      "date": "2026-11-18",
-      "level": "medium",
-      "stepLimit": 20,
-      "gameNumber": 18,
-      "start": "lower",
-      "goal": "archipelago",
-      "par": 5,
-      "routes": 3,
-      "attempt": 0
-    },
-    {
-      "date": "2026-11-18",
-      "level": "hard",
-      "stepLimit": 20,
-      "gameNumber": 18,
-      "start": "groin",
-      "goal": "cathedral",
-      "par": 6,
-      "routes": 38,
-      "attempt": 28
-    },
-    {
-      "date": "2027-03-14",
-      "level": "easy",
-      "stepLimit": 20,
-      "gameNumber": 134,
-      "start": "heaven",
-      "goal": "valley",
+      "start": "theater",
+      "goal": "coach",
       "par": 4,
       "routes": 5,
+      "attempt": 7
+    },
+    {
+      "date": "2026-11-18",
+      "level": "medium",
+      "stepLimit": 20,
+      "gameNumber": 18,
+      "start": "locker",
+      "goal": "archipelago",
+      "par": 5,
+      "routes": 9,
+      "attempt": 0
+    },
+    {
+      "date": "2026-11-18",
+      "level": "hard",
+      "stepLimit": 20,
+      "gameNumber": 18,
+      "start": "vegetable",
+      "goal": "catcher",
+      "par": 6,
+      "routes": 2,
+      "attempt": 57
+    },
+    {
+      "date": "2027-03-14",
+      "level": "easy",
+      "stepLimit": 20,
+      "gameNumber": 134,
+      "start": "hanging",
+      "goal": "vehicle",
+      "par": 4,
+      "routes": 11,
       "attempt": 0
     },
     {
@@ -227,43 +227,43 @@
       "level": "medium",
       "stepLimit": 20,
       "gameNumber": 134,
-      "start": "eagle",
-      "goal": "centrist",
+      "start": "proxy",
+      "goal": "climb",
       "par": 5,
-      "routes": 18,
-      "attempt": 1
+      "routes": 15,
+      "attempt": 6
     },
     {
       "date": "2027-03-14",
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 134,
-      "start": "gear",
-      "goal": "uncle",
+      "start": "corn",
+      "goal": "birthplace",
       "par": 6,
-      "routes": 173,
-      "attempt": 8
+      "routes": 48,
+      "attempt": 20
     },
     {
       "date": "2028-02-29",
       "level": "easy",
       "stepLimit": 20,
       "gameNumber": 486,
-      "start": "actress",
-      "goal": "corner",
+      "start": "fish",
+      "goal": "clothing",
       "par": 4,
-      "routes": 1,
-      "attempt": 8
+      "routes": 8,
+      "attempt": 2
     },
     {
       "date": "2028-02-29",
       "level": "medium",
       "stepLimit": 20,
       "gameNumber": 486,
-      "start": "desktop",
-      "goal": "hormone",
+      "start": "deputy",
+      "goal": "hole",
       "par": 5,
-      "routes": 11,
+      "routes": 4,
       "attempt": 4
     },
     {
@@ -271,11 +271,11 @@
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 486,
-      "start": "professor",
-      "goal": "reef",
+      "start": "patron",
+      "goal": "ridge",
       "par": 6,
-      "routes": 44,
-      "attempt": 17
+      "routes": 125,
+      "attempt": 6
     }
   ]
 }
