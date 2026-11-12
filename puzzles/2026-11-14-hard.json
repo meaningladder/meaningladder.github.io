@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "hard",
+  "start": "poultry",
+  "goal": "participant",
+  "par": 6,
+  "theme": "Farmyard to festivities",
+  "teaser": "Can a bird from the farm find its way onto an event's guest list?",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "poultry",
+    "chicken",
+    "turkey",
+    "country",
+    "people",
+    "person",
+    "participant"
+  ],
+  "reasons": [
+    "A chicken is a type of poultry.",
+    "Chickens and turkeys are both farmyard birds.",
+    "Turkey is also the name of a country.",
+    "A country is home to its people.",
+    "A person is an individual among people.",
+    "A person taking part in an activity is a participant."
+  ]
+}

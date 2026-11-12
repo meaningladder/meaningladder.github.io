@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "easy",
+  "start": "jeep",
+  "goal": "port",
+  "par": 4,
+  "theme": "Road to harbor",
+  "teaser": "Your rugged ride is heading for a place where the highway meets the high seas.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "jeep",
+    "truck",
+    "tanker",
+    "ship",
+    "port"
+  ],
+  "reasons": [
+    "Jeeps and trucks are rugged road vehicles.",
+    "A tanker is a truck built to carry liquids.",
+    "A tanker can also be a large ship carrying liquids.",
+    "A ship docks at a port."
+  ]
+}

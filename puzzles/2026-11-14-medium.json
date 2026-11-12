@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "medium",
+  "start": "pool",
+  "goal": "bug",
+  "par": 5,
+  "theme": "From laps to wings",
+  "teaser": "Take a splashy shortcut from the deep end to a tiny six-legged visitor.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "pool",
+    "swimming",
+    "butterfly",
+    "moth",
+    "insect",
+    "bug"
+  ],
+  "reasons": [
+    "A pool is a place for swimming.",
+    "Butterfly is a swimming stroke.",
+    "A butterfly is closely related to a moth.",
+    "A moth is an insect.",
+    "An insect is commonly called a bug."
+  ]
+}
