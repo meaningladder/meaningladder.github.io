@@ -14,7 +14,7 @@ import {
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, hintTier, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -163,11 +163,11 @@ async function showHelp(k = null) {
     h("ol", { class: "rules" },
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
       h("li", {}, `Each word must be close in meaning to the one before it (one of its ${k} closest words).${eraNote}`),
-      h("li", {}, "Each rung shows how many steps are left. A word that doesn't get you closer is marked."),
+      h("li", {}, "Each word is a rung. A word one step closer lifts you one rung. A word that isn't closer keeps you level or drops you down."),
       h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it, and a hint costs one move. Reach the goal in ",
         h("b", {}, "par"), " moves for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
-    h("ol", { class: "example path" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
+    h("ol", { class: "example ladder" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
       ex("ocean", 4, { isStart: true })),
     h("p", { class: "sub example-caption" }, "Three new ladders every day: Easy, Medium and Hard."))
   );
@@ -503,7 +503,8 @@ function playView(ladder, state, saveKey, date, classic = "") {
   let countedNote = null;    // "Counted as tree." when a form of the goal finished it
   let rejected = null;       // a real word that just went into the Tried list
   let justTried = false;     // animate that word's bar once
-  let justAdded = false;
+  let justAdded = false;     // a word was just played: the climber moves
+  let justUndone = false;    // Undo: the climber moves back
   let countdownTimer = null;
   cleanups.push(() => clearInterval(countdownTimer));
   const save = () => store.set(saveKey, state);
@@ -542,11 +543,13 @@ function playView(ladder, state, saveKey, date, classic = "") {
   const feedback = h("div", { class: "feedback", "aria-live": "polite" });
   const tried = h("section", { class: "tried", hidden: true, "aria-label": "Words you tried" });
   const win = h("section", { class: "card win", hidden: true, "aria-live": "polite" });
-  // ONE vertical ladder, read top to bottom: the goal rung, the box for the
-  // next rung, then the words played so far (newest first) down to the start.
-  // You build upward toward the goal; nothing else repeats the path.
-  const goalRung = h("ol", { class: "path goal-rung", "aria-label": "Goal" });
-  const list = h("ol", { class: "path", "aria-label": "Your ladder, newest first" });
+  // A real ladder: par + 1 rungs, start at the bottom, goal at the top, and
+  // your word on the rung that matches how close it is (see ladderRows). The
+  // input stays in one place under it: moving a focused input would close
+  // the phone keyboard after every word.
+  const ladderEl = h("ol", { class: "ladder", "aria-label": `Ladder from ${puzzle.start} up to ${puzzle.goal}` });
+  const extraEl = h("ol", { class: "ladder-extra", "aria-label": "Off the ladder" });
+  const trail = h("div", { class: "trail" });
   // Undo is for fixing a mistake; the move it took still counts.
   const undoBtn = h("button", { class: "btn btn-quiet", onClick: undo,
     title: "Take back your last word (the move still counts)" }, "Undo");
@@ -555,7 +558,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
   const actions = h("div", { class: "actions" }, undoBtn, hintBtn);
 
   render(topbar(state.kind === "daily" ? `Game ${puzzle.gameNumber}` : "Unlimited", menuWrap),
-    switcher, status, win, goalRung, form, feedback, tried, list, actions);
+    switcher, status, win, ladderEl, extraEl, feedback, tried, form, actions, trail);
 
   // ---- menu
   const menuItems = [
@@ -620,6 +623,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
   function undo() {
     if (state.status !== "playing" || state.path.length < 2) return;
     state.path.pop(); // the move stays counted; hintsAt is kept, so a hint here is free again
+    justUndone = true;
     state.tried = null;
     error = null;
     rejected = null;
@@ -752,13 +756,109 @@ function playView(ladder, state, saveKey, date, classic = "") {
     h("span", { class: "num" }, num));
   }
 
-  // Said only when a step went wrong; a good step speaks for itself ("3 to go").
+  // What the last step did, in rungs. A good step is only announced to
+  // screen readers (the ladder already shows it); anything else is said.
   function progressLine(current, steps) {
-    if (stepsTo(current) < 0) return `There's no way to ${puzzle.goal} from ${current}. Undo to go back.`;
-    const how = drift(state.path[steps - 1], current);
-    if (how === "no closer") return "No closer. Try another word, or Undo.";
-    if (how === "farther") return "That took you farther away. Undo to go back.";
-    return null;
+    const a = stepsTo(state.path[steps - 1]), b = stepsTo(current);
+    if (b < 0) return { text: `There's no way to ${puzzle.goal} from ${current}. Undo to go back.` };
+    if (b === a) return { text: "Same rung. Try another word, or Undo." };
+    if (b > a) {
+      if (b > puzzle.par) return { text: "Below the start now. Undo to go back." };
+      const n = b - a;
+      return { text: `Down ${n} rung${n === 1 ? "" : "s"}. Undo to go back.` };
+    }
+    return { text: `Up one rung. ${b} to go.`, hidden: true };
+  }
+
+  // ---- the ladder
+  const srOnly = (text) => h("span", { class: "visually-hidden" }, text);
+
+  // One rung. Filled rungs reuse bar(); empty ones are dashed slots.
+  function rungEl(row, { climberRung, ghost, playing }) {
+    const prefix = srOnly(`Rung ${row.rung} of ${puzzle.par}: `);
+    const isGoal = row.d === 0;
+    if (row.at != null || isGoal) {
+      const word = row.at != null ? state.path[row.at] : puzzle.goal;
+      const el = bar(word, {
+        latest: row.current,
+        isStart: row.at === 0,
+        prev: row.at > 0 ? state.path[row.at - 1] : null,
+      });
+      if (isGoal && row.at == null) el.classList.add("goal-slot");
+      if (row.at != null && !row.current && !isGoal) el.classList.add("passed");
+      if (row.current) el.setAttribute("aria-current", "step");
+      el.prepend(prefix);
+      return el;
+    }
+    const g = ghost.get(row.rung);
+    if (g) {
+      return h("li", { class: "rung ghost" }, prefix,
+        h("span", {}, g, h("span", { class: "tag" }, "route")), h("span", { class: "num" }, `${row.d} to go`));
+    }
+    const next = playing && typeof climberRung === "number" && row.rung === climberRung + 1;
+    return h("li", { class: `rung empty${next ? " next" : ""}` }, prefix,
+      h("span", {}, next ? "next word" : ""), h("span", { class: "num" }, `${row.d} to go`));
+  }
+
+  // FLIP: the climber glides from where it was to its new rung. JS-started
+  // animations ignore the CSS reduced-motion rule, so check it here.
+  function animateClimber(prevTop) {
+    const moved = justAdded || justUndone;
+    justAdded = justUndone = false;
+    if (!moved || prevTop == null) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const el = app.querySelector('[aria-current="step"]');
+    if (!el?.animate) return;
+    const dy = prevTop - el.getBoundingClientRect().top;
+    if (Math.abs(dy) < 1) return;
+    el.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }],
+      { duration: 280, easing: "cubic-bezier(0.16, 1, 0.3, 1)" });
+  }
+
+  function renderLadder(playing) {
+    const prevTop = app.querySelector('[aria-current="step"]')?.getBoundingClientRect().top ?? null;
+    const dists = state.path.map(stepsTo);
+    const lad = ladderRows(dists, puzzle.par);
+    // After giving up, a route from your word fills the rungs above you.
+    const ghost = new Map();
+    const cur = state.path[state.path.length - 1];
+    if (state.status === "gaveUp" && typeof lad.climber === "number") {
+      const route = shortestFrom(cur);
+      route?.slice(1, -1).forEach((idx, k) => ghost.set(lad.climber + k + 1, ladder.words[idx]));
+    }
+    ladderEl.classList.toggle("off-route", lad.off != null);
+    ladderEl.replaceChildren(...lad.rows.map((row) => rungEl(row, { climberRung: lad.climber, ghost, playing })));
+    const extra = lad.below ?? lad.off;
+    extraEl.hidden = extra == null;
+    extraEl.replaceChildren(...(extra == null ? [] : [(() => {
+      const el = bar(state.path[extra], { latest: true, prev: extra > 0 ? state.path[extra - 1] : null });
+      el.setAttribute("aria-current", "step");
+      el.classList.add(lad.off != null ? "off" : "below");
+      if (lad.below != null) el.querySelector(".tag")?.replaceChildren("below start");
+      return el;
+    })()]));
+    animateClimber(prevTop);
+  }
+
+  // Every word in the order played: ↑ closer, = same rung, ↓ down.
+  function renderTrail() {
+    const steps = state.path.length - 1;
+    trail.hidden = steps === 0;
+    if (trail.hidden) return;
+    const parts = [], spoken = [];
+    state.path.forEach((w, i) => {
+      if (i > 0) {
+        const a = stepsTo(state.path[i - 1]), b = stepsTo(w);
+        const [mark, word] = b >= 0 && a >= 0 && b < a ? ["↑", "up"] : b === a ? ["=", "same rung"] : ["↓", "down"];
+        parts.push(h("span", { class: "trail-mark", "aria-hidden": "true" }, ` ${mark} `));
+        spoken.push(`${word}, ${w}`);
+      } else spoken.push(w);
+      parts.push(h("span", { "aria-hidden": "true" }, w));
+    });
+    const line = h("p", { "aria-label": `Your words in order: ${spoken.join(", ")}` }, ...parts);
+    trail.replaceChildren(state.path.length > 10
+      ? h("details", {}, h("summary", {}, `All ${state.path.length} words`), line)
+      : line);
   }
 
   function update() {
@@ -782,22 +882,11 @@ function playView(ladder, state, saveKey, date, classic = "") {
     else if (hintTier(state, current) != null) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), hintLine(current, hintTier(state, current))));
     else if (steps > 0) {
       const line = progressLine(current, steps);
-      feedback.replaceChildren(...(line ? [h("p", { class: "muted" }, line)] : []));
+      feedback.replaceChildren(h("p", { class: line.hidden ? "visually-hidden" : "muted" }, line.text));
     } else feedback.replaceChildren(h("p", { class: "muted" }, `Type a word close in meaning to ${puzzle.start}.`));
 
-    // The goal rung sits on top until you reach it (then it's on the path).
-    const won = state.status === "won";
-    goalRung.hidden = won;
-    goalRung.replaceChildren(h("li", { class: "bar tone-goal", style: "--fill:100%" },
-      h("span", {}, puzzle.goal), h("span", { class: "num" }, "goal")));
-    // Path, newest on top; the start word sits at the bottom.
-    list.replaceChildren(...state.path.map((w, i) => bar(w, {
-      latest: playing && i === steps, // the word you're on, start included
-      isStart: i === 0,
-      enter: justAdded && i === steps,
-      prev: i > 0 ? state.path[i - 1] : null,
-    })).reverse());
-    justAdded = false;
+    renderLadder(playing);
+    renderTrail();
 
     renderTried(current, playing);
     justTried = false;

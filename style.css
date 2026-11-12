@@ -29,7 +29,8 @@
   --mid: #f2d98f;         /* 2 steps: yellow */
   --far: #f1b7b4;         /* 3+ steps: pink */
   --goal: #8fcf9a;
-  --tried: #e3cbb8;       /* rejected words: one neutral clay, length = closeness */
+  --tried: #e3cbb8;
+  --rail: #d9cab6;        /* ladder rails and pegs */       /* rejected words: one neutral clay, length = closeness */
   --error: #b4473d;
   --focus: #a65f42;
   --shadow: 0 1px 2px rgb(80 60 40 / 0.06), 0 4px 16px rgb(80 60 40 / 0.06);
@@ -42,7 +43,7 @@
   --fs-md: 1.15rem;   /* card titles, the guess input */
   --fs-lg: 1.3rem;    /* dialog and result titles, stat numbers */
   --fs-xl: 2rem;      /* the home title */
-  --dur-fast: var(--dur-fast);  /* press feedback */
+  --dur-fast: 120ms;  /* press feedback */
   --dur-base: 220ms;  /* things entering */
   --disabled: 0.45;
   --gold-bg: #f3dc96;  --gold-fg: #7a5a0c;
@@ -69,6 +70,7 @@
     --far: #84434a;
     --goal: #2e6040;
     --tried: #5a4337;
+    --rail: #4b433c;
     --error: #f0928a;
     --focus: #e39573;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
@@ -264,13 +266,50 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 }
 .tchip.latest { border-color: var(--strong); }
 .tchip.enter { animation: slide-in var(--dur-base) ease-out, pulse 600ms ease-out 1; }
-/* The goal rung on top of the ladder, with the input box as the next rung. */
-.goal-rung { margin: 10px 0 8px; }
-.goal-rung + .guess { margin-bottom: 0; }
+/* The ladder: two rails, a peg on each side of every rung, par + 1 rungs. */
+.ladder {
+  list-style: none; position: relative; display: grid; gap: 6px;
+  margin: 14px 0 0; padding: 0 18px;
+}
+.ladder::before, .ladder::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 4px;
+  border-radius: 2px; background: var(--rail);
+}
+.ladder::before { left: 4px; }
+.ladder::after { right: 4px; }
+/* No route to the goal from here: the rails break. */
+.ladder.off-route::before, .ladder.off-route::after {
+  background: repeating-linear-gradient(var(--rail) 0 8px, transparent 8px 14px);
+}
+.ladder > li { position: relative; }
+.ladder > li::before, .ladder > li::after {
+  content: ""; position: absolute; top: 50%; width: 10px; height: 3px;
+  margin-top: -1.5px; background: var(--rail);
+}
+.ladder > li::before { left: -11px; }
+.ladder > li::after { right: -11px; }
+.rung {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  min-height: 32px; padding: 0 14px; border-radius: var(--r-control);
+  border: 1.5px dashed var(--line); color: var(--muted);
+  font-size: var(--fs-sm); font-weight: 600;
+}
+.rung.next { border-color: var(--muted); }
+.rung.ghost { min-height: 42px; color: var(--muted); }
+.rung .num { font-variant-numeric: tabular-nums; }
+/* Rungs you've passed: plain, so their text keeps full contrast. */
+.ladder .bar.passed { background: var(--track); font-weight: 600; }
+.ladder-extra { list-style: none; padding: 0; margin: 6px 18px 0; display: grid; gap: 6px; }
+.ladder-extra .bar.off { border: 1.5px dashed var(--far); }
+/* Every word in the order played. */
+.trail { margin-top: 12px; text-align: center; font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+.trail p { margin: 0; }
+.trail-mark { color: var(--text); font-weight: 800; }
+.trail summary { cursor: pointer; }
 .rules { padding-left: 1.2em; margin: 0; display: grid; gap: 8px; }
 .tried-note { font-size: var(--fs-xs); color: var(--muted); margin: 6px 2px 0; }
 .bar .num { font-variant-numeric: tabular-nums; }
-.bar .tag { font-size: var(--fs-xs); color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
+.bar .tag, .rung .tag { font-size: var(--fs-xs); color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
 .bar.enter { animation: slide-in var(--dur-base) ease-out; }
 /* A newly rejected word: one short pulse so the eye finds it in the list. */
 .tried .bar.enter { animation: slide-in var(--dur-base) ease-out, pulse 600ms ease-out 1; }

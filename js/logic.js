@@ -680,3 +680,35 @@ export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium",
   }
   return parts.join(" ");
 }
+
+// ------------------------------------------------------------ the ladder
+// The play screen draws a real ladder with par + 1 rungs: the start word on
+// rung 0, the goal on rung `par`. Your word sits on rung par - (steps to go),
+// so height IS progress. A legal step can get at most one step closer
+// (distancesToGoal + checkStep), so a good word lifts you exactly one rung; a
+// word that's no closer keeps your rung and a farther one drops you.
+//
+// dists: steps-to-goal of every word played, start first (-1 = no route).
+// Returns rows top (goal) to bottom (start). Each row: its rung, the distance
+// it stands for, `at` = index of the most recent word played at that
+// distance (or null: an empty rung), and whether it's the current word.
+// The current word can also be off the ladder: `below` (farther than the
+// start) or `off` (no route to the goal), each the path index, else null.
+export function ladderRows(dists, par) {
+  par = Math.max(1, par);
+  const lastAt = new Map();
+  dists.forEach((d, i) => lastAt.set(d, i));
+  const cur = dists[dists.length - 1];
+  const rows = [];
+  for (let rung = par; rung >= 0; rung--) {
+    const d = par - rung;
+    rows.push({ rung, d, at: lastAt.has(d) ? lastAt.get(d) : null, current: cur === d });
+  }
+  const last = dists.length - 1;
+  return {
+    rows,
+    below: cur > par ? last : null,
+    off: cur < 0 ? last : null,
+    climber: cur < 0 ? "off" : cur > par ? "below" : par - cur,
+  };
+}
