@@ -844,7 +844,7 @@ function playView(ladder, state, saveKey, date) {
     const steps = state.path.length - 1;
     const text = shareText({
       label, steps, par: puzzle.par, hints: state.hints, gaveUp: state.status === "gaveUp",
-      distances: state.path.slice(1).map(stepsTo),
+      distances: state.path.map(stepsTo), // includes the start, so step 1's change is known
       url: location.origin + location.pathname,
     });
     try {

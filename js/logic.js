@@ -271,21 +271,34 @@ export function closeness(d) {
   return { tone: "far", fill: d > 0 && fills[d] ? fills[d] : 8 };
 }
 
-export function squareFor(d) {
-  if (d === 0) return "✅";
-  if (d === 1) return "🟩";
-  if (d === 2) return "🟨";
+// One square per step, colored by how the step changed the distance to the
+// goal (not by the absolute distance): on a par-6 ladder every early word is
+// far away, so absolute colors made good opening moves look like mistakes.
+// -1 means "no route to the goal from here".
+export function squareFor(from, to) {
+  if (to === 0) return "✅";
+  if (to < 0) return "🟥";
+  if (from < 0) return "🟩"; // back onto a route after a dead end is progress
+  if (to < from) return "🟩";
+  if (to === from) return "🟨";
   return "🟥";
 }
 
 // Spoiler-free share text: no words, just colored steps.
-// e.g. "Meaning Ladder #12 — 5 steps (par 4) 🟥🟨🟨🟩✅"
+// `distances` starts with the START word's distance, so the first step's
+// change is known; there is one square per step after it. e.g.
+//   Meaning Ladder #13 Hard 🥈
+//   7 steps · par 6
+//   🟩🟩🟨🟩🟩🟩✅
 export function shareText({ label, steps, par, distances, gaveUp = false, hints = 0, url = "" }) {
-  const squares = distances.map(squareFor).join("");
-  const what = gaveUp ? `gave up after ${steps} step${steps === 1 ? "" : "s"}`
-                      : `${steps} step${steps === 1 ? "" : "s"}`;
+  const squares = distances.slice(1).map((d, i) => squareFor(distances[i], d)).join("");
+  const s = steps === 1 ? "" : "s";
+  // Gave-up games get no medal: the 🏁 "finished" emoji would read as a finish.
+  const badge = gaveUp ? "" : " " + medalFor(steps, par).emoji;
+  const what = gaveUp ? `Gave up after ${steps} step${s}` : `${steps} step${s}`;
   const hintPart = hints ? ` · 💡${hints}` : "";
-  return `Meaning Ladder ${label} — ${what} (par ${par})${squares ? " " + squares : ""}${hintPart}${url ? "\n" + url : ""}`;
+  return [`Meaning Ladder ${label}${badge}`, `${what} · par ${par}${hintPart}`, squares, url]
+    .filter(Boolean).join("\n");
 }
 
 // ------------------------------------------------------------ dates & stats

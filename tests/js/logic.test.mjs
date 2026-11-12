@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, buildReverse, checkStep, closeness, computeStats, costsToGoal, distancesToGoal,
-  localDateStr, medalFor, naturalRoute, shareText, shortestRoute, STEP_COST,
+  localDateStr, medalFor, naturalRoute, shareText, shortestRoute, squareFor, STEP_COST,
 } from "../../js/logic.js";
 
 // ocean -> wave -> signal -> network -> computer, plus a shortcut and a dead end.
@@ -155,11 +155,30 @@ test("closeness colors: 1 green, 2 yellow, 3+ pink, goal full", () => {
   assert.equal(closeness(-1).tone, "far");
 });
 
-test("share text matches the spec format and has no words in it", () => {
-  const text = shareText({ label: "#12", steps: 5, par: 4, distances: [3, 2, 2, 1, 0] });
-  assert.equal(text, "Meaning Ladder #12 — 5 steps (par 4) 🟥🟨🟨🟩✅");
-  const withHints = shareText({ label: "#3", steps: 1, par: 3, distances: [4], gaveUp: true, hints: 2, url: "https://x.test/" });
-  assert.equal(withHints, "Meaning Ladder #3 — gave up after 1 step (par 3) 🟥 · 💡2\nhttps://x.test/");
+test("squares show the change in distance, not the distance", () => {
+  assert.equal(squareFor(6, 5), "🟩"); // progress, even though still far away
+  assert.equal(squareFor(3, 3), "🟨"); // no closer
+  assert.equal(squareFor(2, 4), "🟥"); // farther
+  assert.equal(squareFor(2, -1), "🟥"); // dead end
+  assert.equal(squareFor(-1, 3), "🟩"); // back onto a route
+  assert.equal(squareFor(1, 0), "✅"); // goal
+});
+
+test("share text: level, medal, steps/par, one square per step, no words", () => {
+  const text = shareText({ label: "#13 Hard", steps: 7, par: 6, distances: [6, 5, 4, 4, 3, 2, 1, 0] });
+  assert.equal(text, "Meaning Ladder #13 Hard 🥈\n7 steps · par 6\n🟩🟩🟨🟩🟩🟩✅");
+  assert.equal(shareText({ label: "#1 Easy", steps: 2, par: 2, distances: [2, 1, 0] }),
+    "Meaning Ladder #1 Easy 🥇\n2 steps · par 2\n🟩✅");
+  assert.equal(shareText({ label: "#2 Medium", steps: 6, par: 3, distances: [3, 4, 2, 2, 1, -1, 0] }),
+    "Meaning Ladder #2 Medium 🏁\n6 steps · par 3\n🟥🟩🟨🟩🟥✅");
+});
+
+test("gave-up share has no medal and still reads clearly", () => {
+  const text = shareText({ label: "#3 Hard", steps: 2, par: 3, distances: [3, 4, 4], gaveUp: true, hints: 2, url: "https://x.test/" });
+  assert.equal(text, "Meaning Ladder #3 Hard\nGave up after 2 steps · par 3 · 💡2\n🟥🟨\nhttps://x.test/");
+  // Giving up before any step: no empty squares line.
+  assert.equal(shareText({ label: "#3 Hard", steps: 0, par: 3, distances: [3], gaveUp: true }),
+    "Meaning Ladder #3 Hard\nGave up after 0 steps · par 3");
 });
 
 test("local dates and day arithmetic", () => {
