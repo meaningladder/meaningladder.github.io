@@ -14,7 +14,7 @@ from ladder_core import level_band, load_ladder, validate_pair
 DAY = date(2026, 11, 17)
 LEVEL = "medium"  # par 5 under the top-10 two-way rules (from Nov 13)
 SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
-               "source", "graphVersion", "stepLimit", "twoWay"}
+               "source", "graphVersion", "stepLimit", "twoWay", "route", "reasons"}
 
 
 @pytest.fixture(scope="module")
@@ -49,8 +49,11 @@ class FakeClient:
         return SimpleNamespace(status="completed", output=[], output_parsed=answer)
 
 
-def pairs(*pairs_):
-    return Suggestions(pairs=[Pair(start=s, goal=g, theme="A theme", teaser="A teaser.")
+def pairs(*pairs_, steps=None):
+    # One reason per step of the route (the default level's par).
+    n = steps or level_band(LEVEL, load_ladder(date_str=DAY.isoformat()).config)["par"]
+    return Suggestions(pairs=[Pair(start=s, goal=g, theme="A theme", teaser="A teaser.",
+                                   reasons=[f"Step {k} makes sense." for k in range(1, n + 1)])
                               for s, g in pairs_])
 
 
@@ -174,7 +177,7 @@ def test_ai_text_blocklist():
 
 def test_unsafe_ai_text_is_rejected_with_feedback(ladder, good_pair):
     s, g = good_pair
-    evil = Suggestions(pairs=[Pair(start=s, goal=g, theme="<script>x</script>", teaser="ok")])
+    evil = Suggestions(pairs=[Pair(start=s, goal=g, theme="<script>x</script>", teaser="ok", reasons=[])])
     fake = FakeClient([evil, pairs((s, g))])
     puzzle = make_puzzle(ladder, DAY, LEVEL, set(), lambda: fake, quiet)
     assert puzzle["source"] == "ai" and "<" not in puzzle["theme"]
@@ -224,3 +227,21 @@ def test_daily_cron_runs_before_tomorrow_starts_anywhere():
         now = datetime(2026, 11, 12, int(hour), int(minute), tzinfo=timezone.utc)
         assert not is_live((now + timedelta(days=1)).date(), now), f"{hour}:{minute} is too late"
     assert "args=(--ahead 1)" in wf
+
+
+def test_ai_must_explain_every_step(ladder, good_pair):
+    """A pick without one plain reason per step is sent back; the accepted
+    puzzle stores the shown route and its reasons."""
+    s, g = good_pair
+    par = level_band(LEVEL, ladder.at(DAY.isoformat()).config)["par"]
+    short = pairs((s, g), steps=par - 1)
+    fake = FakeClient([short, pairs((s, g), steps=par)])
+    puzzle = make_puzzle(ladder, DAY, LEVEL, set(), lambda: fake, quiet)
+    assert puzzle["source"] == "ai" and len(fake.calls) == 2
+    assert "reasons for a" in fake.calls[1]["input"][-1]["content"]
+    assert len(puzzle["reasons"]) == par and len(puzzle["route"]) == par + 1
+    assert puzzle["route"][0] == s and puzzle["route"][-1] == g
+    view = ladder.at(DAY.isoformat())
+    assert all(view.index[b] in view.neighbors[view.index[a]]
+               for a, b in zip(puzzle["route"], puzzle["route"][1:]))
+

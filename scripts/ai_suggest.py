@@ -18,6 +18,7 @@ from ladder_core import (Ladder, Verdict, guide_route, incoming_words, rel_key, 
 PAIRS_PER_ROUND = 5
 MAX_THEME = 40
 MAX_TEASER = 120
+MAX_REASON = 90
 
 
 class Pair(BaseModel):
@@ -25,6 +26,10 @@ class Pair(BaseModel):
     goal: str
     theme: str
     teaser: str
+    # One short sentence per step of the pair's shown route, in order: why
+    # each word leads to the next. Shown after the game so every ladder
+    # makes sense, and a pair whose route can't be explained is skipped.
+    reasons: list[str]
 
 
 class Suggestions(BaseModel):
@@ -62,6 +67,12 @@ Suggest {PAIRS_PER_ROUND} different (start, goal) pairs, best first. Rules:
   possible route WITHOUT naming any intermediate word.
 - Theme and teaser must be about the sense the shown route and incoming words
   actually use, so they point players the right way, never a different sense.
+- reasons: for the pair you pick, one short plain sentence per step of its
+  shown route, in order (a route of N steps needs exactly N sentences, at most
+  {MAX_REASON} characters each), saying why each word leads to the next, e.g.
+  "A cafe is a small restaurant." or "Kerosene is a fuel." Every step must make
+  sense to an ordinary player. If any step of a pair's route would not, do not
+  pick that pair.
 """
 
 DIFFICULTY_HINTS = {
@@ -81,7 +92,7 @@ INCOMING_SHOWN = 10  # enough to reveal a sense, short enough to keep the prompt
 
 def _pair_listing(ladder: Ladder, start: str, goal: str, incoming: list[str]) -> str:
     s, g = ladder.index[start], ladder.index[goal]
-    if ladder.related:  # the route the game will show, with its relations
+    if ladder.related and ladder.config.get("twoWay"):  # the route the game will show
         route = guide_route(ladder.neighbors, ladder.related, s, g)
         hops = [f" -[{ladder.related[rel_key(a, b)]}]-> " if rel_key(a, b) in ladder.related else " -> "
                 for a, b in zip(route, route[1:])]
@@ -179,13 +190,36 @@ def check_text(field: str, text: str, max_len: int) -> str | None:
     return None
 
 
+def shown_route(ladder: Ladder, start: str, goal: str) -> list[str]:
+    """The route the game shows for this pair: a shortest route with the most
+    ConceptNet-relation steps (guide_route), else any shortest route."""
+    s, g = ladder.index[start], ladder.index[goal]
+    # guide_route searches from the goal, which needs links that work both
+    # ways; one-way eras (before Nov 13) get a plain shortest route.
+    two_way = ladder.related and ladder.config.get("twoWay")
+    route = (guide_route(ladder.neighbors, ladder.related, s, g) if two_way
+             else shortest_route(ladder.neighbors, s, g))
+    return [ladder.words[i] for i in route]
+
+
 def check_pair(ladder: Ladder, pair: Pair, band: dict, recent: set[str]) -> Verdict:
     start, goal = pair.start.strip().lower(), pair.goal.strip().lower()
     for field, text, limit in (("theme", pair.theme, MAX_THEME), ("teaser", pair.teaser, MAX_TEASER)):
         reason = check_text(field, text, limit)
         if reason:
             return Verdict(False, reason)
-    return validate_pair(ladder, start, goal, band, recent)
+    verdict = validate_pair(ladder, start, goal, band, recent)
+    if not verdict.ok:
+        return verdict
+    # Every ladder must make sense: one checked, plain sentence per step.
+    if len(pair.reasons) != verdict.par:
+        return Verdict(False, f"{len(pair.reasons)} reasons for a {verdict.par}-step route, "
+                              f"need exactly {verdict.par}", verdict.par, verdict.routes, verdict.closer)
+    for k, text in enumerate(pair.reasons, 1):
+        bad = check_text(f"reason {k}", text, MAX_REASON)
+        if bad:
+            return Verdict(False, bad, verdict.par, verdict.routes, verdict.closer)
+    return verdict
 
 
 def ai_puzzle(
@@ -213,6 +247,7 @@ def ai_puzzle(
                 log(f"  AI round {round_no}: accepted {pair.start} -> {pair.goal} "
                     f"(par {verdict.par}, {verdict.routes} routes)")
                 pair.start, pair.goal = pair.start.strip().lower(), pair.goal.strip().lower()
+                pair.reasons = [r.strip() for r in pair.reasons]
                 return pair, verdict
             feedback.append(f"- {pair.start} -> {pair.goal}: {verdict.reason}")
         log(f"  AI round {round_no}: all {len(suggestions.pairs)} pairs rejected")

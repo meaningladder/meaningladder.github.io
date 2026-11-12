@@ -53,7 +53,7 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
     """Build one puzzle dict for one level: AI first, seeded fallback on any failure."""
     import openai  # only for the exception types
 
-    from ai_suggest import AIUnavailable, ai_puzzle
+    from ai_suggest import AIUnavailable, ai_puzzle, shown_route
 
     date_str = day.isoformat()
     ladder = ladder.at(date_str)  # that day's rules: step limit and level bands
@@ -64,13 +64,14 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
     log(f"{date_str} {band['label']}: par {band['par']}, "
         f"routes {band['minRoutes']}-{band['maxRoutes']}{closer}")
 
-    source, theme, teaser = "seeded", SEEDED_THEME, ""
+    source, theme, teaser, reasons = "seeded", SEEDED_THEME, "", []
     try:
         if client_factory is None:
             raise AIUnavailable("AI disabled (--no-ai)")
         pair, verdict = ai_puzzle(ladder, date_str, band, recent, client_factory(), log)
         start, goal, theme, teaser, source = (pair.start, pair.goal, pair.theme.strip(),
                                               pair.teaser.strip(), "ai")
+        reasons = pair.reasons
     except (AIUnavailable, openai.OpenAIError) as e:
         # OpenAIError is the base class of every SDK error: network, 429, 401, 5xx...
         log(f"  falling back to seeded puzzle: {type(e).__name__}: {e}")
@@ -95,6 +96,10 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         "graphVersion": cfg["graphVersion"],
         "stepLimit": cfg["stepLimit"],
         "twoWay": bool(cfg.get("twoWay")),
+        # The route the game shows (signpost, hints, give-up), and why each
+        # step follows (AI puzzles only). The browser re-checks the route.
+        "route": shown_route(ladder, start, goal),
+        "reasons": reasons,
     }
 
 

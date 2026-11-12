@@ -747,6 +747,21 @@ export function ladderRows(dists, par) {
   };
 }
 
+// ------------------------------------------------------------ stored route
+// A puzzle file's route (AI-checked, with a reason per step) as word indexes,
+// or null unless it is still a real shortest route under this view's rules:
+// right ends, par + 1 words, every step legal and one step closer.
+export function checkedRoute(route, puzzle, ladder, dist) {
+  if (!Array.isArray(route) || route.length !== puzzle.par + 1) return null;
+  if (route[0] !== puzzle.start || route[route.length - 1] !== puzzle.goal) return null;
+  const idx = route.map((w) => ladder.index.get(w));
+  if (idx.some((i) => i === undefined)) return null;
+  for (let k = 0; k < puzzle.par; k++) {
+    if (!ladder.neighbors[idx[k]].includes(idx[k + 1]) || dist[idx[k + 1]] !== dist[idx[k]] - 1) return null;
+  }
+  return idx;
+}
+
 // ------------------------------------------------------------ guide route
 // A shortest route (each step one closer, via `dist`) with the most steps
 // that are ConceptNet relations (`related`: a Set of relKey pairs); ties go

@@ -2,7 +2,7 @@
 // Run: node --test "tests/js/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildReverse, distancesToGoal, guideRoute, ladderRows } from "../../js/logic.js";
+import { buildReverse, checkedRoute, distancesToGoal, guideRoute, ladderRows } from "../../js/logic.js";
 
 // rows as "rung:at" strings, top to bottom (at = path index, "-" = empty).
 const shape = (lad) => lad.rows.map((r) => `${r.rung}:${r.at ?? "-"}${r.current ? "*" : ""}`);
@@ -71,5 +71,20 @@ test("guideRoute keeps par and takes the route with the most relation steps", ()
   assert.deepEqual(guideRoute(neighbors, dist, new Set([key(0, 2), key(2, 3)]), 0), [0, 2, 3]);
   assert.deepEqual(guideRoute(neighbors, dist, new Set(), 0), [0, 1, 3]); // tie: more similar first
   assert.equal(guideRoute(neighbors, dist, null, 0), null); // no relations loaded
+});
+
+test("a puzzle file's route is used only while it is a real shortest route", () => {
+  const words = ["a", "b", "c", "d"];
+  const neighbors = [[1, 2], [0, 3], [0, 3], [1, 2]];
+  const ladder = { index: new Map(words.map((w, i) => [w, i])), neighbors };
+  const dist = distancesToGoal(buildReverse(neighbors), 4, 3);
+  const puzzle = { start: "a", goal: "d", par: 2 };
+  assert.deepEqual(checkedRoute(["a", "c", "d"], puzzle, ladder, dist), [0, 2, 3]);
+  assert.equal(checkedRoute(["a", "d"], puzzle, ladder, dist), null);           // wrong length
+  assert.equal(checkedRoute(["a", "b", "c"], puzzle, ladder, dist), null);      // wrong goal
+  assert.equal(checkedRoute(["a", "zz", "d"], puzzle, ladder, dist), null);     // unknown word
+  assert.equal(checkedRoute(undefined, puzzle, ladder, dist), null);            // old files
+  const longer = { start: "a", goal: "d", par: 3 };
+  assert.equal(checkedRoute(["a", "b", "a", "d"], longer, ladder, dist), null); // not shortest
 });
 

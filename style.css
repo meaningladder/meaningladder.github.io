@@ -353,6 +353,8 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .win .result { color: var(--muted); margin-top: 4px; }
 .win .route { margin-top: 12px; font-size: var(--fs-sm); }
 .win .route b { font-weight: 800; }
+/* Why each step of the day's route follows: a short numbered list. */
+.win .reasons { text-align: left; margin: 8px auto 10px; padding-left: 1.4em; display: grid; gap: 4px; max-width: 34ch; }
 .win .btn-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
 .win .countdown { margin-top: 14px; font-size: var(--fs-sm); color: var(--muted); }
 .win .countdown b { font-variant-numeric: tabular-nums; color: var(--text); }

@@ -14,7 +14,7 @@ import {
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, checkedRoute, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -842,7 +842,16 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // The route the game shows (signpost, hints, give-up): a shortest route
   // whose steps are most often real ConceptNet relations, else the one with
   // the strongest weakest link.
+  // The puzzle file's own route comes first: the AI checked that every step
+  // makes sense and wrote why (puzzle.reasons). Re-checked here, so a stale
+  // or edited file can never show an illegal route.
+  const fileRoute = checkedRoute(puzzle.route, puzzle, ladder, dist);
+  const reasons = fileRoute && Array.isArray(puzzle.reasons) && puzzle.reasons.length === puzzle.par
+    ? puzzle.reasons.map(String) : null;
+
   function bestRoute(from) {
+    const k = fileRoute ? fileRoute.indexOf(from) : -1;
+    if (k >= 0) return fileRoute.slice(k);
     return guideRoute(ladder.neighbors, dist, ladder.related, from)
       ?? bottleneckRoute(ladder.neighbors, dist, from)?.route ?? null;
   }
@@ -988,6 +997,14 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // is as strong as possible (see bottleneckRoute). Skipped when your own
   // ladder already was a shortest one.
   function routeLine(yoursWasShortest) {
+    // Every daily ladder makes sense: show each step of its route and why.
+    if (reasons) {
+      const w = fileRoute.map((i) => ladder.words[i]);
+      return h("div", { class: "route" },
+        h("p", {}, yoursWasShortest ? "Your ladder was as short as it gets. Today's route:" : "Today's route, step by step:"),
+        h("ol", { class: "reasons" }, reasons.map((text, k) =>
+          h("li", {}, h("b", {}, `${w[k]} → ${w[k + 1]}`), " ", text))));
+    }
     if (yoursWasShortest) return h("p", { class: "route" }, "Your ladder was as short as it gets.");
     const best = bestRoute(ladder.index.get(puzzle.start));
     const words = best ? best.map((i) => ladder.words[i])
