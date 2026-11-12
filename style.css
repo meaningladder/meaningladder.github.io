@@ -35,6 +35,16 @@
   --shadow: 0 1px 2px rgb(80 60 40 / 0.06), 0 4px 16px rgb(80 60 40 / 0.06);
   --r-control: 8px;
   --r-container: 12px;
+  /* Type scale: six sizes, used everywhere (no one-off font sizes). */
+  --fs-xs: 0.75rem;   /* tags, tiny labels */
+  --fs-sm: 0.9rem;    /* secondary text, quiet buttons */
+  --fs-base: 1rem;
+  --fs-md: 1.15rem;   /* card titles, the guess input */
+  --fs-lg: 1.3rem;    /* dialog and result titles, stat numbers */
+  --fs-xl: 2rem;      /* the home title */
+  --dur-fast: var(--dur-fast);  /* press feedback */
+  --dur-base: 220ms;  /* things entering */
+  --disabled: 0.45;
   --gold-bg: #f3dc96;  --gold-fg: #7a5a0c;
   --silver-bg: #e2e2e6; --silver-fg: #565a63;
   --bronze-bg: #efcdb6; --bronze-fg: #84482a;
@@ -109,7 +119,7 @@ a { color: inherit; }
 
 /* ------------------------------------------------------------ buttons */
 button { font: inherit; color: inherit; cursor: pointer; }
-button:disabled { cursor: not-allowed; opacity: 0.45; }
+button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -117,14 +127,14 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   border: 1px solid transparent; border-radius: var(--r-control);
   font-weight: 700; text-decoration: none;
   background: var(--accent); color: var(--accent-text);
-  transition: transform 120ms ease, filter 120ms ease;
+  transition: transform var(--dur-fast) ease, filter var(--dur-fast) ease;
 }
 .btn:active:not(:disabled) { transform: scale(0.97); }
 @media (hover: hover) { .btn:hover:not(:disabled) { filter: brightness(1.05); } }
 
 .btn-quiet {
   background: transparent; color: var(--text); border-color: var(--line);
-  font-weight: 600; min-height: 38px; padding: 0 14px; font-size: 0.92rem;
+  font-weight: 600; min-height: 38px; padding: 0 14px; font-size: var(--fs-sm);
 }
 @media (hover: hover) { .btn-quiet:hover:not(:disabled) { background: var(--surface); filter: none; } }
 
@@ -132,7 +142,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .link-btn {
   background: none; border: 0; padding: 6px 4px; color: var(--muted);
-  text-decoration: underline; text-underline-offset: 3px; font-size: 0.92rem;
+  text-decoration: underline; text-underline-offset: 3px; font-size: var(--fs-sm);
 }
 
 .icon-btn {
@@ -145,7 +155,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 /* ------------------------------------------------------------ home */
 .home-head { text-align: center; padding: 20px 0 22px; }
 .logo { width: 52px; height: 52px; margin: 0 auto 10px; display: block; }
-.home-head h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.01em; }
+.home-head h1 { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -0.01em; }
 .tagline { color: var(--muted); margin-top: 4px; }
 
 .card {
@@ -153,21 +163,20 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   padding: 18px; box-shadow: var(--shadow); margin-bottom: 14px;
 }
 .card-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.card h2 { font-size: 1.15rem; font-weight: 800; }
-.card .sub { color: var(--muted); font-size: 0.92rem; }
-.card .note { margin-top: 10px; font-size: 0.92rem; }
+.card h2 { font-size: var(--fs-md); font-weight: 800; }
+.card .sub { color: var(--muted); font-size: var(--fs-sm); }
+.card .note { margin-top: 10px; font-size: var(--fs-sm); }
 
 .week { list-style: none; padding: 0; margin: 16px 0 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .chip {
   width: 100%; aspect-ratio: 1 / 1.15; display: grid; place-content: center; gap: 0;
   border: 1px solid var(--line); border-radius: var(--r-control); background: transparent;
-  font-size: 0.72rem; color: var(--muted); padding: 0; line-height: 1.15; text-decoration: none;
+  font-size: var(--fs-xs); color: var(--muted); padding: 0; line-height: 1.15; text-decoration: none;
 }
-.chip b { font-size: 1rem; color: var(--text); font-weight: 700; }
+.chip b { font-size: var(--fs-base); color: var(--text); font-weight: 700; }
 .chip.played { background: var(--track); }
 .chip.won { background: var(--near); border-color: transparent; }
-.chip.today { border: 2px solid var(--strong); }
-.chip:disabled, .chip[aria-disabled="true"] { opacity: 0.4; cursor: default; }
+.chip:disabled, .chip[aria-disabled="true"] { opacity: var(--disabled); cursor: default; }
 .chip-mark { height: 16px; display: grid; place-items: center; }
 
 .home-foot { display: flex; justify-content: center; gap: 18px; margin-top: 10px; }
@@ -178,10 +187,10 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   display: grid; gap: 2px; justify-items: center; padding: 10px 6px;
   border: 1px solid var(--line); border-radius: var(--r-control);
   background: var(--surface); color: var(--text); text-decoration: none;
-  transition: transform 120ms ease, border-color 120ms ease;
+  transition: transform var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 .level-btn b { font-weight: 800; }
-.level-btn span { font-size: 0.85rem; color: var(--muted); }
+.level-btn span { font-size: var(--fs-sm); color: var(--muted); }
 .level-btn.solved { background: var(--near); border-color: transparent; }
 .level-btn.solved span { color: var(--text); }
 .level-btn:active { transform: scale(0.97); }
@@ -189,19 +198,18 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .levels.compact { margin: 0 0 8px; gap: 6px; }
 .levels.compact .level-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 6px 4px; font-weight: 700; font-size: 0.92rem;
+  padding: 6px 4px; font-weight: 700; font-size: var(--fs-sm);
 }
-.levels.compact .level-btn.current { border: 2px solid var(--strong); }
 
 /* ------------------------------------------------------------ game */
 .topbar { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; margin-bottom: 4px; }
-.topbar h1 { text-align: center; font-size: 1.25rem; font-weight: 800; }
+.topbar h1 { text-align: center; font-size: var(--fs-lg); font-weight: 800; }
 
 .status {
-  text-align: center; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+  text-align: center; font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--muted); font-weight: 700;
 }
-.theme { text-align: center; margin-top: 10px; font-size: 0.95rem; }
+.theme { text-align: center; margin-top: 10px; font-size: var(--fs-sm); }
 .theme strong { font-weight: 800; }
 .theme span { color: var(--muted); }
 
@@ -214,13 +222,12 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .pills .arrow { color: var(--muted); }
 /* Words found so far, between start and goal: lighter than the two ends. */
 .pill.step { background: transparent; font-weight: 600; }
-/* The rung you're on: same dark outline as the newest bar on the path. */
-.pill.current { border: 2px solid var(--strong); padding: 4px 11px; font-weight: 800; }
+
 
 .guess { display: flex; gap: 8px; }
 .guess input {
   flex: 1; min-width: 0; width: 100%; min-height: 54px; padding: 0 16px;
-  font: inherit; font-size: 1.15rem; font-weight: 600; color: var(--text);
+  font: inherit; font-size: var(--fs-md); font-weight: 600; color: var(--text);
   background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-control);
   outline: none;
 }
@@ -230,16 +237,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .feedback { min-height: 46px; margin: 10px 0 0; }
 .feedback .error { color: var(--error); font-weight: 600; padding: 10px 2px; }
-/* Near-miss line under a rejection: how far the guess really was. */
-.feedback .miss { display: block; margin-top: 6px; color: var(--text); font-weight: 400; }
-.feedback .miss b {
-  display: inline-block; padding: 1px 8px; margin-right: 2px;
-  border-radius: 999px; font-weight: 800; font-size: 0.9em;
-}
-.miss-close b { background: var(--near); }
-.miss-warm b  { background: var(--mid); }
-.miss-far b   { background: var(--track); color: var(--muted); }
-.feedback .hintline, .feedback .muted { color: var(--muted); padding: 10px 2px; font-size: 0.95rem; }
+.feedback .hintline, .feedback .muted { color: var(--muted); padding: 10px 2px; font-size: var(--fs-sm); }
 
 .path { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 6px; }
 
@@ -260,24 +258,33 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 /* Contexto-style list of wrong guesses, ranked from the current word. */
 .tried { margin-top: 14px; }
-.tried-head, .list-head { font-size: 0.85rem; font-weight: 700; color: var(--muted); margin: 0 2px 6px; }
+.tried-head, .list-head { font-size: var(--fs-sm); font-weight: 700; color: var(--muted); margin: 0 2px 6px; }
 .list-head { margin-top: 18px; }
 .list-head + .path { margin-top: 0; }
 .tried .path { margin: 0; }
 /* Tried bars mean "closeness to the current word", not steps to the goal, so
    they get their own color instead of the path's green/yellow/pink. */
 .tried .bar { --tone: var(--tried); }
-.tried-note { font-size: 0.8rem; color: var(--muted); margin: 6px 2px 0; }
-.bar.latest { border: 2px solid var(--strong); }
+.tried-note { font-size: var(--fs-xs); color: var(--muted); margin: 6px 2px 0; }
 .bar .num { font-variant-numeric: tabular-nums; }
-.bar .tag { font-size: 0.72rem; color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
-.bar.enter { animation: slide-in 220ms ease-out; }
+.bar .tag { font-size: var(--fs-xs); color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
+.bar.enter { animation: slide-in var(--dur-base) ease-out; }
 /* A newly rejected word: one short pulse so the eye finds it in the list. */
-.tried .bar.enter { animation: slide-in 220ms ease-out, pulse 600ms ease-out 1; }
-@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 40% { box-shadow: 0 0 0 4px var(--line); } }
+.tried .bar.enter { animation: slide-in var(--dur-base) ease-out, pulse 600ms ease-out 1; }
+@keyframes pulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px var(--strong), 0 0 0 0 transparent; }
+  40% { box-shadow: inset 0 0 0 1px var(--strong), 0 0 0 4px var(--line); }
+}
 @keyframes slide-in { from { opacity: 0; transform: translateY(-6px); } }
 
 .actions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+
+/* "You are here", the same everywhere: the current rung (path bar and
+   header pill), the current level and today's chip. Elements keep their 1px
+   border and an inset ring adds the second pixel, so nothing shifts. */
+.bar.latest, .pill.current, .levels.compact .level-btn.current, .chip.today {
+  border-color: var(--strong); box-shadow: inset 0 0 0 1px var(--strong);
+}
 
 /* ------------------------------------------------------------ menu */
 .menu-wrap { position: relative; }
@@ -296,17 +303,21 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .win { text-align: center; padding: 20px 16px; }
 .win .medal-badge { margin: 0 auto; }
 .win { animation: rise 320ms cubic-bezier(0.16, 1, 0.3, 1); }
-.win h2 { font-size: 1.3rem; margin-top: 6px; font-weight: 800; }
+.win h2 { font-size: var(--fs-lg); margin-top: 6px; font-weight: 800; }
 .win .result { color: var(--muted); margin-top: 4px; }
-.win .route { margin-top: 12px; font-size: 0.92rem; }
+.win .route { margin-top: 12px; font-size: var(--fs-sm); }
 .win .route b { font-weight: 800; }
 .win .btn-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-.win .countdown { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+.win .countdown { margin-top: 14px; font-size: var(--fs-sm); color: var(--muted); }
 .win .countdown b { font-variant-numeric: tabular-nums; color: var(--text); }
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 16px; }
-.stat b { display: block; font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.stat span { font-size: 0.72rem; color: var(--muted); }
-.toast { margin-top: 8px; font-size: 0.9rem; color: var(--muted); }
+.stat b { display: block; font-size: var(--fs-lg); font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat span { font-size: var(--fs-xs); color: var(--muted); }
+.example-caption { margin-top: 12px; }
+.stats-note { margin-top: 14px; text-align: center; }
+.home-archive { margin-bottom: 14px; }
+.share-box { width: 100%; margin-top: 8px; font: inherit; }
+.toast { margin-top: 8px; font-size: var(--fs-sm); color: var(--muted); }
 .toast:empty { display: none; }
 
 
@@ -317,7 +328,7 @@ dialog {
   background: var(--surface); color: var(--text); box-shadow: var(--shadow);
 }
 dialog::backdrop { background: rgb(30 22 15 / 0.45); }
-dialog h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 12px; }
+dialog h2 { font-size: var(--fs-lg); font-weight: 800; margin-bottom: 12px; }
 dialog h2:focus { outline: none; }
 dialog ul { padding-left: 1.1em; margin: 0; display: grid; gap: 8px; }
 dialog .example { margin: 12px 0; display: grid; gap: 5px; }
@@ -342,15 +353,15 @@ dialog .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; mar
 .medal-gaveUp { color: var(--muted); }
 .with-badge { display: inline-flex; align-items: center; gap: 8px; }
 .chip.won .medal-badge { box-shadow: 0 0 0 1.5px var(--surface); }
-a.chip { transition: transform 120ms ease; }
+a.chip { transition: transform var(--dur-fast) ease; }
 a.chip:active { transform: scale(0.95); }
 @media (hover: hover) { a.chip:hover { border-color: var(--strong); } }
 
 /* ------------------------------------------------------------ archive calendar */
 .month { margin-top: 18px; }
 .month-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.month-head h2 { font-size: 1.1rem; font-weight: 800; }
-.weekdays { margin-top: 10px; font-size: 0.75rem; color: var(--muted); text-align: center; font-weight: 700; }
+.month-head h2 { font-size: var(--fs-md); font-weight: 800; }
+.weekdays { margin-top: 10px; font-size: var(--fs-xs); color: var(--muted); text-align: center; font-weight: 700; }
 .month .week { margin-top: 6px; }
 .month .chip { aspect-ratio: 1 / 1; }
 .week .pad { visibility: hidden; }
@@ -369,7 +380,7 @@ a.chip:active { transform: scale(0.95); }
 .sk-input { height: 54px; }
 .sk-bar { height: 42px; width: var(--w); }
 .sk-bar:first-of-type { margin-top: 18px; }
-.sk-note { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+.sk-note { text-align: center; color: var(--muted); font-size: var(--fs-sm); margin-top: 8px; }
 
 @keyframes shimmer { to { transform: translateX(100%); } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px) scale(0.98); } }

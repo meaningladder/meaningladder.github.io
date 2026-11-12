@@ -13,28 +13,65 @@ export function loadConfig() {
   return (configPromise ??= getJson("puzzle_config.json"));
 }
 
-// The 4.7 MB word map. Fetched once, then reused for every game in the session.
+// Little-endian uint16 rows (scripts/build_graph_bin.py) -> one array per word.
+// DataView reads the byte order explicitly, so this is right on any CPU.
+async function getRows(url, count, width) {
+  const res = await fetch(url);
+  if (!res.ok) throw Object.assign(new Error(`${url}: HTTP ${res.status}`), { status: res.status });
+  const buf = await res.arrayBuffer();
+  if (buf.byteLength !== count * width * 2) throw new Error(`${url}: unexpected size`);
+  const view = new DataView(buf);
+  const rows = new Array(count);
+  for (let i = 0, o = 0; i < count; i++) {
+    const row = new Array(width);
+    for (let k = 0; k < width; k++, o += 2) row[k] = view.getUint16(o, true);
+    rows[i] = row;
+  }
+  return rows;
+}
+
+// The word map, in two parts. The head (each word's 20 closest words,
+// ~0.8 MB) is all today's rules need, so a game starts after that alone.
+// The tail (ranks 21-100, ~3 MB) loads only when something needs it: an
+// archive game from the top-100 era, or exact ranks in the Tried list.
 let ladderPromise = null;
 export function loadLadder() {
   return (ladderPromise ??= (async () => {
     const config = await loadConfig();
     const v = config.graphVersion;
-    const [graph, cands] = await Promise.all([
-      getJson(`data/graph_v${v}.json`),
+    const [meta, cands] = await Promise.all([
+      getJson(`data/graph_v${v}_words.json`),
       getJson(`data/candidates_v${v}.json`),
     ]);
-    return {
-      words: graph.words,
-      index: new Map(graph.words.map((w, i) => [w, i])),
-      neighbors: graph.neighbors, // the full top-100 lists; games use ladderAt/ladderFor views
+    const head = await getRows(`data/graph_v${v}_head.bin`, meta.count, meta.head);
+    const base = {
+      words: meta.words,
+      index: new Map(meta.words.map((w, i) => [w, i])),
+      neighbors: head, // grows to the full top-100 lists once the tail arrives
+      complete: false, // true once the tail is in
       candidates: cands.words,
       config,
       views: new Map(),
     };
+    let tailPromise = null;
+    base.loadFull = () => (tailPromise ??= getRows(`data/graph_v${v}_tail.bin`, meta.count, meta.tail)
+      .then((tail) => {
+        const full = head.map((row, i) => row.concat(tail[i]));
+        base.neighbors = full;
+        base.complete = true;
+        for (const view of base.views.values()) view.fullNeighbors = full; // exact ranks from now on
+      })
+      .catch((err) => { tailPromise = null; throw err; }));
+    return base;
   })().catch((err) => {
     ladderPromise = null; // don't cache a failure: let the next attempt retry
     throw err;
   }));
+}
+
+// Waits for the tail only when a step limit is wider than what's loaded.
+async function ensureWidth(base, k) {
+  if (base.complete === false && k > base.neighbors[0].length) await base.loadFull();
 }
 
 // Compact word vectors (data/vectors_vN.bin, 64 bytes per word), used only to
@@ -70,6 +107,7 @@ export function loadVectors() {
 // reversing 20k lists takes a few tens of ms.
 function viewOf(base, rules) {
   const k = rules.stepLimit ?? DEFAULT_STEP_LIMIT;
+  if (base.complete === false && k > base.neighbors[0].length) throw new Error(`stepLimit ${k} needs the full word map: await readyFor first`);
   const key = `${rules.from ?? ""}|${k}`;
   let view = base.views.get(key);
   if (!view) {
@@ -87,9 +125,16 @@ export const ladderAt = (base, dateStr) => viewOf(base, rulesFor(base.config, da
 // The rules a puzzle was made under. Daily puzzles go by date; the file's own
 // stepLimit wins if it disagrees. Unlimited puzzles carry their stepLimit;
 // one saved before stepLimit existed was played on the original top 100.
-export function ladderFor(base, puzzle) {
+function puzzleRules(base, puzzle) {
   const rules = rulesFor(base.config, puzzle.date ?? (puzzle.stepLimit == null ? base.config.launchDate : null));
-  const k = puzzle.stepLimit ?? rules.stepLimit ?? DEFAULT_STEP_LIMIT;
+  return { rules, k: puzzle.stepLimit ?? rules.stepLimit ?? DEFAULT_STEP_LIMIT };
+}
+
+// Await before ladderFor: loads the tail if this puzzle's rules need it.
+export const readyFor = (base, puzzle) => ensureWidth(base, puzzleRules(base, puzzle).k);
+
+export function ladderFor(base, puzzle) {
+  const { rules, k } = puzzleRules(base, puzzle);
   if (k !== rules.stepLimit) console.warn(`Puzzle says stepLimit ${k}; its date's rules say ${rules.stepLimit}. Using ${k}.`);
   return viewOf(base, { ...rules, stepLimit: k });
 }
@@ -97,6 +142,7 @@ export function ladderFor(base, puzzle) {
 // One level of a day's puzzle (puzzles/YYYY-MM-DD-<level>.json), or the
 // identical-everywhere seeded fallback if the file is missing.
 export async function loadDailyPuzzle(base, dateStr, level) {
+  await ensureWidth(base, rulesFor(base.config, dateStr).stepLimit ?? DEFAULT_STEP_LIMIT);
   const ladder = ladderAt(base, dateStr);
   const { config } = ladder;
   try {
@@ -120,7 +166,8 @@ export async function loadDailyPuzzle(base, dateStr, level) {
 
 // Unlimited: a random seed fed through the same seeded generator, at the
 // level the player picked.
-export function makePracticePuzzle(base, level) {
+export async function makePracticePuzzle(base, level) {
+  await ensureWidth(base, rulesFor(base.config, null).stepLimit ?? DEFAULT_STEP_LIMIT);
   const ladder = ladderAt(base, null);
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   const band = levelBand(level, ladder.config);

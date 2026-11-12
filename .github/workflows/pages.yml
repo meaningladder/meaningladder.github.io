@@ -38,7 +38,10 @@ jobs:
         # Only what the browser needs: no scripts/, tests/ or lists/.
         run: |
           mkdir _site
-          cp -r index.html 404.html style.css js data assets puzzle_config.json sitemap.xml robots.txt _site/
+          cp -r index.html 404.html sw.js style.css js data assets puzzle_config.json sitemap.xml robots.txt _site/
+          # The browser loads the split graph (graph_vN_head/tail.bin + _words.json).
+          # The 10 MB graph_vN.json is only for Python, so it stays out of the site.
+          find _site/data -regextype posix-extended -regex '.*/graph_v[0-9]+\.json' -delete
           if [ -d puzzles ]; then cp -r puzzles _site/; fi
           du -sh _site
 

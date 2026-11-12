@@ -21,7 +21,7 @@ browser                    →  loads both, runs BFS backwards from the goal, yo
 ```
 
 The important design move: **the map is computed once, offline, and frozen.**
-The browser never does any machine learning. It downloads 4.7 MB of integers and
+The browser never does any machine learning. It downloads ~0.8 MB of integers (see "Shipping less" below) and
 does graph search, which is fast and cheap and works on a static host with no server.
 
 ---
@@ -381,3 +381,36 @@ The interesting part is changing a rule in a live game:
 - **Timing.** Nov 13–15 already had Hard puzzles built for the old rule. They
   were unplayed (UTC+14 was still on Nov 12), so they were deleted and
   regenerated. That's the same exception as before, checked the same way.
+
+---
+
+## Shipping less, and surviving offline
+
+A design review asked: what would break first if this got popular? Not the
+servers (there are none). The **download**: 4.7 MB of compressed JSON on every
+first visit, and GitHub Pages has a soft bandwidth limit of 100 GB a month.
+
+- **Measure before you optimize.** Rewriting the JSON as raw binary only went
+  from 4.7 MB to 3.8 MB gzipped: random word numbers don't compress, whatever
+  the format. Not worth it on its own.
+- **Ship what's needed, when it's needed.** The current rules only use each
+  word's top 20 neighbors, which come to 0.8 MB. So the graph is split into a *head*
+  (top 20, loaded first) and a *tail* (ranks 21 to 100, loaded only for
+  old top-100 archive games and exact ranks in the Tried list). The first
+  download shrank ~5x **without changing the data**: `graph_v1.json` is still the
+  source of truth, and `tests/test_graph_bin.py` proves head + tail equals it.
+- **Cache by name, fetch fresh otherwise.** The service worker (`sw.js`)
+  treats files with a version in their name (`_v1`) as frozen, so they're cached
+  forever. Everything else is network-first, so a deploy is never hidden behind
+  an old cache. That's the same "never edit v1" rule from the data, put to work twice.
+- **Test the real failure, not the happy path.** The first offline test
+  failed: the page that registers a service worker was fetched *before* the
+  worker existed, so nothing had cached it. The fix (save the app files when
+  the worker installs) only came from actually killing the server and reloading.
+- **Know when it breaks before players do.** `heartbeat.yml` checks every
+  morning that tomorrow's puzzles are live and emails you if not.
+
+The design-system pass did the same at a smaller scale. 14 font sizes became
+6 tokens. The "you are here" outline was written 4 times; now it's one rule,
+and it no longer makes elements shift by a pixel. Leftover near-miss code went too.
+

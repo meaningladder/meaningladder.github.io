@@ -37,6 +37,14 @@ free feedback: it never names the right word.
 ONE TIME (offline, scripts/build_graph.py)
   GloVe 300d → filtered 20k vocabulary → top-100 neighbors (directed graph)
   → data/graph_v1.json, data/candidates_v1.json            (frozen, versioned)
+  → scripts/build_graph_bin.py (make graph-bin): the same graph split for the browser
+    graph_v1_words.json + graph_v1_head.bin (top 20, ~0.8 MB) + graph_v1_tail.bin
+    (ranks 21-100, ~3 MB, loaded only for top-100-era games and exact Tried ranks)
+
+BROWSER (static, GitHub Pages)
+  sw.js caches the frozen data files and keeps a copy of the app for offline play;
+  code, config and puzzles are always fetched fresh first, so a deploy shows at once.
+  .github/workflows/heartbeat.yml checks at 09:37 UTC that tomorrow's three puzzles are live.
 
 DAILY (GitHub Actions, .github/workflows/daily-puzzle.yml, 06:17 + 08:47 UTC)
   scripts/generate_puzzle.py --ahead 1   (tomorrow, just before it starts in UTC+14)

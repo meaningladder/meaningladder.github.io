@@ -23,7 +23,7 @@ NOAI  ?=
 UI_FILES := index.html style.css js/game.js js/data.js js/seeded.js js/icons.js
 
 .DEFAULT_GOAL := help
-.PHONY: help setup test test-py test-js check audit graph candidates fixtures vectors \
+.PHONY: help setup test test-py test-js check audit graph graph-bin candidates fixtures vectors \
         serve preview puzzles cloud-dry-run cloud-status secret-check redeploy clean
 
 help: ## List all targets
@@ -74,6 +74,9 @@ candidates: ## Rebuild start/goal words after editing scripts/lists/candidates_e
 	$(PY) scripts/build_graph.py --candidates-only
 	$(PY) scripts/make_fixtures.py
 	@echo "Seeded puzzles changed: review, then commit data/ and tests/fixtures/ together."
+
+graph-bin: ## Split the graph into the files the browser loads (data/graph_v1_{head,tail}.bin + _words.json)
+	$(PY) scripts/build_graph_bin.py
 
 vectors: ## Build data/vectors_v1.bin, the compact vectors behind wrong-guess ranks
 	$(PY) scripts/build_vectors.py

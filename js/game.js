@@ -8,10 +8,10 @@
 //   #/archive     previous games
 // For testing: ?today=YYYY-MM-DD pretends it's that date (local view only).
 
-import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, store } from "./data.js";
+import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, readyFor, store } from "./data.js";
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
-  displayRank, nearMissText, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
+  displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, naturalRoute, costsToGoal, shareText, shortestRoute,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -163,7 +163,7 @@ async function showHelp(k = null) {
       h("li", {}, `A rejected word joins your Tried list with its rank from the current word. Only the top ${k} are valid steps, so #${k + 1} was very close.`),
       h("li", {}, "Stuck? Use Undo or Hint, or give up from the ⋯ menu."),
       h("li", {}, "New ladders arrive every day at midnight, your time.")),
-    h("p", { class: "sub", style: "margin-top:12px" }, "Example: ocean → computer (newest word on top)"),
+    h("p", { class: "sub example-caption" }, "Example: ocean → computer (newest word on top)"),
     h("ol", { class: "example path" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
       ex("ocean", 4, { isStart: true })))
   );
@@ -173,7 +173,7 @@ function showStats() {
   const s = computeStats(getResults(), today());
   const { easy, medium, hard } = s.solvedByLevel;
   openDialog("Statistics", h("div", {}, statsRow(s),
-    h("p", { class: "sub", style: "margin-top:14px;text-align:center" },
+    h("p", { class: "sub stats-note" },
       `Solved so far: ${easy} easy, ${medium} medium, ${hard} hard.`)));
 }
 
@@ -304,14 +304,14 @@ async function showHome() {
       h("h1", {}, "meaning ladder"),
       h("p", { class: "tagline" }, "Climb from one word to another")),
     daily,
-    h("a", { class: "btn btn-quiet btn-wide", href: "#/archive", style: "margin-bottom:14px" }, "Previous games"),
+    h("a", { class: "btn btn-quiet btn-wide home-archive", href: "#/archive" }, "Previous games"),
     practice,
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics")));
 
   if (!store.get("seenHelp")) showHelp();           // the only pop-up on load
-  setTimeout(() => loadLadder().catch(() => {}), 300); // warm the 4.7 MB download
+  setTimeout(() => loadLadder().catch(() => {}), 300); // warm the 0.8 MB word map
 }
 
 // ------------------------------------------------------------ archive screen
@@ -394,22 +394,30 @@ async function showGame(kind, n, level) {
   const { config } = ladder;
 
   let state, saveKey, date = null;
-  if (kind === "daily") {
-    date = dateOfGame(n, config);
-    if (n < 1 || date > today()) {
-      render(topbar("meaning ladder"), h("p", { class: "boot" }, `That game isn't out yet. It unlocks on ${longDate(date)}.`));
-      return;
+  try {
+    if (kind === "daily") {
+      date = dateOfGame(n, config);
+      if (n < 1 || date > today()) {
+        render(topbar("meaning ladder"), h("p", { class: "boot" }, `That game isn't out yet. It unlocks on ${longDate(date)}.`));
+        return;
+      }
+      saveKey = `game:${date}:${level}`;
+      // A saved game keeps its own puzzle, so a refresh can never swap it.
+      state = store.get(saveKey) ?? newState("daily", await loadDailyPuzzle(ladder, date, level));
+    } else {
+      saveKey = "practice";
+      state = store.get(saveKey);
+      if (!state || state.puzzle.level !== level
+          || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)) {
+        state = newState("practice", await makePracticePuzzle(ladder, level));
+      }
     }
-    saveKey = `game:${date}:${level}`;
-    // A saved game keeps its own puzzle, so a refresh can never swap it.
-    state = store.get(saveKey) ?? newState("daily", await loadDailyPuzzle(ladder, date, level));
-  } else {
-    saveKey = "practice";
-    state = store.get(saveKey);
-    if (!state || state.puzzle.level !== level
-        || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)) {
-      state = newState("practice", makePracticePuzzle(ladder, level));
-    }
+    await readyFor(ladder, state.puzzle); // top-100-era games wait for the rest of the word map
+  } catch (err) {
+    console.error(err);
+    if (token === routeToken) render(topbar("meaning ladder"),
+      h("p", { class: "boot" }, "Couldn't load the word map. Check your connection and reload."));
+    return;
   }
   if (token !== routeToken) return;
   playView(ladderFor(ladder, state.puzzle), state, saveKey, date); // that puzzle's rules
@@ -443,7 +451,6 @@ function playView(ladder, state, saveKey, date) {
   const levelHref = (lv) => (state.kind === "daily" ? `#/game/${puzzle.gameNumber}/${lv}` : `#/practice/${lv}`);
 
   let error = null;
-  let miss = null;           // near-miss feedback for the last rejected word
   let rejected = null;       // a real word that just went into the Tried list
   let justTried = false;     // animate that word's bar once
   let justAdded = false;
@@ -554,7 +561,6 @@ function playView(ladder, state, saveKey, date) {
       // Typos, unknown words and repeats keep their message.
       error = res.nearMiss ? null : res.error;  // the typed text stays, so a typo is easy to fix
       rejected = res.nearMiss ? { word: normalize(input.value), at: current } : null;
-      miss = null;
       if (res.nearMiss) {
         justTried = true;
         addTried(normalize(input.value), current, res.nearMiss.oneWay);
@@ -567,7 +573,6 @@ function playView(ladder, state, saveKey, date) {
     state.hint = null;
     state.tried = null;   // a new word means a new Tried list
     error = null;
-    miss = null;
     rejected = null;
     justAdded = true;
     input.value = "";
@@ -582,7 +587,6 @@ function playView(ladder, state, saveKey, date) {
     state.hint = null;
     state.tried = null;
     error = null;
-    miss = null;
     rejected = null;
     save();
     update();
@@ -608,7 +612,6 @@ function playView(ladder, state, saveKey, date) {
       };
     }
     error = null;
-    miss = null;
     rejected = null;
     save();
     update();
@@ -647,7 +650,8 @@ function playView(ladder, state, saveKey, date) {
     if (!t || !t.items.some((x) => x.rank == null && !x.family)) return;
     let vectors;
     try {
-      vectors = await loadVectors();
+      // Ranks need the vectors, plus the full top-100 lists for exact #21-#100.
+      [vectors] = await Promise.all([loadVectors(), ladder.loadFull?.()]);
     } catch (err) {
       console.warn("Couldn't load word vectors for ranks.", err);
       t.items.forEach((x) => { if (x.rank == null && !x.family) x.rank = "?"; });
@@ -743,8 +747,7 @@ function playView(ladder, state, saveKey, date) {
 
     // Feedback slot: exactly one thing.
     if (!playing) feedback.replaceChildren();
-    else if (error) feedback.replaceChildren(h("p", { class: "error" }, error,
-      miss ? h("span", { class: `miss miss-${miss.tone}` }, h("b", {}, miss.keyword), " ", miss.text) : null));
+    else if (error) feedback.replaceChildren(h("p", { class: "error" }, error));
     else if (rejected?.at === current) feedback.replaceChildren(h("p", { class: "visually-hidden" },
       `${rejected.word} is not a valid step from ${current}. It was added to your Tried list.`));
     else if (state.hint?.word === current) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), state.hint.text));
@@ -849,7 +852,7 @@ function playView(ladder, state, saveKey, date) {
       toast.textContent = "Copied to clipboard!";
     } catch {
       // Clipboard API needs HTTPS + permission; fall back to a selectable box.
-      const box = h("textarea", { rows: "3", readonly: true, style: "width:100%;margin-top:8px", "aria-label": "Result to copy" }, text);
+      const box = h("textarea", { rows: "3", readonly: true, class: "share-box", "aria-label": "Result to copy" }, text);
       toast.replaceChildren("Copy this:", box);
       box.select();
     }
@@ -867,3 +870,11 @@ function playView(ladder, state, saveKey, date) {
 migrateStorage(); // one-time move of pre-levels saves to the per-level format
 window.addEventListener("hashchange", route);
 route();
+
+// Offline play and instant repeat visits (sw.js). Pages is always https;
+// localhost counts as secure too. A failure here never affects the game.
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((err) => console.warn("Service worker not registered.", err));
+  });
+}

@@ -1,0 +1,34 @@
+# Heartbeat: is tomorrow's puzzle actually live on the site?
+#
+# The daily job runs at 06:17 and 08:47 UTC and makes today + tomorrow. The
+# earliest time zone (UTC+14) reaches "tomorrow" at 10:00 UTC, so by 09:37
+# all three of tomorrow's files must be served by GitHub Pages. If one isn't,
+# this run fails and GitHub emails the repo owner. Players are never stuck
+# (the browser falls back to the seeded puzzle), but they'd lose the AI theme.
+name: Heartbeat
+
+on:
+  schedule:
+    - cron: "37 9 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Tomorrow's puzzles are live
+        run: |
+          site="https://meaningladder.github.io"
+          day=$(date -u -d tomorrow +%F)
+          failed=0
+          for level in easy medium hard; do
+            url="$site/puzzles/$day-$level.json"
+            code=$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 20 "$url")
+            if [ "$code" = "200" ]; then echo "ok   $url"; else echo "::error::$url returned $code"; failed=1; fi
+          done
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$site/")
+          [ "$code" = "200" ] && echo "ok   $site/ is up" || { echo "::error::$site/ returned $code"; failed=1; }
+          exit $failed
