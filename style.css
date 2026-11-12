@@ -297,8 +297,8 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .rung.next { border-color: var(--muted); }
 .rung.ghost { min-height: 42px; color: var(--muted); }
 .rung .num { font-variant-numeric: tabular-nums; }
-/* Rungs you've passed: plain, so their text keeps full contrast. */
-.ladder .bar.passed { background: var(--track); font-weight: 600; }
+/* Rungs you have climbed keep their color, so the ladder fills in below you. */
+.ladder .bar.passed { font-weight: 600; }
 .ladder-extra { list-style: none; padding: 0; margin: 6px 18px 0; display: grid; gap: 6px; }
 .ladder-extra .bar.off { border: 1.5px dashed var(--far); }
 /* Every word in the order played. */
