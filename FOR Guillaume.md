@@ -444,4 +444,7 @@ A third round asked for longer ladders still, so the limit went to top 15 both
 ways: about as many accepted words per step as the old one-way top 20 (22 on
 average), but with no one-way surprises, a signpost and clue hints. Easy is
 par 4, Medium and Hard par 5.
+Round four tightened to top 10 both ways (about 15 accepted words per step):
+Easy par 4, Medium 5, Hard 6. Removing filler "hub" words (really, thing) was
+measured first and barely changed lengths: the step limit is the real lever.
 
