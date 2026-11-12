@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "medium",
+  "start": "sculpture",
+  "goal": "balloon",
+  "par": 5,
+  "theme": "Art takes flight",
+  "teaser": "Can a masterpiece trade its pedestal for a lighter-than-air adventure?",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 20
+}

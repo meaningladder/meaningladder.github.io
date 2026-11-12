@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "hard",
+  "start": "fence",
+  "goal": "conductor",
+  "par": 5,
+  "theme": "Backyard to concert hall",
+  "teaser": "Follow a backyard boundary until it strikes up a tune.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 20
+}
