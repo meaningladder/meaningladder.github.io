@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  addDays, buildReverse, checkStep, closeness, computeStats, costsToGoal, distancesToGoal,
+  addDays, buildReverse, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
   localDateStr, medalFor, naturalRoute, shareText, shortestRoute, STEP_COST,
 } from "../../js/logic.js";
 
@@ -125,11 +125,64 @@ test("checkStep accepts neighbors and explains every rejection", () => {
   const path = ["ocean", "wave", "signal"];
   assert.deepEqual(checkStep(ladder, path, "  Network "), { ok: true, word: "network" });
   assert.equal(checkStep(ladder, path, "keyboard").error, "keyboard isn't one of signal's 100 closest words.");
-  assert.match(checkStep(ladder, path, "zzzz").error, /don't know/);
+  assert.equal(checkStep(ladder, path, "zzzz").error, "zzzz isn't in our 7-word list. Try a more common word.");
   assert.match(checkStep(ladder, path, "signal").error, /already on/);
   assert.match(checkStep(ladder, path, "wave").error, /already in your path/);
   assert.match(checkStep(ladder, path, "").error, /Type a word/);
   assert.match(checkStep(ladder, path, "c3po").error, /Letters only/);
+});
+
+test("checkStep suggests a one-edit fix for typos, preferring legal steps", () => {
+  const path = ["ocean", "wave", "signal"];
+  // transposition, deletion, insertion
+  assert.deepEqual(checkStep(ladder, path, "ntework"), { ok: false, error: "Did you mean network?", suggestion: "network" });
+  assert.equal(checkStep(ladder, path, "netwrk").suggestion, "network");
+  assert.equal(checkStep(ladder, path, "networks").suggestion, "network");
+  assert.equal(checkStep(ladder, path, "keybaord").suggestion, "keyboard"); // not a legal step, still a word
+  assert.equal(checkStep(ladder, path, "waev").suggestion, undefined);      // wave is already in the path
+  // Two candidates one edit away: the legal neighbor beats the more common word.
+  const ws = ["cat", "cot", "dog"];
+  const tiny = { words: ws, index: new Map(ws.map((w, i) => [w, i])), neighbors: [[2], [], [1]] };
+  assert.equal(checkStep(tiny, ["dog"], "cct").suggestion, "cot");
+  assert.equal(checkStep(tiny, ["cat"], "cct").suggestion, "cot"); // cat itself is skipped
+  assert.equal(checkStep(tiny, ["cot"], "cct").suggestion, "cat"); // no legal match: most common word
+  const big = { ...tiny, words: Array.from({ length: 20000 }, (_, i) => (i < 3 ? ws[i] : `w${i}`)) };
+  assert.equal(checkStep(big, ["dog"], "kitten").error, "kitten isn't in our 20,000-word list. Try a more common word.");
+});
+
+test("oneEdit covers Damerau-Levenshtein distance 1 only", () => {
+  for (const [a, b] of [["coffe", "coffee"], ["coffee", "cofee"], ["cofefe", "coffee"], ["toffee", "coffee"], ["ab", "ba"]]) {
+    assert.ok(oneEdit(a, b), `${a}/${b}`);
+  }
+  for (const [a, b] of [["coffee", "coffee"], ["cfoefe", "coffee"], ["tofee", "coffee"], ["abc", "cba"], ["ab", "abcd"]]) {
+    assert.ok(!oneEdit(a, b), `${a}/${b}`);
+  }
+});
+
+test("a form of the goal counts as the goal when that step is legal", () => {
+  const ws = ["forest", "tree", "trees", "branch", "key", "keys", "lock"];
+  const I = Object.fromEntries(ws.map((w, i) => [w, i]));
+  const nb = ws.map(() => []);
+  nb[I.forest] = [I.trees, I.tree, I.branch];
+  nb[I.branch] = [I.trees];
+  nb[I.lock] = [I.key];
+  const g = { words: ws, index: new Map(ws.map((w, i) => [w, i])), neighbors: nb };
+  assert.deepEqual(checkStep(g, ["forest"], "Trees", "tree"), { ok: true, word: "tree", note: "Counted as tree." });
+  assert.equal(checkStep(g, ["branch"], "trees", "tree").error,
+    "trees is a form of the goal tree: you'll need to reach tree itself.");
+  assert.deepEqual(checkStep(g, ["lock"], "keys", "key"), { ok: true, word: "key", note: "Counted as key." });
+  assert.deepEqual(checkStep(g, ["forest"], "tree", "tree"), { ok: true, word: "tree" }); // the goal itself: no note
+  assert.deepEqual(checkStep(g, ["forest"], "trees"), { ok: true, word: "trees" });       // no goal given: old behavior
+});
+
+test("formOf spots regular inflections and long shared prefixes", () => {
+  for (const [a, b] of [["trees", "tree"], ["key", "keys"], ["cities", "city"], ["boxes", "box"], ["running", "run"],
+    ["baked", "bake"], ["bigger", "big"], ["women", "woman"], ["musical", "music"]]) {
+    assert.ok(formOf(a, b), `${a}/${b}`);
+  }
+  for (const [a, b] of [["tree", "tree"], ["bed", "be"], ["trees", "forest"], ["king", "kin"], ["cat", "cast"]]) {
+    assert.ok(!formOf(a, b), `${a}/${b}`);
+  }
 });
 
 test("checkStep respects direction (pitfall #1)", () => {
