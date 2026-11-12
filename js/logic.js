@@ -127,6 +127,27 @@ export function naturalRoute(neighbors, cost, from) {
   return route;
 }
 
+// One FEWEST-steps route (what par counts), as word indexes including both
+// ends; null if the goal can't be reached. At each word, only neighbors one
+// step closer (dist[v] === dist[cur] - 1) qualify; among those, take the
+// gentlest by the same price naturalRoute uses (rank + STEP_COST + cost[v]).
+export function shortestRoute(neighbors, dist, cost, from) {
+  if (dist[from] < 0) return null;
+  const route = [from];
+  let cur = from;
+  while (dist[cur] > 0) {
+    let best = -1, bestCost = Infinity;
+    neighbors[cur].forEach((v, r) => {
+      if (dist[v] !== dist[cur] - 1) return;
+      const c = r + 1 + STEP_COST + cost[v];
+      if (best === -1 || c < bestCost) { best = v; bestCost = c; }
+    });
+    cur = best;
+    route.push(cur);
+  }
+  return route;
+}
+
 // ------------------------------------------------------------ steps
 export function normalize(text) {
   return text.trim().toLowerCase();
@@ -147,7 +168,7 @@ export function checkStep(ladder, path, typed) {
   if (!ladder.neighbors[cur].includes(idx)) {
     return {
       ok: false,
-      error: `${word} isn't a neighbor of ${current}. Try another word.`,
+      error: `${word} isn't one of ${current}'s ${ladder.config?.stepLimit ?? 100} closest words.`,
       nearMiss: nearMiss(ladder, cur, idx),
     };
   }
@@ -163,7 +184,10 @@ export function nearMiss(ladder, fromIdx, toIdx) {
 // Extra sentence under a rejection, or null. Ranks (below) now say how close
 // a guess was; this only explains the one surprising case.
 export function nearMissText({ oneWay }, current, word) {
-  return oneWay ? { tone: "close", keyword: "So close:", text: `${current} is one of ${word}'s closest words, but the link only runs the other way.` } : null;
+  return oneWay ? {
+    tone: "close", keyword: "One-way:",
+    text: `${current} is close to ${word}, but ${word} isn't one of ${current}'s closest. Only words close to ${current} count.`,
+  } : null;
 }
 
 // ------------------------------------------------------------ Contexto-style ranks

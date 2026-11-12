@@ -12,10 +12,10 @@ import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePr
 import {
   addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, nearMissText, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
-  medalFor, naturalRoute, costsToGoal, shareText,
+  medalFor, naturalRoute, costsToGoal, shareText, shortestRoute,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
-import { LEVELS, gameNumber, rulesFor } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
 
 const app = document.getElementById("app");
 
@@ -110,7 +110,9 @@ function nextLevel(date, results, after = null) {
 // ------------------------------------------------------------ dialogs
 function openDialog(title, body, actions = [["Close", null]]) {
   const dlg = h("dialog", { "aria-labelledby": "dlg-title" },
-    h("h2", { id: "dlg-title" }, title),
+    // Focus the title, not the first button: showModal() would otherwise
+    // focus Close and scroll a long dialog to its bottom.
+    h("h2", { id: "dlg-title", tabindex: "-1", autofocus: true }, title),
     body,
     h("div", { class: "dialog-actions" }, actions.map(([label, fn, primary]) =>
       h("button", {
@@ -120,31 +122,50 @@ function openDialog(title, body, actions = [["Close", null]]) {
   dlg.addEventListener("close", () => dlg.remove());
   document.body.append(dlg);
   dlg.showModal();
+  dlg.scrollTop = 0;
   return dlg;
 }
 
-async function showHelp() {
+// k = the step limit to explain: a game passes its own (archive days keep
+// their era's rules); null = today's rules (home screen).
+async function showHelp(k = null) {
   store.set("seenHelp", true);
-  // The newest rules; older days in the archive keep theirs (see rulesFor).
-  let k = 20;
-  try { k = rulesFor(await loadConfig(), null).stepLimit ?? 100; } catch { /* keep the default */ }
-  const ex = (word, d, latest) => {
+  let eraNote = "";
+  try {
+    const config = await loadConfig();
+    k ??= rulesFor(config, today()).stepLimit ?? DEFAULT_STEP_LIMIT;
+    // A note about the other era, built from config.rules (not hard-coded).
+    const eras = config.rules ?? [];
+    const newest = eras[eras.length - 1];
+    const older = eras[eras.length - 2];
+    const day = (s) => fmt(s, { month: "long", day: "numeric" });
+    if (newest && k !== newest.stepLimit) {
+      eraNote = today() < newest.from
+        ? ` From ${day(newest.from)} each step must be in the top ${newest.stepLimit} instead.`
+        : ` (Ladders from ${day(newest.from)} on use the top ${newest.stepLimit}.)`;
+    } else if (newest && older && older.stepLimit !== k) {
+      eraNote = ` (Ladders before ${day(newest.from)} allowed ${older.stepLimit}.)`;
+    }
+  } catch { k ??= DEFAULT_STEP_LIMIT; }
+  const ex = (word, d, { latest = false, isStart = false } = {}) => {
     const { tone, fill } = closeness(d);
     return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}`, style: `--fill:${fill}%` },
-      h("span", {}, word), h("span", { class: "num" }, d === 0 ? "goal" : d));
+      h("span", {}, word, isStart ? h("span", { class: "tag" }, "start") : null),
+      h("span", { class: "num" }, d === 0 ? "goal" : `${d} to go`));
   };
   openDialog("How to play", h("div", {},
     h("ul", {},
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), " word, one word at a time."),
       h("li", {}, "Every day has three ladders: ", h("b", {}, "Easy"), ", ", h("b", {}, "Medium"), " and ", h("b", {}, "Hard"), ". Solve any of them to keep your streak."),
-      h("li", {}, `Each step must be one of the previous word's ${k} closest words in meaning. (Ladders before November 13 allowed 100.)`),
-      h("li", {}, "The number on each bar is how many steps that word is from the goal: green is 1, yellow is 2, pink is 3 or more."),
+      h("li", {}, `Each step must be one of the previous word's ${k} closest words in meaning.${eraNote}`),
+      h("li", {}, "Each word on your path shows how many steps it still is from the goal (“3 to go”): green is 1, yellow is 2, pink is 3 or more."),
       h("li", {}, h("b", {}, "Par"), " is the fewest steps possible. Match it for gold, one over for silver, two over for bronze."),
       h("li", {}, `A rejected word joins your Tried list with its rank from the current word. Only the top ${k} are valid steps, so #${k + 1} was very close.`),
       h("li", {}, "Stuck? Use Undo or Hint, or give up from the ⋯ menu."),
       h("li", {}, "New ladders arrive every day at midnight, your time.")),
-    h("p", { class: "sub", style: "margin-top:12px" }, "Example: ocean → computer"),
-    h("ol", { class: "example path" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3)))
+    h("p", { class: "sub", style: "margin-top:12px" }, "Example: ocean → computer (newest word on top)"),
+    h("ol", { class: "example path" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
+      ex("ocean", 4, { isStart: true })))
   );
 }
 
@@ -286,7 +307,7 @@ async function showHome() {
     h("a", { class: "btn btn-quiet btn-wide", href: "#/archive", style: "margin-bottom:14px" }, "Previous games"),
     practice,
     h("footer", { class: "home-foot" },
-      h("button", { class: "link-btn", onClick: showHelp }, "How to play"),
+      h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics")));
 
   if (!store.get("seenHelp")) showHelp();           // the only pop-up on load
@@ -402,8 +423,9 @@ function playView(ladder, state, saveKey, date) {
   // Gentlest-route costs (Dijkstra), only computed when a hint or the result
   // screen first needs them, so opening a puzzle stays instant.
   let cost = null;
-  const routeFrom = (word) => naturalRoute(ladder.neighbors,
-    (cost ??= costsToGoal(ladder.reverse, ladder.words.length, goalIdx)), ladder.index.get(word));
+  const costs = () => (cost ??= costsToGoal(ladder.reverse, ladder.words.length, goalIdx));
+  const routeFrom = (word) => naturalRoute(ladder.neighbors, costs(), ladder.index.get(word));
+  const shortestFrom = (word) => shortestRoute(ladder.neighbors, dist, costs(), ladder.index.get(word));
   // The graph is the source of truth: if a puzzle file's par disagrees with
   // the real shortest path, trust the BFS (and say so in the console).
   const truePar = stepsTo(puzzle.start);
@@ -449,7 +471,10 @@ function playView(ladder, state, saveKey, date) {
         medal ? medalBadge(medal.id, "xs") : null, LEVEL_LABEL[lv]);
     }));
   }
-  const theme = (puzzle.theme || puzzle.teaser) && h("p", { class: "theme" },
+  // Unlimited ladders have no real theme ("Unlimited ladder · Level: Easy"
+  // only repeats the status line and the switcher), so skip it there.
+  const isPractice = state.kind === "practice" || puzzle.source === "practice";
+  const theme = !isPractice && (puzzle.theme || puzzle.teaser) && h("p", { class: "theme" },
     h("strong", {}, puzzle.theme), puzzle.teaser ? h("span", {}, ` · ${puzzle.teaser}`) : null);
   const pills = h("div", { class: "pills", "aria-label": `From ${puzzle.start} to ${puzzle.goal}` },
     h("span", { class: "pill" }, puzzle.start), h("span", { class: "arrow" }, "→ … →"),
@@ -458,7 +483,8 @@ function playView(ladder, state, saveKey, date) {
   const input = h("input", { id: "guess", type: "text", autocomplete: "off", autocapitalize: "none",
     autocorrect: "off", spellcheck: "false", enterkeyhint: "go", maxlength: "30" });
   const form = h("form", { class: "guess", onSubmit: (e) => { e.preventDefault(); submit(); } },
-    h("label", { for: "guess", class: "visually-hidden" }, "Next word"), input);
+    h("label", { for: "guess", class: "visually-hidden" }, "Next word"), input,
+    h("button", { type: "submit", class: "btn go" }, "Go"));
   const feedback = h("div", { class: "feedback", "aria-live": "polite" });
   const tried = h("section", { class: "tried", hidden: true, "aria-label": "Words you tried" });
   const win = h("section", { class: "card win", hidden: true, "aria-live": "polite" });
@@ -475,7 +501,7 @@ function playView(ladder, state, saveKey, date) {
     ["Hint", hint, () => state.status === "playing"],
     ["Give up", confirmGiveUp, () => state.status === "playing"],
     ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
-    ["How to play", showHelp, () => true],
+    ["How to play", () => showHelp(ladder.config.stepLimit), () => true],
     ["Statistics", showStats, () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
   ];
@@ -626,23 +652,36 @@ function playView(ladder, state, saveKey, date) {
     tried.hidden = !playing || !t || t.at !== current || !t.items.length;
     if (tried.hidden) return;
     const latest = t.items[t.items.length - 1];
-    tried.replaceChildren(
-      h("p", { class: "tried-head" }, `Tried from ${t.at}`),
-      h("ol", { class: "path" }, triedOrder(t.items).map((x) => rankBar(x, x === latest))));
+    tried.replaceChildren(...[
+      h("p", { class: "tried-head" },
+        `Tried from ${t.at} · ranked by closeness (top ${ladder.config.stepLimit} are valid steps)`),
+      h("ol", { class: "path" }, triedOrder(t.items).map((x) => rankBar(x, x === latest))),
+      t.items.some((x) => x.oneWay)
+        ? h("p", { class: "tried-note" }, "One-way: the current word is close to it, but not the other way round.")
+        : null,
+    ].filter(Boolean));
   }
 
   // ---- rendering
   function bar(word, { latest = false, isStart = false, enter = false } = {}) {
     const d = stepsTo(word);
     const { tone, fill } = closeness(d);
-    const num = d === 0 ? "goal" : d < 0 ? "no route" : d;
+    const num = d === 0 ? "goal" : d < 0 ? "no route" : `${d} to go`;
     return h("li", {
       class: `bar tone-${tone}${latest ? " latest" : ""}${enter ? " enter" : ""}`,
       style: `--fill:${fill}%`,
     },
     h("span", {}, word, isStart ? h("span", { class: "tag" }, "start") : null),
-    h("span", { class: "num" }, num,
-      h("span", { class: "visually-hidden" }, d > 0 ? " steps to goal" : "")));
+    h("span", { class: "num" }, num));
+  }
+
+  // One muted line after a good step (the bar itself is already on the path).
+  function progressLine(current, steps) {
+    const d = stepsTo(current);
+    if (d < 0) return `${current}: no route to ${puzzle.goal} from here. Try Undo.`;
+    const over = steps + d - puzzle.par;
+    return `${current}: ${d} step${d === 1 ? "" : "s"} to ${puzzle.goal}.`
+      + (over <= 0 ? " On track for par." : ` Best now: par +${over}.`);
   }
 
   function update() {
@@ -664,8 +703,9 @@ function playView(ladder, state, saveKey, date) {
     else if (error) feedback.replaceChildren(h("p", { class: "error" }, error,
       miss ? h("span", { class: `miss miss-${miss.tone}` }, h("b", {}, miss.keyword), " ", miss.text) : null));
     else if (state.hint?.word === current) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), state.hint.text));
-    else if (steps > 0) feedback.replaceChildren(h("ol", { class: "path", style: "margin:0" }, bar(current, { latest: true })));
-    else feedback.replaceChildren(h("p", { class: "muted" }, `Type a word close in meaning to ${puzzle.start}.`));
+    else if (steps > 0) feedback.replaceChildren(h("p", { class: "muted" }, progressLine(current, steps)));
+    else feedback.replaceChildren(h("p", { class: "muted" },
+      `Type one of ${puzzle.start}'s ${ladder.config.stepLimit} closest words in meaning. Par is ${puzzle.par}: the fewest steps possible.`));
 
     // Full path, newest on top; the start word sits at the bottom.
     list.replaceChildren(...state.path.map((w, i) => bar(w, {
@@ -715,12 +755,7 @@ function playView(ladder, state, saveKey, date) {
       h("p", { class: "result" }, won
         ? `${steps} step${steps === 1 ? "" : "s"}, par ${puzzle.par}.${state.hints ? ` ${state.hints} hint${state.hints === 1 ? "" : "s"} used.` : ""}`
         : `You stopped after ${steps} step${steps === 1 ? "" : "s"}. Par was ${puzzle.par}.`),
-      h("p", { class: "route" },
-        foundIt ? "You found the natural route: "
-          : hitPar ? (routeSteps === puzzle.par ? "You found a shortest route! Another one: " : "You found a shortest route! A gentler one: ")
-          : routeSteps === puzzle.par ? "One shortest route: " : "A natural route: ",
-        h("b", {}, route.join(" → ")),
-        !foundIt && !hitPar && routeSteps !== puzzle.par ? ` (${routeSteps} steps; the shortest takes ${puzzle.par}).` : null),
+      ...routeLines(won, foundIt, hitPar, route, routeSteps),
       h("div", { class: "btn-row" },
         shareBtn,
         state.kind === "practice"
@@ -733,6 +768,25 @@ function playView(ladder, state, saveKey, date) {
       state.kind === "daily" ? countdown : null,
       state.kind === "daily" ? statsRow(computeStats(getResults(), today())) : null,
     ].filter(Boolean));
+  }
+
+  // The route paragraph(s) on the result card. Giving up always shows a
+  // par-length route, plus the gentler natural one when that one differs.
+  function routeLines(won, foundIt, hitPar, route, routeSteps) {
+    const line = (lead, words, tail = null) => h("p", { class: "route" }, lead, h("b", {}, words.join(" → ")), tail);
+    if (!won) {
+      const short = shortestFrom(puzzle.start)?.map((i) => ladder.words[i]);
+      if (!short) return [line("A natural route: ", route)];
+      return [
+        line(`One shortest route (${puzzle.par} step${puzzle.par === 1 ? "" : "s"}): `, short),
+        short.join() !== route.join() ? line("A gentler one: ", route, ` (${routeSteps} steps).`) : null,
+      ];
+    }
+    if (foundIt) return [line("You found the natural route: ", route)];
+    if (hitPar) return [line(routeSteps === puzzle.par ? "You matched par! Another shortest route: "
+      : "You matched par! A longer, smoother route: ", route)];
+    return [line(routeSteps === puzzle.par ? "One shortest route: " : "A natural route: ", route,
+      routeSteps !== puzzle.par ? ` (${routeSteps} steps; the shortest takes ${puzzle.par}).` : null)];
   }
 
   async function share(toast) {
@@ -756,6 +810,9 @@ function playView(ladder, state, saveKey, date) {
   update();
   resolveRanks(); // ranks still pending from before a refresh
   if (state.status === "playing") input.focus();
+  // First visit straight to a game (a shared link): explain the rules once,
+  // same as the home screen does.
+  if (!store.get("seenHelp")) showHelp(ladder.config.stepLimit);
 }
 
 // ------------------------------------------------------------ start

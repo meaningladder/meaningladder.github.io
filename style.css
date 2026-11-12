@@ -29,6 +29,7 @@
   --mid: #f2d98f;         /* 2 steps: yellow */
   --far: #f1b7b4;         /* 3+ steps: pink */
   --goal: #8fcf9a;
+  --tried: #e3cbb8;       /* rejected words: one neutral clay, length = closeness */
   --error: #b4473d;
   --focus: #a65f42;
   --shadow: 0 1px 2px rgb(80 60 40 / 0.06), 0 4px 16px rgb(80 60 40 / 0.06);
@@ -57,6 +58,7 @@
     --mid: #735e26;
     --far: #84434a;
     --goal: #2e6040;
+    --tried: #5a4337;
     --error: #f0928a;
     --focus: #e39573;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
@@ -211,14 +213,16 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .pill.goal { background: var(--goal); border-color: transparent; color: var(--text); }
 .pills .arrow { color: var(--muted); }
 
+.guess { display: flex; gap: 8px; }
 .guess input {
-  width: 100%; min-height: 54px; padding: 0 16px;
+  flex: 1; min-width: 0; width: 100%; min-height: 54px; padding: 0 16px;
   font: inherit; font-size: 1.15rem; font-weight: 600; color: var(--text);
   background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-control);
   outline: none;
 }
 .guess input:focus { border-color: var(--strong); }
 .guess input::placeholder { color: var(--muted); font-weight: 400; }
+.guess .go { flex: none; min-height: 54px; padding: 0 16px; }
 
 .feedback { min-height: 46px; margin: 10px 0 0; }
 .feedback .error { color: var(--error); font-weight: 600; padding: 10px 2px; }
@@ -241,6 +245,7 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   min-height: 42px; padding: 0 14px; border-radius: var(--r-control);
   border: 1px solid transparent; font-weight: 700;
   background: linear-gradient(to right, var(--tone) var(--fill, 0%), var(--track) var(--fill, 0%));
+  background-origin: border-box; /* no repeated sliver under the transparent border */
 }
 .bar.tone-near { --tone: var(--near); }
 .bar.tone-mid { --tone: var(--mid); }
@@ -255,9 +260,13 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .list-head { margin-top: 18px; }
 .list-head + .path { margin-top: 0; }
 .tried .path { margin: 0; }
+/* Tried bars mean "closeness to the current word", not steps to the goal, so
+   they get their own color instead of the path's green/yellow/pink. */
+.tried .bar { --tone: var(--tried); }
+.tried-note { font-size: 0.8rem; color: var(--muted); margin: 6px 2px 0; }
 .bar.latest { border: 2px solid var(--strong); }
 .bar .num { font-variant-numeric: tabular-nums; }
-.bar .tag { font-size: 0.72rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
+.bar .tag { font-size: 0.72rem; color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
 .bar.enter { animation: slide-in 220ms ease-out; }
 @keyframes slide-in { from { opacity: 0; transform: translateY(-6px); } }
 
@@ -302,6 +311,7 @@ dialog {
 }
 dialog::backdrop { background: rgb(30 22 15 / 0.45); }
 dialog h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 12px; }
+dialog h2:focus { outline: none; }
 dialog ul { padding-left: 1.1em; margin: 0; display: grid; gap: 8px; }
 dialog .example { margin: 12px 0; display: grid; gap: 5px; }
 dialog .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }

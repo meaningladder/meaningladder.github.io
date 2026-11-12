@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, buildReverse, checkStep, closeness, computeStats, costsToGoal, distancesToGoal,
-  localDateStr, medalFor, naturalRoute, shareText, STEP_COST,
+  localDateStr, medalFor, naturalRoute, shareText, shortestRoute, STEP_COST,
 } from "../../js/logic.js";
 
 // ocean -> wave -> signal -> network -> computer, plus a shortcut and a dead end.
@@ -89,10 +89,42 @@ test("naturalRoute avoids a wild leap even when it costs extra steps", () => {
   route.slice(1).forEach((v, i) => assert.ok(nbrs[route[i]].includes(v), "every step is a real neighbor"));
 });
 
+test("checkStep names the step limit from the ladder's rules", () => {
+  const limited = { ...ladder, config: { stepLimit: 20 } };
+  assert.equal(checkStep(limited, ["ocean", "wave", "signal"], "keyboard").error,
+    "keyboard isn't one of signal's 20 closest words.");
+});
+
+test("shortestRoute takes par steps even when the gentlest route is longer", () => {
+  // Same graph as above: start -> goal directly (#90), or 3 gentle #1 steps.
+  const names = ["start", "near", "nearer", "goal", ...Array.from({ length: 88 }, (_, i) => `filler${i}`)];
+  const N = Object.fromEntries(names.map((w, i) => [w, i]));
+  const fillers = names.slice(4).map((w) => N[w]);
+  const nbrs = names.map(() => [N.start]);
+  nbrs[N.start] = [N.near, ...fillers, N.goal];
+  nbrs[N.near] = [N.nearer];
+  nbrs[N.nearer] = [N.goal];
+  nbrs[N.goal] = [N.start];
+  const rev = buildReverse(nbrs);
+  const d = distancesToGoal(rev, names.length, N.goal);
+  const c = costsToGoal(rev, names.length, N.goal);
+  assert.deepEqual(shortestRoute(nbrs, d, c, N.start).map((i) => names[i]), ["start", "goal"]);
+  assert.equal(naturalRoute(nbrs, c, N.start).length, 4); // the gentle one differs
+});
+
+test("shortestRoute follows par on the small graph and reports dead ends", () => {
+  const c = costsToGoal(reverse, words.length, W.computer);
+  const route = shortestRoute(neighbors, dist, c, W.sea);
+  assert.equal(route.length - 1, dist[W.sea]);
+  assert.deepEqual(route.map((i) => words[i]), ["sea", "ocean", "wave", "signal", "network", "computer"]);
+  const toSea = distancesToGoal(reverse, words.length, W.sea);
+  assert.equal(shortestRoute(neighbors, toSea, costsToGoal(reverse, words.length, W.sea), W.computer), null);
+});
+
 test("checkStep accepts neighbors and explains every rejection", () => {
   const path = ["ocean", "wave", "signal"];
   assert.deepEqual(checkStep(ladder, path, "  Network "), { ok: true, word: "network" });
-  assert.equal(checkStep(ladder, path, "keyboard").error, "keyboard isn't a neighbor of signal. Try another word.");
+  assert.equal(checkStep(ladder, path, "keyboard").error, "keyboard isn't one of signal's 100 closest words.");
   assert.match(checkStep(ladder, path, "zzzz").error, /don't know/);
   assert.match(checkStep(ladder, path, "signal").error, /already on/);
   assert.match(checkStep(ladder, path, "wave").error, /already in your path/);
@@ -165,13 +197,14 @@ test("nearMiss spots one-way links (pitfall #1)", () => {
   // signal lists network, but network doesn't list signal.
   assert.equal(nearMiss(ladder, W.network, W.signal).oneWay, true);
   assert.equal(nearMiss(ladder, W.ocean, W.keyboard).oneWay, false);
-  assert.match(nearMissText({ oneWay: true }, "network", "signal").text, /other way/);
+  assert.match(nearMissText({ oneWay: true }, "network", "signal").text, /signal isn't one of network's closest/);
+  assert.equal(nearMissText({ oneWay: true }, "network", "signal").keyword, "One-way:");
   assert.equal(nearMissText({ oneWay: false }, "network", "signal"), null);
 });
 
 test("checkStep attaches near-miss info only to neighbor rejections", () => {
   const res = checkStep(ladder, ["ocean", "wave", "signal"], "computer");
-  assert.equal(res.error, "computer isn't a neighbor of signal. Try another word.");
+  assert.equal(res.error, "computer isn't one of signal's 100 closest words.");
   assert.deepEqual(res.nearMiss, { oneWay: false });
   assert.equal(checkStep(ladder, ["ocean"], "zzzz").nearMiss, undefined);
 });
@@ -255,7 +288,7 @@ test("rules views: a cut step limit rejects far neighbors and ranks them exactly
   const oldRules = ladderAt(base, "2026-11-12"), newRules = ladderAt(base, "2026-11-13");
   assert.equal(ladderAt(base, "2026-11-20"), newRules); // cached per era
   assert.deepEqual(checkStep(oldRules, ["hub"], w(24)), { ok: true, word: w(24) });
-  assert.match(checkStep(newRules, ["hub"], w(24)).error, /isn't a neighbor/);
+  assert.match(checkStep(newRules, ["hub"], w(24)).error, /isn't one of hub's 20 closest words/);
   assert.deepEqual(checkStep(newRules, ["hub"], w(19)), { ok: true, word: w(19) });
   // #25 is cut from the legal steps but still in the stored list: exact rank.
   assert.deepEqual(displayRank(newRules, 0, 25, 999), { rank: 25, family: false });
