@@ -254,6 +254,23 @@ export function triedOrder(items) {
 }
 
 // ------------------------------------------------------------ results
+// A ladder's score is its moves: path steps plus every accepted word that was
+// later undone. Without the undo count, Undo plus the exact "N to go" readout
+// would let anyone try words, take back each "no closer" one and always get
+// gold. Results saved before undos were counted have no `undos`: count 0.
+export function movesOf({ steps = 0, undos = 0 } = {}) {
+  return steps + (undos ?? 0);
+}
+
+// How a score reads: "4 steps" when nothing was undone (same as before undos
+// counted), otherwise "5 moves (4 steps + 1 undo)" so the medal math shows.
+export function movesText(steps, undos = 0) {
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  if (!undos) return plural(steps, "step");
+  return `${plural(steps + undos, "move")} (${plural(steps, "step")} + ${plural(undos, "undo")})`;
+}
+
+// Callers pass moves (movesOf), not just the final path length.
 export function medalFor(steps, par) {
   const over = steps - par;
   if (over <= 0) return { id: "gold", label: "Gold", emoji: "🥇" };
@@ -280,10 +297,9 @@ export function squareFor(d) {
 
 // Spoiler-free share text: no words, just colored steps.
 // e.g. "Meaning Ladder #12 — 5 steps (par 4) 🟥🟨🟨🟩✅"
-export function shareText({ label, steps, par, distances, gaveUp = false, hints = 0, url = "" }) {
+export function shareText({ label, steps, par, distances, gaveUp = false, hints = 0, undos = 0, url = "" }) {
   const squares = distances.map(squareFor).join("");
-  const what = gaveUp ? `gave up after ${steps} step${steps === 1 ? "" : "s"}`
-                      : `${steps} step${steps === 1 ? "" : "s"}`;
+  const what = gaveUp ? `gave up after ${movesText(steps, undos)}` : movesText(steps, undos);
   const hintPart = hints ? ` · 💡${hints}` : "";
   return `Meaning Ladder ${label} — ${what} (par ${par})${squares ? " " + squares : ""}${hintPart}${url ? "\n" + url : ""}`;
 }
@@ -325,7 +341,7 @@ export function computeStats(results, today) {
   const solvedByLevel = { easy: 0, medium: 0, hard: 0 };
   for (const [k] of wins) if (levelOf(k) in solvedByLevel) solvedByLevel[levelOf(k)]++;
 
-  const overPar = wins.map(([, r]) => r.steps - r.par);
+  const overPar = wins.map(([, r]) => movesOf(r) - r.par);
   return {
     played: finished.length,
     winPct: finished.length ? Math.round((100 * wins.length) / finished.length) : 0,
