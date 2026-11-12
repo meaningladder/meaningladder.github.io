@@ -453,9 +453,20 @@ export function medalFor(steps, par, { revealed = false } = {}) {
   return { id: "finished", label: "Finished", emoji: "🏁" };
 }
 
-// Medal for a saved result. Results saved before reveals were tracked have
-// no `reveals` field, so they keep the medal they always had.
-export const resultMedal = (r) => medalFor(movesOf(r), r.par, { revealed: r.reveals > 0 });
+// A saved result's score. Results from now on store `moves` (every word
+// played, undone ones and hints included). Older results kept steps, undos and
+// reveals separately; they keep exactly the medal they were given.
+export const scoreOf = (r) => (r.moves != null ? r.moves : movesOf(r));
+export const resultMedal = (r) => (r.moves != null
+  ? medalFor(r.moves, r.par)
+  : medalFor(movesOf(r), r.par, { revealed: r.reveals > 0 }));
+
+// In-progress saves from before the single moves counter: start it from what
+// they had (path steps plus undos), so resuming never resets the score.
+export function upgradeMoves(state) {
+  state.moves ??= (state.path.length - 1) + (state.undos ?? 0);
+  return state;
+}
 
 const MEDAL_ORDER = ["gold", "silver", "bronze", "finished"];
 // The better of two medals (gold beats silver...). Compares medals rather than
@@ -529,13 +540,13 @@ export function squareFor(from, to) {
 //   Meaning Ladder #13 Hard 🥈
 //   7 steps · par 6
 //   🟩🟩🟨🟩🟩🟩✅
-export function shareText({ label, steps, par, distances, gaveUp = false, hints = 0, undos = 0, url = "" }) {
+export function shareText({ label, moves, par, distances, gaveUp = false, url = "" }) {
   const squares = distances.slice(1).map((d, i) => squareFor(distances[i], d)).join("");
   // Gave-up games get no medal: the 🏁 "finished" emoji would read as a finish.
-  const badge = gaveUp ? "" : " " + medalFor(steps + undos, par).emoji;
-  const what = gaveUp ? `Gave up after ${movesText(steps, undos)}` : movesText(steps, undos);
-  const hintPart = hints ? ` · 💡${hints}` : "";
-  return [`Meaning Ladder ${label}${badge}`, `${what} · par ${par}${hintPart}`, squares, url]
+  const badge = gaveUp ? "" : " " + medalFor(moves, par).emoji;
+  const n = `${moves} move${moves === 1 ? "" : "s"}`;
+  const what = gaveUp ? `Gave up after ${n}` : n;
+  return [`Meaning Ladder ${label}${badge}`, `${what} · par ${par}`, squares, url]
     .filter(Boolean).join("\n");
 }
 
@@ -590,7 +601,7 @@ export function computeStats(results, today) {
   const solvedByLevel = { easy: 0, medium: 0, hard: 0 };
   for (const [k] of wins) if (levelOf(k) in solvedByLevel) solvedByLevel[levelOf(k)]++;
 
-  const overPar = wins.map(([, r]) => movesOf(r) - r.par);
+  const overPar = wins.map(([, r]) => scoreOf(r) - r.par);
   return {
     played: finished.length,
     winPct: finished.length ? Math.round((100 * wins.length) / finished.length) : 0,

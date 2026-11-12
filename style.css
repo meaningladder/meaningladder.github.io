@@ -213,17 +213,6 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .theme strong { font-weight: 800; }
 .theme span { color: var(--muted); }
 
-.pills { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin: 14px 0 16px; }
-.pill {
-  padding: 5px 12px; border-radius: 999px; font-weight: 800;
-  background: var(--surface); border: 1px solid var(--line);
-}
-.pill.goal { background: var(--goal); border-color: transparent; color: var(--text); }
-.pills .arrow { color: var(--muted); }
-/* Words found so far, between start and goal: lighter than the two ends. */
-.pill.step { background: transparent; font-weight: 600; }
-
-
 .guess { display: flex; gap: 8px; }
 .guess input {
   flex: 1; min-width: 0; width: 100%; min-height: 54px; padding: 0 16px;
@@ -264,7 +253,21 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .tried .path { margin: 0; }
 /* Tried bars mean "closeness to the current word", not steps to the goal, so
    they get their own color instead of the path's green/yellow/pink. */
-.tried .bar { --tone: var(--tried); }
+/* Too-far words: a compact row of chips; the shaded part shows closeness. */
+.tried { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-top: 8px; }
+.tchips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tchip {
+  padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: var(--fs-sm);
+  border: 1px solid var(--line);
+  background: linear-gradient(to right, var(--tried) var(--fill, 0%), var(--track) var(--fill, 0%));
+  background-origin: border-box;
+}
+.tchip.latest { border-color: var(--strong); }
+.tchip.enter { animation: slide-in var(--dur-base) ease-out, pulse 600ms ease-out 1; }
+/* The goal rung on top of the ladder, with the input box as the next rung. */
+.goal-rung { margin: 10px 0 8px; }
+.goal-rung + .guess { margin-bottom: 0; }
+.rules { padding-left: 1.2em; margin: 0; display: grid; gap: 8px; }
 .tried-note { font-size: var(--fs-xs); color: var(--muted); margin: 6px 2px 0; }
 .bar .num { font-variant-numeric: tabular-nums; }
 .bar .tag { font-size: var(--fs-xs); color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
@@ -282,7 +285,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 /* "You are here", the same everywhere: the current rung (path bar and
    header pill), the current level and today's chip. Elements keep their 1px
    border and an inset ring adds the second pixel, so nothing shifts. */
-.bar.latest, .pill.current, .levels.compact .level-btn.current, .chip.today {
+.bar.latest, .levels.compact .level-btn.current, .chip.today {
   border-color: var(--strong); box-shadow: inset 0 0 0 1px var(--strong);
 }
 

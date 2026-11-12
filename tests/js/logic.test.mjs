@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, bottleneckRoute, buildReverse, GENTLE_RANK, worstRank, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
-  hintStep, localDateStr, medalFor, naturalRoute, shareText, shortestRoute, squareFor, STEP_COST,
+  hintStep, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, STEP_COST, upgradeMoves,
 } from "../../js/logic.js";
 
 // ocean -> wave -> signal -> network -> computer, plus a shortcut and a dead end.
@@ -331,21 +331,21 @@ test("squares show the change in distance, not the distance", () => {
   assert.equal(squareFor(1, 0), "✅"); // goal
 });
 
-test("share text: level, medal, steps/par, one square per step, no words", () => {
-  const text = shareText({ label: "#13 Hard", steps: 7, par: 6, distances: [6, 5, 4, 4, 3, 2, 1, 0] });
-  assert.equal(text, "Meaning Ladder #13 Hard 🥈\n7 steps · par 6\n🟩🟩🟨🟩🟩🟩✅");
-  assert.equal(shareText({ label: "#1 Easy", steps: 2, par: 2, distances: [2, 1, 0] }),
-    "Meaning Ladder #1 Easy 🥇\n2 steps · par 2\n🟩✅");
-  assert.equal(shareText({ label: "#2 Medium", steps: 6, par: 3, distances: [3, 4, 2, 2, 1, -1, 0] }),
-    "Meaning Ladder #2 Medium 🏁\n6 steps · par 3\n🟥🟩🟨🟩🟥✅");
+test("share text: level, medal, moves/par, one square per step, no words", () => {
+  const text = shareText({ label: "#13 Hard", moves: 7, par: 6, distances: [6, 5, 4, 4, 3, 2, 1, 0] });
+  assert.equal(text, "Meaning Ladder #13 Hard 🥈\n7 moves · par 6\n🟩🟩🟨🟩🟩🟩✅");
+  assert.equal(shareText({ label: "#1 Easy", moves: 2, par: 2, distances: [2, 1, 0] }),
+    "Meaning Ladder #1 Easy 🥇\n2 moves · par 2\n🟩✅");
+  assert.equal(shareText({ label: "#2 Medium", moves: 6, par: 3, distances: [3, 4, 2, 2, 1, -1, 0] }),
+    "Meaning Ladder #2 Medium 🏁\n6 moves · par 3\n🟥🟩🟨🟩🟥✅");
 });
 
 test("gave-up share has no medal and still reads clearly", () => {
-  const text = shareText({ label: "#3 Hard", steps: 2, par: 3, distances: [3, 4, 4], gaveUp: true, hints: 2, url: "https://x.test/" });
-  assert.equal(text, "Meaning Ladder #3 Hard\nGave up after 2 steps · par 3 · 💡2\n🟥🟨\nhttps://x.test/");
+  const text = shareText({ label: "#3 Hard", moves: 3, par: 3, distances: [3, 4, 4], gaveUp: true, url: "https://x.test/" });
+  assert.equal(text, "Meaning Ladder #3 Hard\nGave up after 3 moves · par 3\n🟥🟨\nhttps://x.test/");
   // Giving up before any step: no empty squares line.
-  assert.equal(shareText({ label: "#3 Hard", steps: 0, par: 3, distances: [3], gaveUp: true }),
-    "Meaning Ladder #3 Hard\nGave up after 0 steps · par 3");
+  assert.equal(shareText({ label: "#3 Hard", moves: 0, par: 3, distances: [3], gaveUp: true }),
+    "Meaning Ladder #3 Hard\nGave up after 0 moves · par 3");
 });
 
 test("local dates and day arithmetic", () => {
@@ -399,12 +399,17 @@ test("moves text spells out undos only when there are some", () => {
   assert.equal(movesText(1, 2), "3 moves (1 step + 2 undos)");
 });
 
-test("share text includes undos", () => {
-  // An undo costs a move, so 4 steps + 1 undo at par 4 is silver, not gold.
-  assert.equal(shareText({ label: "#12", steps: 4, par: 4, undos: 1, distances: [4, 3, 2, 1, 0] }),
-    `Meaning Ladder #12 ${medalFor(5, 4).emoji}\n5 moves (4 steps + 1 undo) · par 4\n🟩🟩🟩✅`);
-  assert.equal(shareText({ label: "#3", steps: 1, par: 3, undos: 2, distances: [3, 4], gaveUp: true }),
-    "Meaning Ladder #3\nGave up after 3 moves (1 step + 2 undos) · par 3\n🟥");
+test("one score: moves; old results keep the medal they were given", () => {
+  // New results store moves (undone words and hints already inside).
+  assert.equal(resultMedal({ status: "won", steps: 4, moves: 5, par: 4 }).id, "silver");
+  assert.equal(scoreOf({ steps: 4, moves: 5, par: 4 }), 5);
+  // Older results: steps + undos, and a revealed word capped gold at silver.
+  assert.equal(resultMedal({ status: "won", steps: 4, undos: 1, par: 4 }).id, "silver");
+  assert.equal(resultMedal({ status: "won", steps: 4, par: 4, reveals: 1 }).id, "silver");
+  assert.equal(resultMedal({ status: "won", steps: 4, par: 4 }).id, "gold");
+  // In-progress saves get a counter that starts where they were.
+  assert.equal(upgradeMoves({ path: ["a", "b", "c"], undos: 2 }).moves, 4);
+  assert.equal(upgradeMoves({ path: ["a"], moves: 7 }).moves, 7);
 });
 
 test("avg over par uses moves for new results, steps for old ones", () => {
