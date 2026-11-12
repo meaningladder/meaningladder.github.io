@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "easy",
+  "start": "pine",
+  "goal": "cocoa",
+  "par": 3,
+  "theme": "From Forest to Flavor",
+  "teaser": "Follow a prickly evergreen toward a sweeter harvest.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 25,
+  "twoWay": true
+}

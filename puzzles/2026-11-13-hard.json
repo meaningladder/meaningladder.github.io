@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "hard",
+  "start": "metal",
+  "goal": "rabbi",
+  "par": 4,
+  "theme": "Heavy metal, holy ground",
+  "teaser": "Turn the volume up, then follow a surprisingly spiritual change of tune.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 25,
+  "twoWay": true
+}
