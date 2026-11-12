@@ -254,12 +254,63 @@ export function triedOrder(items) {
 }
 
 // ------------------------------------------------------------ results
-export function medalFor(steps, par) {
+// `revealed`: a hint gave away a whole word during the solve. That caps the
+// medal at silver, since gold should mean you found the par route yourself.
+// The returned medal says `capped` so the result card can explain why.
+export function medalFor(steps, par, { revealed = false } = {}) {
   const over = steps - par;
-  if (over <= 0) return { id: "gold", label: "Gold", emoji: "🥇" };
-  if (over === 1) return { id: "silver", label: "Silver", emoji: "🥈" };
+  const silver = { id: "silver", label: "Silver", emoji: "🥈" };
+  if (over <= 0) return revealed ? { ...silver, capped: true } : { id: "gold", label: "Gold", emoji: "🥇" };
+  if (over === 1) return silver;
   if (over === 2) return { id: "bronze", label: "Bronze", emoji: "🥉" };
   return { id: "finished", label: "Finished", emoji: "🏁" };
+}
+
+// Medal for a saved result. Results saved before reveals were tracked have
+// no `reveals` field, so they keep the medal they always had.
+export const resultMedal = (r) => medalFor(r.steps, r.par, { revealed: r.reveals > 0 });
+
+const MEDAL_ORDER = ["gold", "silver", "bronze", "finished"];
+// The better of two medals (gold beats silver...). Compares medals rather than
+// steps over par, because a capped gold-pace solve is only silver.
+export const betterMedal = (a, b) => (MEDAL_ORDER.indexOf(b.id) < MEDAL_ORDER.indexOf(a.id) ? b : a);
+
+// ------------------------------------------------------------ hints
+// Neighbors of `from` that are exactly one step closer to the goal.
+export function closerSteps(neighbors, dist, from) {
+  const d = dist[from];
+  if (d <= 0) return [];
+  return neighbors[from].filter((v) => dist[v] === d - 1);
+}
+
+// Text for a hint at one tier. Tier 1 adds information the path bars don't
+// already show (how many of the valid steps get closer, plus a first letter);
+// tier 2 reveals the word. `closer` is how many of the `total` valid steps get
+// closer. `next` is the hinted word; it may sit off the shortest path (a
+// gentler route), so the letter clue is worded to match.
+export function hintText(tier, { current, next, closer, total, nextIsCloser = true }) {
+  if (tier >= 2) return `Try “${next}”.`;
+  const n = closer;
+  const count = `${n} of ${total} words from ${current} ${n === 1 ? "gets" : "get"} closer.`;
+  const clue = !nextIsCloser ? `A smoother step starts with “${next[0]}”.`
+    : n === 1 ? `It starts with “${next[0]}”.` : `One starts with “${next[0]}”.`;
+  return `${count} ${clue} (Hint again to reveal it.)`;
+}
+
+// Hint tier stored for a word, or null. hasOwn, because a word like
+// "constructor" would otherwise find Object.prototype members.
+export const hintTier = (state, word) => (Object.hasOwn(state.hintsAt, word) ? state.hintsAt[word] : null);
+
+// Saves from before per-word hint memory had a single `hint` for the current
+// word. Carry it over so a resumed game shows the same hint, uncharged.
+export function upgradeHintState(state) {
+  if (!state.hintsAt) {
+    state.hintsAt = {};
+    if (state.hint?.word && state.hint.tier) state.hintsAt[state.hint.word] = state.hint.tier;
+  }
+  state.reveals ??= Object.values(state.hintsAt).filter((t) => t >= 2).length;
+  delete state.hint;
+  return state;
 }
 
 // Bar look for a word that is `d` steps from the goal.
