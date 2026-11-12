@@ -57,7 +57,9 @@ async function cacheFirst(req) {
 async function networkFirst(req) {
   const cache = await caches.open(CACHE);
   try {
-    const res = await fetch(req);
+    // "no-cache": ask the server every time (a cheap 304 when nothing changed),
+    // so a new deploy shows at once instead of after the browser's own cache expires.
+    const res = await fetch(req, { cache: "no-cache" });
     if (res.ok) cache.put(req, res.clone());
     return res;
   } catch (err) {
