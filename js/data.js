@@ -236,7 +236,29 @@ export function levelOfOldPuzzle(puzzle) {
 }
 
 export function migrateStorage() {
-  if (store.get("schema", 1) >= 2) return;
+  const schema = store.get("schema", 1);
+  if (schema < 2) migrateToLevels();
+  if (schema < 3) {
+    migratePracticePerLevel();
+    store.set("schema", 3);
+  }
+}
+
+// Schema 3: Unlimited used one "practice" key for every level, so picking
+// another level threw the game in progress away. Each level now has its own
+// "practice:<level>"; the old save moves to the level it was played at.
+function migratePracticePerLevel() {
+  const practice = store.get("practice");
+  if (practice?.puzzle) {
+    const level = LEVELS.includes(practice.puzzle.level) ? practice.puzzle.level : levelOfOldPuzzle(practice.puzzle);
+    if (store.get(`practice:${level}`) === null) {
+      store.set(`practice:${level}`, { ...practice, puzzle: { ...practice.puzzle, level } });
+    }
+  }
+  store.remove("practice");
+}
+
+function migrateToLevels() {
   const results = store.get("results", {});
   const levelOfDate = {};
   for (const key of store.keys("game:")) {
@@ -256,10 +278,7 @@ export function migrateStorage() {
     results[`${key}:${levelOfDate[key] ?? (r.par >= 4 ? "hard" : "medium")}`] = r;
   }
   store.set("results", results);
-  const practice = store.get("practice");
-  if (practice?.puzzle && !practice.puzzle.level) {
-    store.set("practice", { ...practice, puzzle: { ...practice.puzzle, level: levelOfOldPuzzle(practice.puzzle) } });
-  }
+  // (A level-less "practice" save gets its level in migratePracticePerLevel.)
   store.set("schema", 2);
 }
 
