@@ -139,11 +139,11 @@
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 16,
-      "start": "remains",
-      "goal": "mirror",
+      "start": "winner",
+      "goal": "torpedo",
       "par": 6,
-      "routes": 15,
-      "attempt": 5
+      "routes": 49,
+      "attempt": 46
     },
     {
       "date": "2026-11-17",
@@ -172,11 +172,11 @@
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 17,
-      "start": "tributary",
-      "goal": "producer",
+      "start": "block",
+      "goal": "bird",
       "par": 6,
-      "routes": 41,
-      "attempt": 8
+      "routes": 112,
+      "attempt": 29
     },
     {
       "date": "2026-11-18",
@@ -205,11 +205,11 @@
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 18,
-      "start": "body",
-      "goal": "powerhouse",
+      "start": "groin",
+      "goal": "cathedral",
       "par": 6,
-      "routes": 33,
-      "attempt": 10
+      "routes": 38,
+      "attempt": 28
     },
     {
       "date": "2027-03-14",
@@ -238,22 +238,22 @@
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 134,
-      "start": "powder",
-      "goal": "cage",
+      "start": "gear",
+      "goal": "uncle",
       "par": 6,
-      "routes": 1,
-      "attempt": 7
+      "routes": 173,
+      "attempt": 8
     },
     {
       "date": "2028-02-29",
       "level": "easy",
       "stepLimit": 20,
       "gameNumber": 486,
-      "start": "leftist",
-      "goal": "post",
+      "start": "actress",
+      "goal": "corner",
       "par": 4,
-      "routes": 2,
-      "attempt": 1
+      "routes": 1,
+      "attempt": 8
     },
     {
       "date": "2028-02-29",
@@ -271,11 +271,11 @@
       "level": "hard",
       "stepLimit": 20,
       "gameNumber": 486,
-      "start": "grandson",
-      "goal": "cliff",
+      "start": "professor",
+      "goal": "reef",
       "par": 6,
-      "routes": 2,
-      "attempt": 11
+      "routes": 44,
+      "attempt": 17
     }
   ]
 }

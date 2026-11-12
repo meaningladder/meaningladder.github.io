@@ -25,6 +25,13 @@ The graph file always stores the top 100. A tighter era just uses the first N
 of each (already sorted) list, so no data file changes. New puzzle files record
 their `stepLimit`; files without one are from the top-100 era.
 
+From 2026-11-13 an era may also set `minGoalInDegree` (12): a goal must be a
+legal step from at least that many words. Goals with few ways in tend to be
+reachable only through a sense players don't expect (anchor via TV
+presenters), so the generator and the seeded fallback skip them. The AI prompt
+also shows each shortlisted pair's shortest route and the goal's incoming
+words, so the theme and teaser describe the sense the graph actually uses.
+
 If a step is rejected, it joins a Contexto-style **Tried** list with its rank
 from the current word (under the top-20 rules, #21 was very close). Ranks up
 to #100 are exact, from the graph. Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,

@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { bfsRoutes, cutNeighbors, fnv1a32, gameNumber, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsRoutes, cutNeighbors, fnv1a32, inDegrees, gameNumber, levelBand, mulberry32, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -75,4 +75,24 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
       `${p.date} ${p.level}`,
     );
   }
+});
+
+test("inDegrees counts legal steps into each word, and seededPuzzle skips thin goals", () => {
+  const nb = [[1, 2], [3], [3], [4], [0], [0]]; // same graph as tests/test_core.py
+  assert.deepEqual([...inDegrees(nb)], [2, 1, 1, 2, 1, 0]);
+  const words = ["a", "b", "c", "d", "e", "f"];
+  const ladder = (extra) => ({
+    index: new Map(words.map((w, i) => [w, i])), neighbors: nb, candidates: words,
+    config: { minPar: 1, maxPar: 6, ...extra },
+  });
+  const band = { par: 3, minRoutes: 1, maxRoutes: 100 };
+  // Only a and d have 2 links in; every other par-3 goal (b, c, e) has 1.
+  for (const seed of ["t", "u", "v", "w"]) {
+    assert.ok(["a", "d"].includes(seededPuzzle(ladder({ minGoalInDegree: 2 }), seed, band).goal));
+    // A view's precomputed count is used as is (data.js builds one per view).
+    const view = { ...ladder({ minGoalInDegree: 2 }), inDegree: Int32Array.from([0, 9, 9, 0, 9, 9]) };
+    assert.ok(["b", "c", "e"].includes(seededPuzzle(view, seed, band).goal));
+  }
+  // No field (older eras): no check, same as Python.
+  assert.equal(seededPuzzle(ladder({}), "t", band).par, 3);
 });

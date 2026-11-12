@@ -35,6 +35,7 @@
     {
       "from": "2026-11-13",
       "stepLimit": 20,
+      "minGoalInDegree": 12,
       "minPar": 4,
       "maxPar": 7,
       "levels": {

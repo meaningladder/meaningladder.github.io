@@ -131,6 +131,9 @@ def test_rules_eras_pick_by_date():
     assert rules_for(cfg, "2026-11-13")["stepLimit"] == 20
     assert rules_for(cfg, "2030-01-01")["stepLimit"] == 20
     assert rules_for(cfg, None)["stepLimit"] == 20  # Unlimited: newest rules
+    # The goal in-degree rule is new with the top-20 era; older dates never had it.
+    assert "minGoalInDegree" not in rules_for(cfg, "2026-11-12")
+    assert rules_for(cfg, "2026-11-13")["minGoalInDegree"] == 12
     merged = rules_for(cfg, "2026-11-13")
     assert "rules" not in merged and merged["launchDate"] == cfg["launchDate"]
 
@@ -157,6 +160,30 @@ def test_validator_accepts_and_checks_band():
     v = validate_pair(lad, "a", "e", band)
     assert not v.ok and "routes" in v.reason
     assert not validate_pair(lad, "a", "e", {**band, "par": 4}).ok
+
+
+def test_in_degrees_and_min_goal_in_degree():
+    from ladder_core import in_degrees
+
+    lad = tiny_ladder()
+    assert in_degrees(lad) == [2, 1, 1, 2, 1, 0]  # a <- e, f; d <- b, c; ...
+    assert validate_pair(lad, "a", "e").ok  # no minGoalInDegree: no check (old eras)
+    lad.config["minGoalInDegree"] = 2
+    v = validate_pair(lad, "a", "e")  # only d steps to e
+    assert not v.ok and "only 1 words step to 'e'" in v.reason
+    lad.config["minGoalInDegree"] = 1
+    assert validate_pair(lad, "a", "e").ok
+
+
+def test_shortest_route_and_incoming_words():
+    from ladder_core import incoming_words, shortest_route
+
+    assert shortest_route(TINY_NEIGHBORS, A, E) == [A, B, D, E]  # b is a's closer neighbor
+    assert shortest_route(TINY_NEIGHBORS, A, A) == [A]
+    assert shortest_route(TINY_NEIGHBORS, A, F) is None
+    assert incoming_words(tiny_ladder(), ["d", "a", "f"]) == {"d": ["b", "c"], "a": ["e", "f"],
+                                                               "f": []}
+    assert incoming_words(tiny_ladder(), ["d"], limit=1) == {"d": ["b"]}
 
 
 # ---------------------------------------------------------------- real data
@@ -221,3 +248,18 @@ def test_shortlist_pairs_all_fit_the_band(ladder):
         assert "bee" not in (start, goal)
         v = validate_pair(ladder, start, goal, band)
         assert v.ok and v.routes == routes
+
+
+def test_goals_few_words_step_to_are_rejected(ladder):
+    """anchor (Nov 14 Hard) was only reachable via TV presenters, butterfly
+    (Nov 13 Hard) via moths and swim strokes: unfair under the top-20 rules."""
+    from ladder_core import in_degrees
+
+    new, old = ladder.at("2026-11-13"), ladder.at("2026-11-12")
+    for goal in ("anchor", "butterfly"):
+        assert in_degrees(new)[new.index[goal]] < new.config["minGoalInDegree"]
+        v = validate_pair(new, "wing", goal)
+        assert not v.ok and "words step to" in v.reason
+        assert "words step to" not in validate_pair(old, "wing", goal).reason
+    # The cached count follows the view: top-100 lists give far more links in.
+    assert in_degrees(old)[old.index["anchor"]] > in_degrees(new)[new.index["anchor"]]
