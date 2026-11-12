@@ -296,6 +296,9 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 }
 .rung.next { border-color: var(--muted); }
 .rung.ghost { min-height: 42px; color: var(--muted); }
+/* A free guide word on a middle rung: solid outline, readable, not yet yours. */
+.rung.signpost { min-height: 42px; border-style: solid; color: var(--text); font-size: var(--fs-base); font-weight: 700; }
+.rung.signpost .num { color: var(--muted); font-size: var(--fs-sm); }
 .rung .num { font-variant-numeric: tabular-nums; }
 /* Rungs you have climbed keep their color, so the ladder fills in below you. */
 .ladder .bar.passed { font-weight: 600; }
