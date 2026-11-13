@@ -80,6 +80,9 @@ presenters), so the generator and the seeded fallback skip them. The AI prompt
 also shows each shortlisted pair's shortest route and the goal's incoming
 words, so the theme and teaser describe the sense the graph actually uses.
 
+On open ladders a word must take you one rung closer to the goal; a close word
+that isn't closer joins the Tried list marked "no closer" (no move charged).
+
 If a step is rejected, it joins a Contexto-style **Tried** list with its rank
 from the current word (under the top-10 rules, #11 was very close). Ranks up
 to #100 are exact, from the graph. Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,

@@ -598,3 +598,17 @@ test("the real exclusion file covers the reported words and only drops real cand
     "behind", "bolster", "bore", "wing", "jam"]) assert.ok(excluded.has(w), w);
   for (const w of excluded) assert.ok(cands.has(w), `${w} is not a candidate`);
 });
+
+test("open ladders: only a word one rung closer counts (grandmother = son)", async () => {
+  const { upOneRung } = await import("../../js/logic.js");
+  // dist: steps to the goal for words 0..4 (-1 = no route); the goal is 3.
+  const dist = [2, 1, 2, 0, -1];
+  assert.equal(upOneRung(dist, 0, 1), true);   // one rung up
+  assert.equal(upOneRung(dist, 1, 3), true);   // the goal
+  assert.equal(upOneRung(dist, 0, 2), false);  // same rung: "grandmother = son"
+  assert.equal(upOneRung(dist, 1, 0), false);  // farther
+  assert.equal(upOneRung(dist, 0, 4), false);  // no route from there
+  assert.equal(upOneRung(dist, 4, 1), false);  // from a dead end (old saves): undo instead
+  assert.equal(upOneRung(dist, 3, 1), false);  // already at the goal
+});
+

@@ -14,7 +14,7 @@ import {
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, checkedRoute, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, checkedRoute, upOneRung, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK, chainGuess, chainPattern, chainShareText, closenessLabel,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -172,7 +172,7 @@ async function showHelp(k = null, twoWay = null, mode = null) {
     h("ol", { class: "rules" },
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time. Reach the rung just below the goal and the ladder finishes itself."),
       h("li", {}, `Each word must be close in meaning to the one before it (${twoWayHelp ? `either word among the other's ${k} closest` : `one of its ${k} closest words`}).${eraNote}`),
-      h("li", {}, "Each word is a rung. A word one step closer lifts you one rung. A word that isn't closer keeps you level or drops you down."),
+      h("li", {}, "Each word must take you one rung closer to the goal. A close word that isn't closer goes in your Tried list, for free."),
       h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it. A hint costs one move: first a clue, then the word if you ask again. Reach the goal in ",
         h("b", {}, "par"), " moves for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
@@ -705,6 +705,18 @@ function playView(ladder, state, saveKey, date, classic = "") {
       input.select();
       return;
     }
+    const current = state.path[state.path.length - 1];
+    if (!upOneRung(dist, ladder.index.get(current), ladder.index.get(res.word))) {
+      // Close, but no closer to the goal: not played, no move. It goes into
+      // the Tried list marked "no closer", so the reason is visible.
+      error = null;
+      rejected = { word: res.word, at: current, noCloser: true };
+      justTried = true;
+      addTried(res.word, current, false, true);
+      update();
+      input.select();
+      return;
+    }
     state.path.push(res.word);
     state.moves++;        // every word played is a move, even if undone later
     state.tried = null;   // a new word means a new Tried list
@@ -798,10 +810,10 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // Each wrong guess at the current word, ranked by closeness to that word.
   let scoreCache = { at: -1, scores: null }; // scores for one "from" word at a time
 
-  function addTried(word, current, oneWay) {
+  function addTried(word, current, oneWay, noCloser = false) {
     if (state.tried?.at !== current) state.tried = { at: current, items: [] };
     state.tried.items = state.tried.items.filter((x) => x.word !== word); // a repeat moves to newest
-    state.tried.items.push({ word, rank: null, family: false, oneWay });
+    state.tried.items.push({ word, rank: null, family: false, oneWay, noCloser });
     save();
     resolveRanks();
   }
@@ -834,10 +846,12 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // how close it was; the exact rank is in the tooltip, not on screen.
   function triedChip(x, latest) {
     const known = typeof x.rank === "number";
-    const tip = x.family ? "Same word family" : known ? `#${x.rank.toLocaleString()} closest to ${state.tried.at}` : "";
+    const tip = x.noCloser ? `Close to ${state.tried.at}, but no closer to ${puzzle.goal}`
+      : x.family ? "Same word family" : known ? `#${x.rank.toLocaleString()} closest to ${state.tried.at}` : "";
     const enter = latest && justTried;
     return h("li", { class: `tchip${latest ? " latest" : ""}${enter ? " enter" : ""}`,
       style: `--fill:${known ? rankFill(x.rank) : 0}%`, title: tip }, x.word,
+      x.noCloser ? h("span", { class: "tchip-note" }, "no closer") : null,
       tip ? h("span", { class: "visually-hidden" }, `, ${tip}`) : null);
   }
 
@@ -847,7 +861,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     if (tried.hidden) return;
     const latest = t.items[t.items.length - 1];
     tried.replaceChildren(
-      h("span", { class: "tried-head" }, "Too far:"),
+      h("span", { class: "tried-head" }, "Not a step up:"),
       h("ol", { class: "tchips" }, triedOrder(t.items).map((x) => triedChip(x, x === latest))));
   }
 
@@ -1013,6 +1027,8 @@ function playView(ladder, state, saveKey, date, classic = "") {
     // Feedback slot: exactly one thing.
     if (!playing) feedback.replaceChildren();
     else if (error) feedback.replaceChildren(h("p", { class: "error" }, error));
+    else if (rejected?.at === current && rejected.noCloser) feedback.replaceChildren(h("p", { class: "muted" },
+      `${rejected.word} is close to ${current}, but it doesn't get you closer to ${puzzle.goal}. Try another word.`));
     else if (rejected?.at === current) feedback.replaceChildren(h("p", { class: "visually-hidden" },
       `${rejected.word} is not a valid step from ${current}. It was added to your Tried list.`));
     else if (hintTier(state, current) != null) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), hintLine(current, hintTier(state, current))));

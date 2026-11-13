@@ -843,6 +843,16 @@ export function guideRoute(neighbors, dist, related, from) {
   return route;
 }
 
+// ------------------------------------------------------------ step up only
+// Open ladders accept a word only if it takes you one rung up: one step
+// closer to the goal (dist = steps to the goal, -1 = no route). "grandmother
+// = son" (a close word that kept you level) confused players, so a word that
+// isn't closer goes to the Tried list instead, for free.
+export function upOneRung(dist, curIdx, wordIdx) {
+  const a = dist[curIdx], b = dist[wordIdx];
+  return a > 0 && b >= 0 && b === a - 1;
+}
+
 // ------------------------------------------------------------ chain ladders
 // From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): each
 // hidden rung has one answer, shown as its length; wrong guesses show how

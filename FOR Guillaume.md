@@ -508,3 +508,10 @@ were already live and being played. Chain days now get their own file name
 (`2026-11-13-easy.chain.json`) instead of replacing the open one: never
 overwrite a puzzle someone may already be playing. Saved games keep the old file,
 new players get the chain, and the generator's "x" (create only) mode still guards both.
+
+Update: open ladders now accept only a word that takes you one rung closer
+to the goal. A player saw "grandmother = son": son is close to grandmother
+(GloVe groups family words), but it kept them on the same rung, which read
+as a bug. Such words now go to the Tried list as "no closer", for free.
+Tradeoff: open ladders only accept words on a shortest route now, so par is
+always the number of words played and only hints cost extra.
