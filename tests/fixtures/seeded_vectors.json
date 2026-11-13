@@ -119,184 +119,408 @@
       "attempt": 3
     },
     {
-      "date": "2026-11-16",
+      "date": "2026-11-13",
       "level": "easy",
       "stepLimit": 10,
-      "gameNumber": 16,
-      "start": "trail",
-      "goal": "plaza",
+      "gameNumber": 13,
+      "start": "missionary",
+      "goal": "lecturer",
       "par": 4,
-      "routes": 17,
-      "closer": 5,
-      "attempt": 11
+      "routes": 34,
+      "closer": 9,
+      "attempt": 7
     },
     {
-      "date": "2026-11-16",
+      "date": "2026-11-13",
       "level": "medium",
       "stepLimit": 10,
-      "gameNumber": 16,
-      "start": "rope",
-      "goal": "vegetable",
+      "gameNumber": 13,
+      "start": "desktop",
+      "goal": "son",
       "par": 5,
-      "routes": 8,
-      "closer": 3,
-      "attempt": 10
-    },
-    {
-      "date": "2026-11-16",
-      "level": "hard",
-      "stepLimit": 10,
-      "gameNumber": 16,
-      "start": "airliner",
-      "goal": "pasta",
-      "par": 6,
-      "routes": 48,
-      "closer": 12,
-      "attempt": 32
-    },
-    {
-      "date": "2026-11-17",
-      "level": "easy",
-      "stepLimit": 10,
-      "gameNumber": 17,
-      "start": "mother",
-      "goal": "match",
-      "par": 4,
-      "routes": 6,
-      "closer": 4,
+      "routes": 9,
+      "closer": 8,
       "attempt": 0
     },
     {
-      "date": "2026-11-17",
-      "level": "medium",
+      "date": "2026-11-13",
+      "level": "hard",
       "stepLimit": 10,
-      "gameNumber": 17,
-      "start": "boy",
-      "goal": "frost",
-      "par": 5,
-      "routes": 4,
-      "closer": 3,
+      "gameNumber": 13,
+      "start": "organ",
+      "goal": "buffer",
+      "par": 6,
+      "routes": 13,
+      "closer": 6,
       "attempt": 15
     },
     {
-      "date": "2026-11-17",
-      "level": "hard",
-      "stepLimit": 10,
-      "gameNumber": 17,
-      "start": "commander",
-      "goal": "dust",
-      "par": 6,
-      "routes": 45,
-      "closer": 11,
-      "attempt": 20
-    },
-    {
-      "date": "2026-11-18",
+      "date": "2026-11-14",
       "level": "easy",
       "stepLimit": 10,
-      "gameNumber": 18,
-      "start": "theater",
-      "goal": "coach",
+      "gameNumber": 14,
+      "start": "incumbent",
+      "goal": "corner",
       "par": 4,
-      "routes": 4,
+      "routes": 3,
       "closer": 3,
       "attempt": 7
     },
     {
-      "date": "2026-11-18",
+      "date": "2026-11-14",
       "level": "medium",
       "stepLimit": 10,
-      "gameNumber": 18,
-      "start": "trap",
-      "goal": "kitchen",
+      "gameNumber": 14,
+      "start": "website",
+      "goal": "powerhouse",
       "par": 5,
-      "routes": 16,
-      "closer": 8,
-      "attempt": 9
+      "routes": 20,
+      "closer": 7,
+      "attempt": 1
     },
     {
-      "date": "2026-11-18",
+      "date": "2026-11-14",
       "level": "hard",
       "stepLimit": 10,
-      "gameNumber": 18,
-      "start": "bird",
-      "goal": "monk",
+      "gameNumber": 14,
+      "start": "cap",
+      "goal": "train",
       "par": 6,
-      "routes": 43,
-      "closer": 10,
-      "attempt": 20
+      "routes": 105,
+      "closer": 11,
+      "attempt": 16
+    }
+  ],
+  "chains": [
+    {
+      "date": "2026-11-15",
+      "level": "easy",
+      "gameNumber": 15,
+      "route": [
+        "photo",
+        "picture",
+        "movie",
+        "box",
+        "corner",
+        "edge"
+      ],
+      "reasons": [
+        "Photo and picture: they are close in meaning.",
+        "Picture and movie: they are close in meaning.",
+        "Movie and box: they often go together.",
+        "Box and corner: they are close in meaning.",
+        "Corner and edge: they often go together."
+      ],
+      "linked": 4,
+      "attempt": 285
+    },
+    {
+      "date": "2026-11-15",
+      "level": "medium",
+      "gameNumber": 15,
+      "route": [
+        "sugar",
+        "juice",
+        "apple",
+        "computer",
+        "machine",
+        "tool"
+      ],
+      "reasons": [
+        "Sugar and juice: one is part of the other.",
+        "Juice and apple: they often go together.",
+        "Apple and computer: they often go together.",
+        "Computer and machine: one is a kind of the other.",
+        "Machine and tool: they often go together."
+      ],
+      "linked": 3,
+      "attempt": 2
+    },
+    {
+      "date": "2026-11-15",
+      "level": "hard",
+      "gameNumber": 15,
+      "route": [
+        "contributor",
+        "magazine",
+        "cover",
+        "pocket",
+        "mouse",
+        "rat"
+      ],
+      "reasons": [
+        "Contributor and magazine: they often go together.",
+        "Magazine and cover: they often go together.",
+        "Cover and pocket: they often go together.",
+        "Pocket and mouse: they often go together.",
+        "Mouse and rat: they are close in meaning."
+      ],
+      "linked": 3,
+      "attempt": 3
+    },
+    {
+      "date": "2026-11-16",
+      "level": "easy",
+      "gameNumber": 16,
+      "route": [
+        "diamond",
+        "crystal",
+        "mirror",
+        "bathroom",
+        "room",
+        "gym"
+      ],
+      "reasons": [
+        "Diamond and crystal: one is a kind of the other.",
+        "Crystal and mirror: they often go together.",
+        "Mirror and bathroom: they often go together.",
+        "Bathroom and room: one is a kind of the other.",
+        "Room and gym: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 17
+    },
+    {
+      "date": "2026-11-16",
+      "level": "medium",
+      "gameNumber": 16,
+      "route": [
+        "lane",
+        "street",
+        "neighborhood",
+        "resident",
+        "friend",
+        "partner"
+      ],
+      "reasons": [
+        "Lane and street: one is a kind of the other.",
+        "Street and neighborhood: one is a kind of the other.",
+        "Neighborhood and resident: they often go together.",
+        "Resident and friend: they often go together.",
+        "Friend and partner: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 6
+    },
+    {
+      "date": "2026-11-16",
+      "level": "hard",
+      "gameNumber": 16,
+      "route": [
+        "animal",
+        "dog",
+        "boy",
+        "nephew",
+        "mentor",
+        "predecessor"
+      ],
+      "reasons": [
+        "Animal and dog: they often go together.",
+        "Dog and boy: they often go together.",
+        "Boy and nephew: they often go together.",
+        "Nephew and mentor: they often go together.",
+        "Mentor and predecessor: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 22
+    },
+    {
+      "date": "2026-11-17",
+      "level": "easy",
+      "gameNumber": 17,
+      "route": [
+        "center",
+        "museum",
+        "art",
+        "artist",
+        "designer",
+        "costume"
+      ],
+      "reasons": [
+        "Center and museum: they often go together.",
+        "Museum and art: you find one near the other.",
+        "Art and artist: they often go together.",
+        "Artist and designer: they often go together.",
+        "Designer and costume: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 165
+    },
+    {
+      "date": "2026-11-17",
+      "level": "medium",
+      "gameNumber": 17,
+      "route": [
+        "critic",
+        "editor",
+        "examiner",
+        "county",
+        "district",
+        "province"
+      ],
+      "reasons": [
+        "Critic and editor: they often go together.",
+        "Editor and examiner: they often go together.",
+        "Examiner and county: they often go together.",
+        "County and district: they often go together.",
+        "District and province: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 1
+    },
+    {
+      "date": "2026-11-17",
+      "level": "hard",
+      "gameNumber": 17,
+      "route": [
+        "softball",
+        "chess",
+        "champion",
+        "trainer",
+        "owner",
+        "dealer"
+      ],
+      "reasons": [
+        "Softball and chess: they often go together.",
+        "Chess and champion: they often go together.",
+        "Champion and trainer: they often go together.",
+        "Trainer and owner: they often go together.",
+        "Owner and dealer: they often go together."
+      ],
+      "linked": 0,
+      "attempt": 5
     },
     {
       "date": "2027-03-14",
       "level": "easy",
-      "stepLimit": 10,
       "gameNumber": 134,
-      "start": "sweat",
-      "goal": "camp",
-      "par": 4,
-      "routes": 6,
-      "closer": 3,
-      "attempt": 2
+      "route": [
+        "provider",
+        "wireless",
+        "bell",
+        "tower",
+        "castle",
+        "abbey"
+      ],
+      "reasons": [
+        "Provider and wireless: they often go together.",
+        "Wireless and bell: they often go together.",
+        "Bell and tower: they often go together.",
+        "Tower and castle: you find one near the other.",
+        "Castle and abbey: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 8
     },
     {
       "date": "2027-03-14",
       "level": "medium",
-      "stepLimit": 10,
       "gameNumber": 134,
-      "start": "rival",
-      "goal": "room",
-      "par": 5,
-      "routes": 52,
-      "closer": 8,
-      "attempt": 15
+      "route": [
+        "residence",
+        "office",
+        "deputy",
+        "head",
+        "hand",
+        "face"
+      ],
+      "reasons": [
+        "Residence and office: they often go together.",
+        "Office and deputy: they often go together.",
+        "Deputy and head: they often go together.",
+        "Head and hand: they often go together.",
+        "Hand and face: they often go together."
+      ],
+      "linked": 1,
+      "attempt": 32
     },
     {
       "date": "2027-03-14",
       "level": "hard",
-      "stepLimit": 10,
       "gameNumber": 134,
-      "start": "plane",
-      "goal": "filmmaker",
-      "par": 6,
-      "routes": 72,
-      "closer": 21,
-      "attempt": 108
-    },
-    {
-      "date": "2028-02-29",
-      "level": "easy",
-      "stepLimit": 10,
-      "gameNumber": 486,
-      "start": "fish",
-      "goal": "clothing",
-      "par": 4,
-      "routes": 5,
-      "closer": 3,
+      "route": [
+        "minister",
+        "lawmaker",
+        "member",
+        "commonwealth",
+        "medalist",
+        "butterfly"
+      ],
+      "reasons": [
+        "Minister and lawmaker: they often go together.",
+        "Lawmaker and member: they often go together.",
+        "Member and commonwealth: they often go together.",
+        "Commonwealth and medalist: they often go together.",
+        "Medalist and butterfly: they often go together."
+      ],
+      "linked": 0,
       "attempt": 2
     },
     {
       "date": "2028-02-29",
-      "level": "medium",
-      "stepLimit": 10,
+      "level": "easy",
       "gameNumber": 486,
-      "start": "beard",
-      "goal": "knockout",
-      "par": 5,
-      "routes": 18,
-      "closer": 6,
+      "route": [
+        "province",
+        "municipality",
+        "town",
+        "valley",
+        "mountain",
+        "slope"
+      ],
+      "reasons": [
+        "Province and municipality: they often go together.",
+        "Municipality and town: one is a kind of the other.",
+        "Town and valley: you find one near the other.",
+        "Valley and mountain: they often go together.",
+        "Mountain and slope: they often go together."
+      ],
+      "linked": 4,
+      "attempt": 200
+    },
+    {
+      "date": "2028-02-29",
+      "level": "medium",
+      "gameNumber": 486,
+      "route": [
+        "jewelry",
+        "furniture",
+        "wood",
+        "oak",
+        "leaf",
+        "lotus"
+      ],
+      "reasons": [
+        "Jewelry and furniture: they often go together.",
+        "Furniture and wood: one is made from the other.",
+        "Wood and oak: one is a kind of the other.",
+        "Oak and leaf: they often go together.",
+        "Leaf and lotus: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 1
+    },
+    {
+      "date": "2028-02-29",
+      "level": "hard",
+      "gameNumber": 486,
+      "route": [
+        "scoreboard",
+        "clock",
+        "machine",
+        "factory",
+        "textile",
+        "exporter"
+      ],
+      "reasons": [
+        "Scoreboard and clock: they often go together.",
+        "Clock and machine: one is a kind of the other.",
+        "Machine and factory: they often go together.",
+        "Factory and textile: you find one near the other.",
+        "Textile and exporter: they often go together."
+      ],
+      "linked": 2,
       "attempt": 10
-    },
-    {
-      "date": "2028-02-29",
-      "level": "hard",
-      "stepLimit": 10,
-      "gameNumber": 486,
-      "start": "skate",
-      "goal": "taxpayer",
-      "par": 6,
-      "routes": 26,
-      "closer": 6,
-      "attempt": 25
     }
   ]
 }

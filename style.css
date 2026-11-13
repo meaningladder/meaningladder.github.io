@@ -437,3 +437,13 @@ a.chip:active { transform: scale(0.95); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Chain ladders (from 2026-11-15): one answer per hidden rung. Hidden rungs
+   show a pattern (first letter + blanks); solved rungs show why they link. */
+.ladder.chain .bar.has-why { flex-wrap: wrap; row-gap: 2px; padding-top: 8px; padding-bottom: 8px; }
+.bar .why { flex-basis: 100%; font-weight: 500; font-size: var(--fs-sm); line-height: 1.35; }
+.bar.ghost-word { border: 1.5px dashed var(--line); }
+.rung.chain-rung { min-height: 42px; }
+.pattern { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; font-size: var(--fs-base); font-weight: 700; color: var(--muted); }
+.rung.chain-rung.next .pattern { color: var(--text); }
+.tchip.near { border-color: var(--mid); border-width: 1.5px; }

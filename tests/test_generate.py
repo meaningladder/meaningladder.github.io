@@ -11,15 +11,16 @@ from ai_suggest import Pair, Suggestions
 from generate_puzzle import make_puzzle, recent_words, write_puzzle
 from ladder_core import level_band, load_ladder, validate_pair
 
-DAY = date(2026, 11, 17)
-LEVEL = "medium"  # par 5 under the top-10 two-way rules (from Nov 13)
+DAY = date(2026, 11, 14)  # the last open-play day; chain days have their own tests below
+LEVEL = "medium"  # par 5 under the top-10 two-way rules (Nov 13-14)
+CHAIN_DAY = date(2026, 11, 17)
 SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
                "source", "graphVersion", "stepLimit", "twoWay", "route", "reasons"}
 
 
 @pytest.fixture(scope="module")
 def ladder():
-    return load_ladder()
+    return load_ladder(date_str=DAY.isoformat())
 
 
 @pytest.fixture(scope="module")
@@ -95,8 +96,8 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
     assert set(p1) == SPEC_FIELDS
     assert p1["par"] == level_band(LEVEL, ladder.config)["par"]
     assert p1["level"] == LEVEL
-    assert p1["gameNumber"] == 17  # launch 2026-11-01 is game 1
-    assert p1["stepLimit"] == 10 and p1["par"] == 5 and p1["twoWay"] is True  # Nov 17
+    assert p1["gameNumber"] == 14  # launch 2026-11-01 is game 1
+    assert p1["stepLimit"] == 10 and p1["par"] == 5 and p1["twoWay"] is True  # Nov 14
 
 
 def test_puzzles_follow_their_dates_rules(ladder):
@@ -108,9 +109,9 @@ def test_puzzles_follow_their_dates_rules(ladder):
     assert old["twoWay"] is False
     # Each new-era level's first-move band holds for the seeded pick.
     for level in ("easy", "medium", "hard"):
-        p = make_puzzle(ladder, date(2026, 11, 20), level, set(), None, quiet)
-        band = level_band(level, ladder.at("2026-11-20").config)
-        v = validate_pair(ladder.at("2026-11-20"), p["start"], p["goal"], band)
+        p = make_puzzle(ladder, date(2026, 11, 14), level, set(), None, quiet)
+        band = level_band(level, ladder.at("2026-11-14").config)
+        v = validate_pair(ladder.at("2026-11-14"), p["start"], p["goal"], band)
         assert v.ok and band.get("minCloserFirstMoves", 0) <= v.closer
 
 
@@ -244,4 +245,90 @@ def test_ai_must_explain_every_step(ladder, good_pair):
     view = ladder.at(DAY.isoformat())
     assert all(view.index[b] in view.neighbors[view.index[a]]
                for a, b in zip(puzzle["route"], puzzle["route"][1:]))
+
+
+# ---------------------------------------------------------------- chain days (from Nov 15)
+CHAIN_FIELDS = SPEC_FIELDS | {"mode", "clues", "kinds"}
+
+
+def chain_of(ladder, level, seed="fake-ai", **changes):
+    """A chain that fits the level, dressed up as an AI answer."""
+    from ai_suggest import Chain
+    from ladder_core import seeded_chain
+
+    day = ladder.at(CHAIN_DAY.isoformat())
+    words, _, _ = seeded_chain(day, seed, level_band(level, day.config))
+    lateral = {"easy": 0, "medium": 1, "hard": 2}[level]
+    fields = dict(words=words, reasons=[f"Reason {k}." for k in range(1, 6)],
+                  clues=["A hint for this rung."] * 5,
+                  kinds=["lateral"] * lateral + ["everyday"] * (5 - lateral),
+                  theme="A theme", teaser="A teaser.")
+    fields.update(changes)
+    return Chain(**fields)
+
+
+def chains(*items):
+    from ai_suggest import ChainSuggestions
+
+    return ChainSuggestions(chains=list(items))
+
+
+def test_chain_day_without_ai_is_a_seeded_chain(ladder):
+    from ladder_core import validate_chain
+
+    for level in ("easy", "medium", "hard"):
+        p = make_puzzle(ladder, CHAIN_DAY, level, set(), None, quiet)
+        assert set(p) == CHAIN_FIELDS and p["mode"] == "chain" and p["source"] == "seeded"
+        assert p["par"] == 5 and len(p["route"]) == 6 and len(p["reasons"]) == 5
+        assert (p["start"], p["goal"]) == (p["route"][0], p["route"][-1])
+        assert p["clues"] == [] and p["kinds"] == []
+        day = ladder.at(CHAIN_DAY.isoformat())
+        assert validate_chain(day, p["route"], level_band(level, day.config)).ok
+        assert p == make_puzzle(ladder, CHAIN_DAY, level, set(), None, quiet)
+
+
+def test_ai_chain_retries_with_feedback_then_succeeds(ladder):
+    good = chain_of(ladder, "medium")
+    short = chain_of(ladder, "medium", clues=["Only one clue."])
+    fake = FakeClient([chains(short), chains(good)])
+    p = make_puzzle(ladder, CHAIN_DAY, "medium", set(), lambda: fake, quiet)
+    assert p["source"] == "ai" and len(fake.calls) == 2
+    assert "1 clues for 5 steps" in fake.calls[1]["input"][-1]["content"]
+    assert p["route"] == good.words and p["clues"] == good.clues and p["kinds"] == good.kinds
+    assert set(p) == CHAIN_FIELDS
+
+
+@pytest.mark.parametrize("change, reason", [
+    (dict(kinds=["everyday"] * 5), "lateral links"),           # Medium needs 1-2
+    (dict(theme="<b>x</b>"), "plain text"),
+    (dict(reasons=["Fine."] * 4), "4 reasons"),
+])
+def test_ai_chain_checks(ladder, change, reason):
+    from ai_suggest import check_chain
+
+    day = ladder.at(CHAIN_DAY.isoformat())
+    v = check_chain(day, chain_of(ladder, "medium", **change), level_band("medium", day.config), set())
+    assert not v.ok and reason in v.reason, v.reason
+
+
+def test_ai_chain_clues_must_not_name_the_answer(ladder):
+    from ai_suggest import check_chain
+
+    day = ladder.at(CHAIN_DAY.isoformat())
+    band = level_band("easy", day.config)
+    c = chain_of(ladder, "easy")
+    c.clues = [f"Think {c.words[1]}s."] + c.clues[1:]
+    v = check_chain(day, c, band, set())
+    assert not v.ok and "names its answer" in v.reason
+    c = chain_of(ladder, "easy", teaser=f"Find the {c.words[2]} on the way.")
+    v = check_chain(day, c, band, set())
+    assert not v.ok and "teaser names" in v.reason
+
+
+def test_chain_prompt_has_examples_and_level_style(ladder):
+    from ai_suggest import build_chain_request
+
+    day = ladder.at(CHAIN_DAY.isoformat())
+    prompt = build_chain_request(day, CHAIN_DAY.isoformat(), level_band("hard", day.config), set())
+    assert "N = 5" in prompt and "Example chains:" in prompt and "lateral" in prompt
 

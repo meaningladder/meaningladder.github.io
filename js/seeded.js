@@ -277,3 +277,167 @@ export function seededPuzzle(ladder, dateStr, band) {
   }
   throw new Error(`no seeded puzzle for ${dateStr}`);
 }
+
+// ------------------------------------------------------------ chain mode
+// From the 2026-11-15 era ("mode": "chain") a ladder is one fixed chain of
+// par + 1 words with ONE answer per hidden rung, shown as its first letter
+// and length. Python twins: the "chain mode" section of ladder_core.py.
+
+// Two forms of one word (ship/ships, swim/swimming), roughly. Python: same_stem.
+export function sameStem(a, b) {
+  if (a === b) return true;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 4 && long.startsWith(short);
+}
+
+// The better of b's place in a's list and a's in b's, 1 = most similar
+// (null = in neither). The browser's lists stop at 40; callers only compare
+// against ranks <= 40, so the answer matches Python's top-100 one.
+export function chainRank(ladder, a, b) {
+  const full = ladder.fullNeighbors ?? ladder.neighbors;
+  const ra = full[a].indexOf(b), rb = full[b].indexOf(a);
+  const ranks = [ra, rb].filter((r) => r >= 0).map((r) => r + 1);
+  return ranks.length ? Math.min(...ranks) : null;
+}
+
+// Every word's close words both ways (top uniqueWindow, default 40), built
+// once per ladder view: the words a player could reasonably try for a rung.
+export function chainWide(ladder) {
+  const full = ladder.fullNeighbors ?? ladder.neighbors;
+  const k = ladder.config?.uniqueWindow ?? 40;
+  if (ladder._wide?.k !== k) ladder._wide = { k, rows: twoWayNeighbors(full, k) };
+  return ladder._wide.rows;
+}
+
+// Close words of `prev` that fit the target's pattern too (same first letter
+// and length), other than words on screen (`shown`, a Set). Python: pattern_rivals.
+export function patternRivals(ladder, prev, target, shown) {
+  const w = ladder.words[target];
+  return chainWide(ladder)[prev].filter((u) => u !== target && !shown.has(u)
+    && ladder.words[u].length === w.length && ladder.words[u][0] === w[0]);
+}
+
+// Is this chain a fair one-answer ladder for the band? Python: validate_chain
+// (which also checks recent words and the AI's link kinds).
+export function validateChain(ladder, words, band) {
+  const par = band.par;
+  if (words.length !== par + 1) return { ok: false, reason: "length" };
+  if (!words.every((w) => ladder.index.has(w))) return { ok: false, reason: "unknown word" };
+  for (let i = 0; i < words.length; i++) {
+    for (let j = i + 1; j < words.length; j++) if (sameStem(words[i], words[j])) return { ok: false, reason: "forms of one word" };
+  }
+  const cands = (ladder._candSet ??= new Set(ladder.candidates));
+  if (!cands.has(words[0]) || !cands.has(words[par])) return { ok: false, reason: "start/goal" };
+  const idx = words.map((w) => ladder.index.get(w));
+  if (band.maxWordIndex && idx.slice(1, -1).some((i) => i >= band.maxWordIndex)) return { ok: false, reason: "too rare" };
+  let linked = 0;
+  for (let k = 0; k < par; k++) {
+    const rank = chainRank(ladder, idx[k], idx[k + 1]);
+    if (rank == null || rank > band.maxRank) return { ok: false, reason: "too loose" };
+    if (ladder.related?.has(relKey(idx[k], idx[k + 1]))) linked++;
+  }
+  const shown = new Set([idx[0], idx[par]]);
+  for (let k = 1; k < par; k++) {
+    if (patternRivals(ladder, idx[k - 1], idx[k], shown).length) return { ok: false, reason: "rivals" };
+  }
+  if (linked < (band.minLinkedSteps ?? 0)) return { ok: false, reason: "linked" };
+  return { ok: true, linked };
+}
+
+// Links for seeded chains: two-way top k between start/goal-pool words only,
+// most similar first. Python: chain_graph.
+export function chainGraph(ladder, k, common) {
+  ladder._chainGraphs ??= new Map();
+  const key = `${k}|${common ?? ""}`;
+  if (!ladder._chainGraphs.has(key)) {
+    const ok = new Set();
+    for (const w of ladder.candidates) {
+      const i = ladder.index.get(w);
+      if (common == null || i < common) ok.add(i);
+    }
+    const two = twoWayNeighbors(ladder.fullNeighbors ?? ladder.neighbors, k);
+    ladder._chainGraphs.set(key, two.map((row, u) => (ok.has(u) ? row.filter((v) => ok.has(v)) : [])));
+  }
+  return ladder._chainGraphs.get(key);
+}
+
+// A route of exactly `par` steps through `graph`, each step one closer to
+// the goal, whose hidden rungs have no pattern rivals, with the most
+// ConceptNet steps (ties: the more similar neighbor). Python: chain_route.
+export function chainRoute(ladder, graph, start, goal, par) {
+  const dist = new Map([[goal, 0]]);
+  let frontier = [goal];
+  for (let d = 1; d <= par; d++) {
+    const nxt = [];
+    for (const u of frontier) for (const v of graph[u]) if (!dist.has(v)) { dist.set(v, d); nxt.push(v); }
+    frontier = nxt;
+  }
+  if (dist.get(start) !== par) return null;
+  const shown = new Set([start, goal]);
+  const memo = new Map([[goal, [0, -1]]]);
+  const best = (u) => {
+    if (!memo.has(u)) {
+      let b = -1, pick = -1;
+      for (const v of graph[u]) {
+        if (dist.get(v) !== dist.get(u) - 1) continue;
+        if (v !== goal && patternRivals(ladder, u, v, shown).length) continue;
+        let c = best(v);
+        if (c < 0) continue;
+        if (ladder.related?.has(relKey(u, v))) c++;
+        if (c > b) { b = c; pick = v; }
+      }
+      memo.set(u, [b, pick]);
+    }
+    return memo.get(u)[0];
+  };
+  const linked = best(start);
+  if (linked < 0) return null;
+  const route = [start];
+  while (route[route.length - 1] !== goal) route.push(memo.get(route[route.length - 1])[1]);
+  return { route, linked };
+}
+
+// Deterministic chain (missing daily files, Unlimited). Python: seeded_chain.
+export function seededChain(ladder, seed, band) {
+  const graph = chainGraph(ladder, band.maxRank, band.maxWordIndex);
+  const cands = ladder.candidates, n = cands.length;
+  for (let attempt = 0; attempt < GIVE_UP_AFTER; attempt++) {
+    const rand = mulberry32(fnv1a32(`${seed}#${attempt}`));
+    const start = cands[Math.floor(rand() * n)];
+    const goal = cands[Math.floor(rand() * n)];
+    if (start === goal) continue;
+    const found = chainRoute(ladder, graph, ladder.index.get(start), ladder.index.get(goal), band.par);
+    if (!found) continue;
+    const words = found.route.map((i) => ladder.words[i]);
+    const v = validateChain(ladder, words, band);
+    if (v.ok) return { route: words, linked: v.linked, attempt };
+  }
+  throw new Error(`no seeded chain for ${seed}`);
+}
+
+// Plain reasons for seeded chains from the ConceptNet relation; the pair is
+// unordered, so each phrase reads both ways. Python: chain_reason(s).
+const RELATION_PHRASES = {
+  IsA: "one is a kind of the other",
+  PartOf: "one is part of the other",
+  HasA: "one is part of the other",
+  UsedFor: "one is used for the other",
+  AtLocation: "you find one near the other",
+  LocatedNear: "you find one near the other",
+  MadeOf: "one is made from the other",
+  Causes: "one leads to the other",
+  Synonym: "they are close in meaning",
+  SimilarTo: "they are close in meaning",
+};
+
+export const chainReason = (a, b, relation) =>
+  `${a[0].toUpperCase()}${a.slice(1)} and ${b}: ${RELATION_PHRASES[relation] ?? "they often go together"}.`;
+
+// ladder.related is a Map relKey -> relation name (js/data.js).
+export function chainReasons(ladder, words) {
+  return words.slice(1).map((b, k) => {
+    const a = words[k];
+    const rel = ladder.related?.get?.(relKey(ladder.index.get(a), ladder.index.get(b)));
+    return chainReason(a, b, rel);
+  });
+}

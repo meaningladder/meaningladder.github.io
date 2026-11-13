@@ -64,34 +64,49 @@
     },
     {
       "from": "2026-11-15",
+      "mode": "chain",
       "stepLimit": 10,
       "twoWay": true,
       "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
-      "minPar": 3,
-      "maxPar": 7,
+      "minPar": 5,
+      "maxPar": 5,
+      "uniqueWindow": 40,
+      "medalSlack": [
+        2,
+        5,
+        8
+      ],
       "levels": {
         "easy": {
           "label": "Easy",
-          "par": 4,
-          "minRoutes": 1,
-          "maxRoutes": 100000,
-          "minCloserFirstMoves": 3,
+          "par": 5,
+          "maxRank": 10,
+          "maxWordIndex": 8000,
+          "lateral": [
+            0,
+            0
+          ],
           "minLinkedSteps": 2
         },
         "medium": {
           "label": "Medium",
           "par": 5,
-          "minRoutes": 1,
-          "maxRoutes": 100000,
-          "minCloserFirstMoves": 3,
-          "minLinkedSteps": 3
+          "maxRank": 20,
+          "maxWordIndex": 10000,
+          "lateral": [
+            1,
+            2
+          ]
         },
         "hard": {
           "label": "Hard",
-          "par": 6,
-          "minRoutes": 1,
-          "maxRoutes": 100000,
-          "minLinkedSteps": 3
+          "par": 5,
+          "maxRank": 40,
+          "maxWordIndex": 12000,
+          "lateral": [
+            2,
+            3
+          ]
         }
       }
     }

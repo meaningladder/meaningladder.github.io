@@ -635,3 +635,233 @@ def seeded_puzzle(ladder: Ladder, date_str: str, band: dict) -> tuple[str, str, 
         if attempt >= GIVE_UP_AFTER:
             raise RuntimeError(f"no seeded puzzle for {date_str} in {attempt} attempts; "
                                f"is the band {band} achievable?")
+
+
+# ---------------------------------------------------------------- chain mode
+# From the 2026-11-15 era ("mode": "chain"), a ladder is one fixed chain of
+# par + 1 words. Each hidden rung has exactly ONE answer, shown as its first
+# letter and length, and difficulty is how obvious each link is (the AI
+# labels links "everyday" or "lateral"; the graph checks how close they are).
+# JS twins live in js/seeded.js (chainRank, patternRivals, sameStem,
+# validateChain, chainGraph, chainRoute, seededChain, chainReason).
+CHAIN_KINDS = ("everyday", "lateral")
+
+
+def is_chain(config: dict) -> bool:
+    return config.get("mode") == "chain"
+
+
+def same_stem(a: str, b: str) -> bool:
+    """Two forms of one word (ship/ships, swim/swimming), roughly: one starts
+    with the other and the shorter has 4+ letters. Over-cautious on purpose:
+    a chain with port and portal is just skipped. JS twin: sameStem."""
+    if a == b:
+        return True
+    short, long_ = (a, b) if len(a) <= len(b) else (b, a)
+    return len(short) >= 4 and long_.startswith(short)
+
+
+def chain_rank(ladder: Ladder, a: int, b: int) -> int | None:
+    """How close a link is: the better of b's place in a's list and a's in
+    b's, 1 = most similar (None = in neither top 100). JS twin: chainRank
+    (whose lists stop at 40, so callers only compare against ranks <= 40)."""
+    full = ladder.full_neighbors or ladder.neighbors
+    ranks = [row.index(x) + 1 for row, x in ((full[a], b), (full[b], a)) if x in row]
+    return min(ranks) if ranks else None
+
+
+_CHAIN_CACHE: dict = {}  # two-way lists are slow to build (20k words): once per process
+
+
+def _cached(key, full, build):
+    """build() once per (key, neighbor lists). The entry keeps `full` alive,
+    so its id() in the key can't be reused by another list."""
+    hit = _CHAIN_CACHE.get(key)
+    if hit is None or hit[0] is not full:
+        hit = _CHAIN_CACHE[key] = (full, build())
+    return hit[1]
+
+
+def chain_wide(ladder: Ladder) -> list[list[int]]:
+    """Every word's close words, both ways (top `uniqueWindow`, default 40):
+    the words a player could reasonably try for a rung."""
+    full = ladder.full_neighbors or ladder.neighbors
+    k = ladder.config.get("uniqueWindow", 40)
+    return _cached(("wide", id(full), k), full, lambda: two_way_neighbors(full, k))
+
+
+def pattern_rivals(ladder: Ladder, prev: int, target: int, shown: set[int]) -> list[int]:
+    """Close words of `prev` that fit the target's pattern too (same first
+    letter and length), other than words already on screen. Any rival means
+    the rung has two answers a player could defend. JS twin: patternRivals."""
+    w = ladder.words[target]
+    return [u for u in chain_wide(ladder)[prev]
+            if u != target and u not in shown
+            and len(ladder.words[u]) == len(w) and ladder.words[u][0] == w[0]]
+
+
+def validate_chain(ladder: Ladder, words: list[str], band: dict,
+                   recent: set[str] = frozenset(), kinds: list[str] | None = None) -> Verdict:
+    """Is this chain a fair one-answer ladder for the band? `kinds` (AI
+    chains) is checked against the band's lateral range; seeded chains pass
+    None. JS twin: validateChain (without the recent and kinds checks)."""
+    par = band["par"]
+    if len(words) != par + 1:
+        return Verdict(False, f"{len(words)} words, need exactly {par + 1} ({par} steps)")
+    for w in words:
+        if w not in ladder.index:
+            return Verdict(False, f"'{w}' is not in our word list")
+    for i, a in enumerate(words):
+        for b in words[i + 1:]:
+            if same_stem(a, b):
+                return Verdict(False, f"'{a}' and '{b}' are forms of one word")
+    start, goal = words[0], words[-1]
+    for w in (start, goal):
+        if w not in ladder.candidate_set:
+            return Verdict(False, f"'{w}' is not an allowed start/goal word")
+        if w in recent:
+            return Verdict(False, f"'{w}' was used in a recent puzzle")
+    common = band.get("maxWordIndex")
+    for w in words[1:-1]:
+        if common and ladder.index[w] >= common:
+            return Verdict(False, f"'{w}' is too rare a word for {band['label']}")
+    idx = [ladder.index[w] for w in words]
+    linked = 0
+    for k, (a, b) in enumerate(zip(idx, idx[1:]), 1):
+        rank = chain_rank(ladder, a, b)
+        if rank is None or rank > band["maxRank"]:
+            return Verdict(False, f"step {k} {words[k - 1]} -> {words[k]} is too loose a link for "
+                                  f"{band['label']} (rank {rank or '100+'}, needs top {band['maxRank']})")
+        linked += ladder.related is not None and rel_key(a, b) in ladder.related
+    shown = {idx[0], idx[-1]}
+    for k in range(1, par):  # the last step lands on the goal, which is on screen
+        rivals = pattern_rivals(ladder, idx[k - 1], idx[k], shown)
+        if rivals:
+            alt = ", ".join(ladder.words[u] for u in rivals[:3])
+            return Verdict(False, f"rung {k} '{words[k]}' has rivals: {alt} also follow "
+                                  f"{words[k - 1]}, start with '{words[k][0]}' and have "
+                                  f"{len(words[k])} letters")
+    if linked < band.get("minLinkedSteps", 0):
+        return Verdict(False, f"{linked} steps are known relations, {band['label']} needs "
+                              f"{band['minLinkedSteps']}")
+    if kinds is not None:
+        if len(kinds) != par or any(x not in CHAIN_KINDS for x in kinds):
+            return Verdict(False, f"kinds must be {par} of {'/'.join(CHAIN_KINDS)}")
+        lo, hi = band.get("lateral", (0, par))
+        n = kinds.count("lateral")
+        if not lo <= n <= hi:
+            return Verdict(False, f"{n} lateral links, {band['label']} needs {lo}-{hi}")
+    return Verdict(True, "ok", par, 1, linked)
+
+
+def chain_graph(ladder: Ladder, k: int, common: int | None) -> list[list[int]]:
+    """Links for seeded chains: two-way top k between start/goal-pool words
+    only (common, concrete words make fair answers), most similar first.
+    JS twin: chainGraph."""
+    full = ladder.full_neighbors or ladder.neighbors
+
+    def build():
+        ok = {ladder.index[w] for w in ladder.candidates
+              if common is None or ladder.index[w] < common}
+        two = two_way_neighbors(full, k)
+        return [[v for v in row if v in ok] if u in ok else [] for u, row in enumerate(two)]
+
+    return _cached(("chain", id(full), k, common, tuple(ladder.candidates)), full, build)
+
+
+def chain_route(ladder: Ladder, graph: list[list[int]], start: int, goal: int,
+                par: int) -> tuple[list[int] | None, int]:
+    """A route of exactly `par` steps through `graph` (each step one closer
+    to the goal) whose hidden rungs have no pattern rivals, with the most
+    ConceptNet-relation steps; ties go to the more similar neighbor.
+    Returns (route, linked) or (None, 0). JS twin: chainRoute."""
+    dist = {goal: 0}
+    frontier = [goal]
+    for d in range(1, par + 1):
+        nxt = []
+        for u in frontier:
+            for v in graph[u]:
+                if v not in dist:
+                    dist[v] = d
+                    nxt.append(v)
+        frontier = nxt
+    if dist.get(start) != par:
+        return None, 0
+    related = ladder.related or {}
+    shown = {start, goal}
+    memo: dict[int, tuple[int, int]] = {goal: (0, -1)}
+
+    def best(u: int) -> int:
+        if u not in memo:
+            b, pick = -1, -1
+            for v in graph[u]:
+                if dist.get(v) != dist[u] - 1:
+                    continue
+                if v != goal and pattern_rivals(ladder, u, v, shown):
+                    continue
+                c = best(v)
+                if c < 0:
+                    continue
+                c += rel_key(u, v) in related
+                if c > b:
+                    b, pick = c, v
+            memo[u] = (b, pick)
+        return memo[u][0]
+
+    linked = best(start)
+    if linked < 0:
+        return None, 0
+    route = [start]
+    while route[-1] != goal:
+        route.append(memo[route[-1]][1])
+    return route, linked
+
+
+def seeded_chain(ladder: Ladder, seed: str, band: dict) -> tuple[list[str], Verdict, int]:
+    """Deterministic chain for days the AI can't make one (and Unlimited, in
+    JS): roll a start and a goal like seeded_puzzle, keep the first pair with
+    a fair chain of exactly par steps."""
+    graph = chain_graph(ladder, band["maxRank"], band.get("maxWordIndex"))
+    cands, n = ladder.candidates, len(ladder.candidates)
+    for attempt in range(GIVE_UP_AFTER):
+        rand = mulberry32(fnv1a32(f"{seed}#{attempt}"))
+        start = cands[math.floor(rand() * n)]
+        goal = cands[math.floor(rand() * n)]
+        if start == goal:
+            continue
+        route, _ = chain_route(ladder, graph, ladder.index[start], ladder.index[goal], band["par"])
+        if route is None:
+            continue
+        words = [ladder.words[i] for i in route]
+        verdict = validate_chain(ladder, words, band)
+        if verdict.ok:
+            return words, verdict, attempt
+    raise RuntimeError(f"no seeded chain for {seed} in {GIVE_UP_AFTER} attempts; "
+                       f"is the band {band} achievable?")
+
+
+# Plain reasons for seeded chains, from the ConceptNet relation (the pair is
+# stored unordered, so each phrase reads both ways). JS twin: chainReason.
+RELATION_PHRASES = {
+    "IsA": "one is a kind of the other",
+    "PartOf": "one is part of the other",
+    "HasA": "one is part of the other",
+    "UsedFor": "one is used for the other",
+    "AtLocation": "you find one near the other",
+    "LocatedNear": "you find one near the other",
+    "MadeOf": "one is made from the other",
+    "Causes": "one leads to the other",
+    "Synonym": "they are close in meaning",
+    "SimilarTo": "they are close in meaning",
+}
+
+
+def chain_reason(a: str, b: str, relation: str | None) -> str:
+    phrase = RELATION_PHRASES.get(relation or "", "they often go together")
+    return f"{a[0].upper()}{a[1:]} and {b}: {phrase}."
+
+
+def chain_reasons(ladder: Ladder, words: list[str]) -> list[str]:
+    related = ladder.related or {}
+    return [chain_reason(a, b, related.get(rel_key(ladder.index[a], ladder.index[b])))
+            for a, b in zip(words, words[1:])]

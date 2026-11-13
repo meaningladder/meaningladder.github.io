@@ -12,8 +12,9 @@ from typing import Callable
 
 from pydantic import BaseModel
 
-from ladder_core import (Ladder, Verdict, guide_route, incoming_words, rel_key, seeded_sample,
-                         shortest_route, shortlist, validate_pair)
+from ladder_core import (Ladder, Verdict, guide_route, incoming_words, rel_key, same_stem,
+                         seeded_chain, seeded_sample, shortest_route, shortlist, validate_chain,
+                         validate_pair)
 
 PAIRS_PER_ROUND = 5
 MAX_THEME = 40
@@ -132,14 +133,14 @@ def build_request(ladder: Ladder, date_str: str, band: dict, recent: set[str]) -
     )
 
 
-def ask(client, model: str, messages: list[dict]) -> Suggestions:
+def ask(client, model: str, messages: list[dict], text_format=None, instructions=None):
     """One structured-output call. Raises AIUnavailable on refusal/truncation."""
     response = client.responses.parse(
         model=model,
-        instructions=INSTRUCTIONS,
+        instructions=instructions or INSTRUCTIONS,
         input=messages,
-        text_format=Suggestions,
-        max_output_tokens=4000,
+        text_format=text_format or Suggestions,
+        max_output_tokens=8000,  # three chains, each with reasons and clues
     )
     if getattr(response, "status", None) == "incomplete":
         reason = getattr(response.incomplete_details, "reason", "unknown")
@@ -258,6 +259,156 @@ def ai_puzzle(
                          "None of those pairs work in our word graph:\n" + "\n".join(feedback)
                          + f"\nSuggest {PAIRS_PER_ROUND} new pairs following the same rules."})
     raise AIUnavailable(f"no valid pair after {ladder.config['aiRounds']} rounds")
+
+
+# ---------------------------------------------------------------- chain mode
+# From the 2026-11-15 era every ladder is one fixed 5-step chain with one
+# answer per rung. The AI writes the whole chain, a reason and a clue per
+# step, and labels each link; validate_chain (ladder_core) checks it all.
+CHAINS_PER_ROUND = 3
+MAX_CLUE = 90
+CHAIN_EXAMPLES = 4
+
+
+class Chain(BaseModel):
+    words: list[str]    # start, the hidden rungs, goal
+    reasons: list[str]  # one per step: why the word leads to the next
+    clues: list[str]    # one per step: a hint for the next word that never names it
+    kinds: list[str]    # one per step: "everyday" or "lateral"
+    theme: str
+    teaser: str
+
+
+class ChainSuggestions(BaseModel):
+    chains: list[Chain]
+
+
+LEVEL_STYLE = {
+    "easy": "Every link is an everyday fact or a very common pairing (a kind of, a part of, "
+            "used for, found at). No double meanings or wordplay: every kind is \"everyday\".",
+    "medium": "Mostly everyday links, plus 1 or 2 lateral ones: a second meaning of a word, "
+              "a set phrase, or a cultural link (e.g. butterfly -> swimming: a stroke).",
+    "hard": "At least 2 lateral links (second meanings, set phrases, cultural links, e.g. "
+            "turkey -> country), the rest everyday. Still fair: an ordinary adult should "
+            "say \"of course\" once they see the reason.",
+}
+
+CHAIN_INSTRUCTIONS = f"""\
+You design the daily puzzle for "Meaning Ladder", a word game. A ladder is a
+chain of words: START, hidden words, GOAL. Players see the start, the goal,
+and for each hidden word only its first letter and length. They must guess
+each hidden word from the one below it, and only the intended word counts.
+
+Suggest {CHAINS_PER_ROUND} different chains, best first. Rules:
+- words: exactly N+1 single lowercase common English words for N steps
+  (the request says N), start first, goal last. START and GOAL must come from
+  the allowed list, spelled exactly; hidden words can be any common word.
+- Each hidden word must be the obvious, natural next word after the one
+  before it. If several words could follow, the first letter and length must
+  pick out just yours.
+- No two words in a chain may be forms of one word (ship, ships).
+- reasons: one short plain sentence per step (N of them), at most
+  {MAX_REASON} characters, saying why the word leads to the next, e.g.
+  "A ship docks at a port."
+- clues: one short plain hint per step (N of them), at most {MAX_CLUE}
+  characters, pointing at the NEXT word without naming it or any form of it,
+  e.g. "Where a ship ties up."
+- kinds: one per step, "everyday" or "lateral" (a second meaning, a set
+  phrase, wordplay or a cultural link).
+- theme: 1-4 words (max {MAX_THEME} characters) naming the journey.
+- teaser: one playful sentence, at most {MAX_TEASER} characters, that names
+  no hidden word.
+- Family-friendly. Never use a "recently used" word as start or goal.
+- "Example chains" (if listed) already fit our word graph; you may use one,
+  improve one, or write your own.
+"""
+
+
+def build_chain_request(ladder: Ladder, date_str: str, band: dict, recent: set[str]) -> str:
+    level, par = band["level"], band["par"]
+    examples = []
+    for i in range(CHAIN_EXAMPLES):
+        try:
+            words, _, _ = seeded_chain(ladder, f"examples#{date_str}:{level}:{i}", band)
+        except RuntimeError:
+            continue
+        if not recent & {words[0], words[-1]}:
+            examples.append(" -> ".join(words))
+    sample = seeded_sample(ladder.candidates, ladder.config["promptSampleSize"],
+                           f"sample#{date_str}:{level}")
+    sample = [w for w in sample if w not in recent]
+    shown = "".join(f"- {e}\n" for e in examples)
+    return (
+        f"Date: {date_str}. Level: {band['label']}. Steps: N = {par} "
+        f"({par + 1} words, {par - 1} hidden).\n"
+        f"{LEVEL_STYLE.get(level, '')}\n\n"
+        + (f"Example chains:\n{shown}\n" if examples else "")
+        + f"Allowed start/goal words: {', '.join(sorted(sample))}\n\n"
+        f"Recently used (do not use): {', '.join(sorted(recent)) or 'none'}"
+    )
+
+
+def names_word(clue: str, word: str) -> bool:
+    """Does the clue give its answer away (the word or a form of it)?"""
+    return any(same_stem(t, word) for t in re.findall(r"[a-z]+", clue.lower()))
+
+
+def check_chain(ladder: Ladder, chain: Chain, band: dict, recent: set[str]) -> Verdict:
+    par = band["par"]
+    for field, text, limit in (("theme", chain.theme, MAX_THEME), ("teaser", chain.teaser, MAX_TEASER)):
+        bad = check_text(field, text, limit)
+        if bad:
+            return Verdict(False, bad)
+    words = [w.strip().lower() for w in chain.words]
+    blocked = set(words) & _blocklist()
+    if blocked:
+        return Verdict(False, f"'{sorted(blocked)[0]}' is not family-friendly")
+    for field, items, limit in (("reasons", chain.reasons, MAX_REASON), ("clues", chain.clues, MAX_CLUE)):
+        if len(items) != par:
+            return Verdict(False, f"{len(items)} {field} for {par} steps, need exactly {par}")
+        for k, text in enumerate(items, 1):
+            bad = check_text(f"{field[:-1]} {k}", text, limit)
+            if bad:
+                return Verdict(False, bad)
+    for k, clue in enumerate(chain.clues, 1):
+        if k < len(words) and names_word(clue, words[k]):
+            return Verdict(False, f"clue {k} names its answer '{words[k]}'")
+    teaser = re.findall(r"[a-z]+", chain.teaser.lower())
+    for w in words[1:-1]:
+        if any(same_stem(t, w) for t in teaser):
+            return Verdict(False, f"the teaser names the hidden word '{w}'")
+    return validate_chain(ladder, words, band, recent,
+                          [k.strip().lower() for k in chain.kinds])
+
+
+def ai_chain(ladder: Ladder, date_str: str, band: dict, recent: set[str], client,
+             log: Callable[[str], None] = print) -> tuple[Chain, Verdict]:
+    """Ask, check, give feedback, repeat (like ai_puzzle). Raises AIUnavailable."""
+    model = ladder.config["model"]
+    messages = [{"role": "user", "content": build_chain_request(ladder, date_str, band, recent)}]
+    for round_no in range(1, ladder.config["aiRounds"] + 1):
+        suggestions = ask(client, model, messages, ChainSuggestions, CHAIN_INSTRUCTIONS)
+        feedback = []
+        for chain in suggestions.chains:
+            verdict = check_chain(ladder, chain, band, recent)
+            label = " -> ".join(chain.words)
+            if verdict.ok:
+                log(f"  AI round {round_no}: accepted {label} ({verdict.closer} known relations)")
+                chain.words = [w.strip().lower() for w in chain.words]
+                chain.kinds = [k.strip().lower() for k in chain.kinds]
+                chain.reasons = [r.strip() for r in chain.reasons]
+                chain.clues = [c.strip() for c in chain.clues]
+                chain.theme, chain.teaser = chain.theme.strip(), chain.teaser.strip()
+                return chain, verdict
+            feedback.append(f"- {label}: {verdict.reason}")
+        log(f"  AI round {round_no}: all {len(suggestions.chains)} chains rejected")
+        for line in feedback:
+            log("    " + line)
+        messages.append({"role": "assistant", "content": suggestions.model_dump_json()})
+        messages.append({"role": "user", "content":
+                         "None of those chains work:\n" + "\n".join(feedback)
+                         + f"\nSuggest {CHAINS_PER_ROUND} new chains following the same rules."})
+    raise AIUnavailable(f"no valid chain after {ladder.config['aiRounds']} rounds")
 
 
 def make_client():

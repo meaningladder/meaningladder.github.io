@@ -469,3 +469,32 @@ game shows. Because the shown route is always a shortest one, par and medals
 are untouched. The lesson: when one data source is great at quality but too
 sparse for a rule, use it to rank, not to judge.
 
+## One answer per rung
+
+Even with longer ladders and reasons, open play let people wander, and
+"impossible" ladders kept coming back from playtests. The new ask: every level
+5 steps, difficulty = how obvious the associations are, and one answer per
+ladder. That's a different game (a chain puzzle), so it got its own era
+(`"mode": "chain"`, from Nov 15) instead of a patch on the old one.
+
+What made "one answer" fair rather than cruel:
+- **A pattern on every hidden rung** (first letter + length). Without it, one
+  answer is a mind-reading contest. With it, the code can *prove* uniqueness:
+  no other word close to the previous one fits the same pattern
+  (`pattern_rivals`). The AI is told exactly which rival words broke a chain.
+- **Free misses for impossible guesses.** A word that doesn't fit the letters
+  costs nothing; only a fitting wrong guess is a move. Medals got slack
+  (`medalSlack`) because every wrong guess now costs.
+- **Reasons as you climb.** Each solved rung shows why it links, so a lateral
+  step (turkey, the country) reads as clever, not unfair.
+
+Difficulty moved from "longer route" to "looser links": Easy links must be in
+each other's top 10 and labeled everyday by the AI; Hard allows top 40 and asks
+for 2-3 lateral links. Two independent signals (an AI label and a measured
+rank) is a pattern worth stealing: neither alone is trustworthy, together they
+catch each other's mistakes.
+
+Tradeoff to remember: less freedom. Open ladders rewarded creative routes;
+chains reward finding *the* route. The old days stay playable as "classic rules
+(open ladder)", so both versions can be compared on real players.
+

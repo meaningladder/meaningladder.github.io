@@ -15,7 +15,7 @@ const era = (from, stepLimit, pars) => ({
   levels: Object.fromEntries(["easy", "medium", "hard"].map((lv, i) => [lv, { par: pars[i] }])),
 });
 const two = { rules: [era("2026-11-01", 100, [3, 3, 4]), era("2026-11-13", 20, [4, 5, 6])] };
-const fixedDay = (s) => ({ "2026-11-13": "November 13" })[s] ?? s;
+const fixedDay = (s) => ({ "2026-11-13": "November 13", "2026-11-15": "November 15" })[s] ?? s;
 
 test("newestEra needs an older era to change from", () => {
   assert.equal(newestEra(two).from, "2026-11-13");
@@ -64,10 +64,13 @@ test("notice text is built from the eras", () => {
   assert.equal(rulesNoticeText({ rules: [two.rules[0]] }, fixedDay), "");
 });
 
-test("the real config announces the November 13 change", () => {
+test("the real config announces the November 15 chain ladders", () => {
   assert.equal(rulesNoticeText(config, fixedDay),
-    "From November 13, a step counts if either word is among the other's 10 closest words."
-    + " Ladders are longer: par 4 for Easy, 5 for Medium and 6 for Hard.");
+    "From November 15, every ladder is 5 steps and each hidden rung has exactly one answer."
+    + " You see its first letter and length. Solve a rung to see why it links; a hint gives a clue, then the word.");
+  assert.equal(newestEra(config).from, "2026-11-15");
+  assert.equal(classicLabel(config, "2026-11-14"), "classic rules (open ladder, top 10)");
+  assert.equal(classicLabel(config, "2026-11-15"), "");
 });
 
 test("notice text has no em or en dashes", () => {

@@ -21,11 +21,14 @@ from ladder_core import (
     ROOT,
     Ladder,
     LEVELS,
+    chain_reasons,
     game_number,
+    is_chain,
     level_band,
     load_ladder,
     parse_date,
     seed_base,
+    seeded_chain,
     seeded_puzzle,
     wants_closer,
 )
@@ -59,6 +62,8 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
     ladder = ladder.at(date_str)  # that day's rules: step limit and level bands
     cfg = ladder.config
     band = level_band(level, cfg)
+    if is_chain(cfg):
+        return make_chain_puzzle(ladder, day, level, band, recent, client_factory, log)
     closer = (f", closer first moves {band.get('minCloserFirstMoves', 0)}-"
               f"{band.get('maxCloserFirstMoves', 'any')}" if wants_closer(band) else "")
     log(f"{date_str} {band['label']}: par {band['par']}, "
@@ -100,6 +105,54 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         # step follows (AI puzzles only). The browser re-checks the route.
         "route": shown_route(ladder, start, goal),
         "reasons": reasons,
+    }
+
+
+def make_chain_puzzle(ladder: Ladder, day: date, level: str, band: dict, recent: set[str],
+                      client_factory, log=print) -> dict:
+    """Chain eras: one fixed chain, one answer per rung. AI first (it writes
+    the reasons, clues and link kinds), seeded chain on any failure."""
+    import openai
+
+    from ai_suggest import AIUnavailable, ai_chain
+
+    date_str, cfg = day.isoformat(), ladder.config
+    log(f"{date_str} {band['label']}: chain of {band['par']} steps, links in the top "
+        f"{band['maxRank']}, {band.get('lateral', [0, 0])[0]}-{band.get('lateral', [0, 0])[1]} lateral")
+    try:
+        if client_factory is None:
+            raise AIUnavailable("AI disabled (--no-ai)")
+        chain, _ = ai_chain(ladder, date_str, band, recent, client_factory(), log)
+        words, reasons, clues, kinds = chain.words, chain.reasons, chain.clues, chain.kinds
+        theme, teaser, source = chain.theme, chain.teaser, "ai"
+    except (AIUnavailable, openai.OpenAIError) as e:
+        log(f"  falling back to a seeded chain: {type(e).__name__}: {e}")
+        if client_factory is not None and os.environ.get("GITHUB_ACTIONS"):
+            print(f"::warning title=Seeded fallback for {date_str} {level}::{type(e).__name__}: {e}")
+        words, _, attempt = seeded_chain(ladder, seed_base(date_str, level), band)
+        log(f"  seeded attempt {attempt}: {' -> '.join(words)}")
+        # Seeded chains: reasons from ConceptNet relations; the browser makes
+        # clues from the word map; no kinds.
+        reasons, clues, kinds = chain_reasons(ladder, words), [], []
+        theme, teaser, source = SEEDED_THEME, "", "seeded"
+    return {
+        "date": date_str,
+        "gameNumber": game_number(day, parse_date(cfg["launchDate"])),
+        "level": level,
+        "mode": "chain",
+        "start": words[0],
+        "goal": words[-1],
+        "par": band["par"],
+        "theme": theme,
+        "teaser": teaser,
+        "source": source,
+        "graphVersion": cfg["graphVersion"],
+        "stepLimit": cfg["stepLimit"],
+        "twoWay": bool(cfg.get("twoWay")),
+        "route": words,
+        "reasons": reasons,
+        "clues": clues,
+        "kinds": kinds,
     }
 
 

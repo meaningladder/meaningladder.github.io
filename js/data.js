@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
-import { buildReverse } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { buildReverse, checkedChain } from "./logic.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, chainReasons, cutNeighbors, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededChain, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -31,15 +31,19 @@ async function getRows(url, count, width) {
 }
 
 // ConceptNet relations between GloVe neighbors (scripts/build_relations.py):
-// a Set of relKey(u, v). About 120 KB, cached by name like the graph.
+// a Map relKey(u, v) -> relation name ("IsA"...), which seeded chains turn
+// into reasons. About 120 KB, cached by name like the graph.
 async function loadRelations(v) {
   const header = await getJson(`data/relations_v${v}.json`);
   const res = await fetch(`data/relations_v${v}.bin`);
   if (!res.ok) throw new Error(`relations: HTTP ${res.status}`);
   const view = new DataView(await res.arrayBuffer());
-  const set = new Set();
-  for (let i = 0; i < header.count; i++) set.add(relKey(view.getUint16(4 * i, true), view.getUint16(4 * i + 2, true)));
-  return set;
+  const n = header.count;
+  const map = new Map();
+  for (let i = 0; i < n; i++) {
+    map.set(relKey(view.getUint16(4 * i, true), view.getUint16(4 * i + 2, true)), header.relations[view.getUint8(4 * n + i)]);
+  }
+  return map;
 }
 
 // The word map, in two parts. The head (each word's 20 closest words,
@@ -177,14 +181,23 @@ export async function loadDailyPuzzle(base, dateStr, level) {
   await ensureWidth(base, rulesFor(base.config, dateStr).stepLimit ?? DEFAULT_STEP_LIMIT);
   const ladder = ladderAt(base, dateStr);
   const { config } = ladder;
+  const chain = config.mode === "chain";
   try {
     const p = await getJson(`puzzles/${dateStr}-${level}.json`);
-    if (p.graphVersion === config.graphVersion && ladder.index.has(p.start) && ladder.index.has(p.goal)) {
+    if (p.graphVersion === config.graphVersion && ladder.index.has(p.start) && ladder.index.has(p.goal)
+        && (!chain || (p.mode === "chain" && checkedChain(p, ladder)))) {
       return p;
     }
     console.warn("Puzzle file doesn't match this word map; using the seeded puzzle.", p);
   } catch (err) {
     if (err.status !== 404) console.warn("Couldn't load puzzle file; using the seeded puzzle.", err);
+  }
+  if (chain) {
+    return {
+      date: dateStr, level, gameNumber: gameNumber(dateStr, config.launchDate),
+      ...seededChainFields(ladder, seedBase(dateStr, level), levelBand(level, config)),
+      theme: "Daily ladder", teaser: "", source: "seeded",
+    };
   }
   const s = seededPuzzle(ladder, seedBase(dateStr, level), levelBand(level, config));
   return {
@@ -203,11 +216,29 @@ export async function makePracticePuzzle(base, level) {
   const ladder = ladderAt(base, null);
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   const band = levelBand(level, ladder.config);
+  if (ladder.config.mode === "chain") {
+    return {
+      date: null, gameNumber: null, level, ...seededChainFields(ladder, `practice-${seed}`, band),
+      theme: "Unlimited ladder", teaser: `Level: ${band.label}.`, source: "practice",
+    };
+  }
   const s = seededPuzzle(ladder, `practice-${seed}`, band);
   return {
     date: null, gameNumber: null, level, start: s.start, goal: s.goal, par: s.par,
     theme: "Unlimited ladder", teaser: `Level: ${band.label}.`, source: "practice",
     graphVersion: ladder.config.graphVersion, stepLimit: ladder.config.stepLimit, twoWay: Boolean(ladder.config.twoWay),
+  };
+}
+
+// A seeded chain as puzzle fields (the same ones generate_puzzle.py writes
+// for a seeded chain day): reasons from ConceptNet, clues made in the game.
+function seededChainFields(ladder, seed, band) {
+  const { route } = seededChain(ladder, seed, band);
+  const { config } = ladder;
+  return {
+    mode: "chain", start: route[0], goal: route[route.length - 1], par: band.par,
+    route, reasons: chainReasons(ladder, route), clues: [], kinds: [],
+    graphVersion: config.graphVersion, stepLimit: config.stepLimit, twoWay: Boolean(config.twoWay),
   };
 }
 

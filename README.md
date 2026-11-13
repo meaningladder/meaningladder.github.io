@@ -20,14 +20,28 @@ under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
 |---|---|---|---|---|
 | 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
 | 2026-11-13 | top 10, links both ways | par 4, 3+ good first moves | par 5, 3+ good first moves | par 6 |
-| 2026-11-15 | same as Nov 13 | + 2+ related steps | + 3+ related steps | + 3+ related steps |
+| 2026-11-15 | **chain**: one answer per rung | 5 steps, links in each other's top 10, all everyday | 5 steps, top 20, 1-2 lateral links | 5 steps, top 40, 2-3 lateral links |
+
+**Chain ladders (from 2026-11-15, `"mode": "chain"`).** Every ladder is one
+fixed chain of 6 words (`route` in the puzzle file). The start and goal are
+shown; each of the 4 hidden words shows only its first letter and length, and
+only that word counts. Solving a rung shows why it links (`reasons`); a hint
+gives the AI's clue (`clues`), then the word. Difficulty is how obvious the
+links are, not how long the ladder is: the AI labels each link `everyday` or
+`lateral` (a second meaning, a set phrase, a cultural link), and the code
+checks each link's GloVe rank against the level's `maxRank` and that no other
+close word fits a hidden rung's pattern (`validate_chain` in
+`scripts/ladder_core.py`). Medals allow wrong guesses (`medalSlack`: gold up to
+2 moves over the 4 hidden words). Without the AI, `seeded_chain` (and
+`seededChain` in the browser, for missing files and Unlimited) builds a chain
+from common start/goal-pool words with reasons from ConceptNet relations.
 
 A "related step" is a step that ConceptNet also links with a real relation
 (cafe IS A restaurant, coal IS USED FOR fuel; `data/relations_v1.*`, built by
-`make relations`). From Nov 15 each puzzle must have a shortest route with that
-many related steps. Relations never decide whether a typed word counts: they
-pick puzzles and choose the route the game shows (signpost, hints, give-up),
-always a shortest one, so par is unchanged. ConceptNet alone was measured too
+`make relations`). Relations never decide whether a typed word counts on an
+open ladder: they choose the route the game shows (signpost, hints, give-up),
+always a shortest one, so par is unchanged. Chains use them for Easy (2+
+related steps) and for seeded reasons. ConceptNet alone was measured too
 hub-heavy (everything via person, city, car) and too sparse to be the rule.
 
 A "good first move" is one of the start's legal steps that is one step closer
