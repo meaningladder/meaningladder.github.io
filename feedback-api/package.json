@@ -1,0 +1,7 @@
+{
+  "name": "meaning-ladder-feedback",
+  "private": true,
+  "type": "module",
+  "description": "Files in-game feedback as GitHub issues for meaningladder.github.io",
+  "engines": { "node": ">=20" }
+}

@@ -16,7 +16,7 @@ import {
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
   betterMedal, checkedRoute, upOneRung, trimToStepsUp, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK, chainGuess, chainShareText, closenessLabel,
-  FEEDBACK_KINDS, FEEDBACK_MAX, feedbackUrl,
+  FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
 import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
@@ -250,34 +250,76 @@ function feedbackContext(state) {
     `Status: ${state.status}, ${state.moves ?? 0} moves`];
 }
 
-// No server: "Continue on GitHub" opens the repo's feedback issue form, filled
-// in. `context` names the game the player is on (no words, so no spoilers).
+// "Send" posts to a small Vercel function (feedback-api/) that holds the
+// GitHub key and files the issue, so players need no account. If it can't be
+// reached, the old way still works: a pre-filled GitHub issue in a new tab.
+// `context` names the game the player is on (no words, so no spoilers).
 const FEEDBACK_REPO = "meaningladder/meaningladder.github.io";
+const FEEDBACK_API = "https://meaning-ladder-feedback.vercel.app/api/feedback";
 
 function showFeedback(context = []) {
+  const openedAt = Date.now();
   const kind = h("select", { id: "fb-kind" },
     FEEDBACK_KINDS.map((k) => h("option", { value: k }, k)));
   const text = h("textarea", { id: "fb-text", rows: 5, maxlength: FEEDBACK_MAX,
     placeholder: "What happened, or what would make the game better?" });
+  // Honeypot: hidden from people (and screen readers); bots fill it in.
+  const trap = h("input", { type: "text", name: "website", tabindex: "-1", autocomplete: "off", "aria-hidden": "true", class: "fb-trap" });
   const hint = h("p", { class: "fb-error", "aria-live": "polite" });
   const info = [...context, `Browser: ${navigator.userAgent}`];
-  openDialog("Send feedback", h("div", { class: "fb" },
+  const form = h("div", { class: "fb" },
     h("label", { for: "fb-kind" }, "What is it about?"), kind,
-    h("label", { for: "fb-text" }, "Your feedback"), text, hint,
-    h("p", { class: "sub" }, "This opens a GitHub issue in a new tab (a free account is needed). ",
-      "Issues are public, so please don't write today's answers."),
+    h("label", { for: "fb-text" }, "Your feedback"), text, trap, hint,
+    h("p", { class: "sub" }, "Sent as a public GitHub issue (no account needed). Please don't write today's answers."),
     h("details", { class: "fb-context" }, h("summary", {}, "Also sent"),
-      h("p", {}, info.join("\n")))),
-  [["Cancel", null],
-    ["Continue on GitHub", () => {
-      const url = feedbackUrl(FEEDBACK_REPO, { kind: kind.value, text: text.value, context: info });
-      window.open(url, "_blank", "noopener");
-    }, true, () => {
-      if (text.value.trim()) return true;
+      h("p", {}, info.join("\n"))));
+  const onGitHub = () => window.open(feedbackUrl(FEEDBACK_REPO, { kind: kind.value, text: text.value, context: info }), "_blank", "noopener");
+  let sending = false;
+  const dlg = openDialog("Send feedback", form, [["Cancel", null], ["Send", null, true, () => {
+    if (sending) return false;
+    if (!text.value.trim()) {
       hint.textContent = "Write a few words first.";
       text.focus();
       return false;
-    }]]);
+    }
+    send();
+    return false; // stays open: send() shows the result
+  }]]);
+  const [cancelBtn, sendBtn] = dlg.querySelectorAll(".dialog-actions button");
+
+  async function send() {
+    sending = true;
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Sending…";
+    hint.textContent = "";
+    let res = null, data = null;
+    try {
+      res = await fetch(FEEDBACK_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(feedbackPayload({ kind: kind.value, text: text.value, context: info, website: trap.value, openMs: Date.now() - openedAt })),
+      });
+      data = await res.json().catch(() => null);
+    } catch {
+      /* offline, blocked, or the function is down */
+    }
+    sending = false;
+    if (res?.ok && data?.ok) {
+      form.replaceChildren(h("p", {}, "Thanks! ",
+        data.number ? ["Sent as ", h("a", { href: data.url, target: "_blank", rel: "noopener" }, `issue #${data.number}`), "."] : "Your feedback was sent."));
+      sendBtn.remove();
+      cancelBtn.textContent = "Close";
+      return;
+    }
+    // A clear reason from the function (too quick, too long...) is shown as is;
+    // anything else offers GitHub instead.
+    const reason = res && res.status < 500 && res.status !== 403 ? data?.error : null;
+    if (reason) hint.replaceChildren(reason);
+    else hint.replaceChildren("Couldn't send right now. ",
+      h("button", { type: "button", class: "link-btn", onClick: onGitHub }, "Send on GitHub instead"));
+    sendBtn.disabled = false;
+    sendBtn.textContent = "Send";
+  }
 }
 
 function statsRow(s) {

@@ -3,7 +3,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { FEEDBACK_KINDS, FEEDBACK_MAX, feedbackUrl } from "../../js/logic.js";
+import { FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl } from "../../js/logic.js";
+
+test("the payload the game posts is trimmed and capped", () => {
+  const p = feedbackPayload({ kind: "nope", text: "  hi  ", context: ["a", null, "b".repeat(400), 1, 2, 3, 4, 5], openMs: 4999.6 });
+  assert.equal(p.kind, "Something else");
+  assert.equal(p.text, "hi");
+  assert.equal(p.context.length, 6);
+  assert.equal(p.context[1].length, 300);
+  assert.equal(p.website, "");
+  assert.equal(p.openMs, 5000);
+  assert.equal(feedbackPayload({ text: "x" }).openMs, 0);
+  assert.equal(feedbackPayload({ kind: FEEDBACK_KINDS[1], text: "x".repeat(5000) }).text.length, FEEDBACK_MAX);
+});
 
 const REPO = "meaningladder/meaningladder.github.io";
 

@@ -979,3 +979,17 @@ export function feedbackUrl(repo, { kind, text, context = [] }) {
   });
   return `https://github.com/${repo}/issues/new?${params}`;
 }
+
+// The body the game POSTs to the feedback function (feedback-api/), which
+// files the issue itself, so players need no GitHub account. `website` is the
+// hidden honeypot field (people leave it empty) and `openMs` how long the form
+// was open (the function refuses posts made within 3 seconds).
+export function feedbackPayload({ kind, text, context = [], website = "", openMs }) {
+  return {
+    kind: FEEDBACK_KINDS.includes(kind) ? kind : FEEDBACK_KINDS[3],
+    text: String(text ?? "").trim().slice(0, FEEDBACK_MAX),
+    context: context.filter(Boolean).slice(0, 6).map((x) => String(x).slice(0, 300)),
+    website: String(website ?? ""),
+    openMs: Math.max(0, Math.round(Number(openMs) || 0)),
+  };
+}
