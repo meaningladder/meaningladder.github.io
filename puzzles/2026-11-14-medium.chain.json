@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-14",
+  "gameNumber": 14,
+  "level": "medium",
+  "mode": "chain",
+  "start": "balloon",
+  "goal": "passenger",
+  "par": 5,
+  "theme": "Party to Road",
+  "teaser": "Float away, then buckle up for a ride.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "balloon",
+    "helium",
+    "gas",
+    "pedal",
+    "car",
+    "passenger"
+  ],
+  "reasons": [
+    "Party balloons are often filled with helium.",
+    "Helium is a gas.",
+    "The gas pedal controls a car's acceleration.",
+    "A car has pedals for accelerating and braking.",
+    "Someone riding in a car without driving is a passenger."
+  ],
+  "clues": [
+    "The light element used to make party decorations float.",
+    "A state of matter that expands to fill its container.",
+    "The foot-operated control paired with 'gas'.",
+    "A road vehicle with an accelerator and a brake.",
+    "A rider who is not the driver."
+  ],
+  "kinds": [
+    "everyday",
+    "everyday",
+    "lateral",
+    "everyday",
+    "everyday"
+  ]
+}

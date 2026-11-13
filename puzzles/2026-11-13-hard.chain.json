@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-13",
+  "gameNumber": 13,
+  "level": "hard",
+  "mode": "chain",
+  "start": "tree",
+  "goal": "musician",
+  "par": 5,
+  "theme": "Branches to Music",
+  "teaser": "Leave the woods, take an enormous detour, and finish with a tune.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "tree",
+    "trunk",
+    "elephant",
+    "ivory",
+    "piano",
+    "musician"
+  ],
+  "reasons": [
+    "A tree's main woody stem is its trunk.",
+    "An elephant has a trunk for breathing and grasping.",
+    "Elephant tusks are made of ivory.",
+    "Piano keys were traditionally covered with ivory.",
+    "A musician plays a piano."
+  ],
+  "clues": [
+    "The main woody stem supporting the branches.",
+    "The large animal with a long, grasping nose.",
+    "The hard material that makes up its tusks.",
+    "The keyboard instrument historically associated with this material.",
+    "A person who plays this instrument."
+  ],
+  "kinds": [
+    "everyday",
+    "lateral",
+    "everyday",
+    "lateral",
+    "everyday"
+  ]
+}
