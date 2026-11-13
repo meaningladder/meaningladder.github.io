@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  addDays, bottleneckRoute, buildReverse, GENTLE_RANK, worstRank, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
+  addDays, autoGoal, bottleneckRoute, buildReverse, GENTLE_RANK, worstRank, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
   hintStep, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, STEP_COST, upgradeMoves,
 } from "../../js/logic.js";
 
@@ -251,8 +251,8 @@ test("checkStep suggests a one-edit fix for typos, preferring legal steps", () =
   // Off the legal steps, a different first letter is no typo: "cave" is not "wave".
   assert.equal(checkStep(ladder, ["ocean", "wave", "signal", "network"], "cave").suggestion, undefined);
   assert.equal(checkStep(ladder, path, "netwrk").suggestion, "network");
-  assert.equal(checkStep(ladder, path, "networks").suggestion, "network");
-  assert.equal(checkStep(ladder, path, "keybaord").suggestion, "keyboard"); // not a legal step, still a word
+  // A plural of a legal step is no typo now: it counts as the singular.
+  assert.deepEqual(checkStep(ladder, path, "networks"), { ok: true, word: "network", note: "Counted as network." });  assert.equal(checkStep(ladder, path, "keybaord").suggestion, "keyboard"); // not a legal step, still a word
   assert.equal(checkStep(ladder, path, "waev").suggestion, undefined);      // wave is already in the path
   // Two candidates one edit away: the legal neighbor beats the more common word.
   const ws = ["cat", "cot", "dog"];
@@ -287,6 +287,39 @@ test("a form of the goal counts as the goal when that step is legal", () => {
   assert.deepEqual(checkStep(g, ["lock"], "keys", "key"), { ok: true, word: "key", note: "Counted as key." });
   assert.deepEqual(checkStep(g, ["forest"], "tree", "tree"), { ok: true, word: "tree" }); // the goal itself: no note
   assert.deepEqual(checkStep(g, ["forest"], "trees"), { ok: true, word: "trees" });       // no goal given: old behavior
+});
+
+test("a plural counts as its singular when the singular is the legal step", () => {
+  const ws = ["sea", "ship", "ships", "box", "crate", "glass", "cup", "tow", "tower", "rope"];
+  const I = Object.fromEntries(ws.map((w, i) => [w, i]));
+  const nb = ws.map(() => []);
+  nb[I.sea] = [I.ship];
+  nb[I.crate] = [I.box];
+  nb[I.cup] = [I.glass];
+  nb[I.rope] = [I.tow];
+  const g = { words: ws, index: new Map(ws.map((w, i) => [w, i])), neighbors: nb };
+  const counted = (w) => ({ ok: true, word: w, note: `Counted as ${w}.` });
+  assert.deepEqual(checkStep(g, ["sea"], "Ships"), counted("ship"));      // in the list, but not a legal step
+  assert.deepEqual(checkStep(g, ["crate"], "boxes"), counted("box"));     // not in the list at all
+  assert.deepEqual(checkStep(g, ["cup"], "glasses"), counted("glass"));
+  assert.deepEqual(checkStep(g, ["sea"], "ship"), { ok: true, word: "ship" }); // the singular itself: no note
+  // Only plural endings: "tower" is a word of its own, not a form of "tow".
+  assert.match(checkStep(g, ["rope"], "tower").error, /isn't one of rope's/);
+  // The singular must still be a fresh step.
+  assert.match(checkStep(g, ["sea", "ship", "crate"], "ships").error, /isn't one of crate's/);
+  assert.match(checkStep(g, ["box", "crate"], "boxes").error, /isn't in our 10-word list/);
+  // Forms of the goal keep their own rule.
+  assert.match(checkStep(g, ["crate"], "ships", "ship").error, /form of the goal ship/);
+});
+
+test("autoGoal: the ladder finishes itself once the goal is a legal step", () => {
+  assert.equal(autoGoal(ladder, "network", "computer"), true);
+  assert.equal(autoGoal(ladder, "keyboard", "computer"), true);
+  assert.equal(autoGoal(ladder, "signal", "computer"), false);  // two steps away
+  assert.equal(autoGoal(ladder, "computer", "network"), true);   // computer lists network
+  assert.equal(autoGoal(ladder, "network", "signal"), false);    // edges are one-way
+  assert.equal(autoGoal(ladder, "computer", "computer"), false); // already there
+  assert.equal(autoGoal(ladder, "zzzz", "computer"), false);
 });
 
 test("formOf spots regular inflections and long shared prefixes", () => {

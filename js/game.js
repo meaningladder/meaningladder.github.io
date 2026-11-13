@@ -10,7 +10,7 @@
 
 import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, readyFor, store } from "./data.js";
 import {
-  addDays, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
+  addDays, autoGoal, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
@@ -167,7 +167,7 @@ async function showHelp(k = null, twoWay = null, mode = null) {
   // Four rules, nothing else: players who read a long list still got lost.
   openDialog("How to play", h("div", {},
     h("ol", { class: "rules" },
-      h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
+      h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time. Reach the rung just below the goal and the ladder finishes itself."),
       h("li", {}, `Each word must be close in meaning to the one before it (${twoWayHelp ? `either word among the other's ${k} closest` : `one of its ${k} closest words`}).${eraNote}`),
       h("li", {}, "Each word is a rung. A word one step closer lifts you one rung. A word that isn't closer keeps you level or drops you down."),
       h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it. A hint costs one move: first a clue, then the word if you ask again. Reach the goal in ",
@@ -657,8 +657,21 @@ function playView(ladder, state, saveKey, date, classic = "") {
     countedNote = res.note ?? null;
     input.value = "";
     if (res.word === puzzle.goal) finish("won");
+    else autoFinish(res.note);
     save();
     update();
+  }
+
+  // One rung below the goal, the goal is a legal step: climb it for the
+  // player. It still costs the move typing it would, so medals don't change.
+  function autoFinish(note = null) {
+    const current = state.path[state.path.length - 1];
+    if (state.status !== "playing" || !autoGoal(ladder, current, puzzle.goal)) return false;
+    state.path.push(puzzle.goal);
+    state.moves++;
+    countedNote = `${note ? `${note} ` : ""}${current} leads straight to ${puzzle.goal}.`;
+    finish("won");
+    return true;
   }
 
   function undo() {
@@ -1045,6 +1058,9 @@ function playView(ladder, state, saveKey, date, classic = "") {
     }
   }
 
+  // A save from before auto-finish can sit one rung below the goal: finish it
+  // now. Not on a fresh ladder, where the start itself is the word to leave.
+  if (state.path.length > 1 && autoFinish()) save();
   update();
   resolveRanks(); // ranks still pending from before a refresh
   if (state.status === "playing") input.focus();

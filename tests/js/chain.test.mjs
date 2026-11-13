@@ -20,6 +20,14 @@ test("only the rung's word counts; forms and typos of it do too", () => {
   assert.equal(tinker.near, false);
 });
 
+test("a plural counts for its singular and a singular for its plural", () => {
+  assert.equal(chainGuess(ladder, "ships", "ship", "tanker").note, "Counted as ship.");
+  assert.equal(chainGuess(ladder, "truck", "trucks", "jeep").note, "Counted as trucks.");
+  assert.equal(chainGuess(ladder, "box", "boxes", "jeep").note, "Counted as boxes.");
+  // A shorter relative is another word, even with a shared start.
+  assert.equal(chainGuess(ladder, "tank", "tanker", "truck").ok, false);
+});
+
 test("a fitting wrong guess costs a move and says if it was close", () => {
   const r = chainGuess(ladder, "turkey", "tanker", "truck");
   assert.deepEqual(r, { ok: false, wrong: true, word: "turkey", near: true });

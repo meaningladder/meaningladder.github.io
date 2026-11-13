@@ -260,6 +260,12 @@ export function checkStep(ladder, path, typed, goal = null) {
     }
     return { ok: false, error: `${word} is a form of the goal ${goal}: you'll need to reach ${goal} itself.` };
   }
+  // "ships" when "ship" is the legal step: a plural means the same thing, so
+  // count it as the singular instead of rejecting it.
+  if (!isLegal(ladder, path, word)) {
+    const single = singularStep(ladder, path, word);
+    if (single) return { ok: true, word: single, note: `Counted as ${single}.` };
+  }
   if (!ladder.index.has(word)) {
     const suggestion = didYouMean(ladder, path, word);
     if (suggestion) return { ok: false, error: `Did you mean ${suggestion}?`, suggestion };
@@ -280,6 +286,27 @@ export function checkStep(ladder, path, typed, goal = null) {
   return { ok: true, word };
 }
 
+// Would `word` be accepted as is: a known word, new to the path, and one of
+// the current word's legal steps?
+function isLegal(ladder, path, word) {
+  const cur = ladder.index.get(path[path.length - 1]), idx = ladder.index.get(word);
+  return idx !== undefined && cur !== undefined && !path.includes(word) && ladder.neighbors[cur].includes(idx);
+}
+
+// The singular of a plural `word` when that is a legal next step, else null.
+// Plural endings only: "tower" is not a form of "tow", nor "player" of "play".
+function singularStep(ladder, path, word) {
+  for (const base of baseForms(word, PLURAL)) if (isLegal(ladder, path, base)) return base;
+  return null;
+}
+
+// Should an open ladder finish by itself? True when the goal is one of the
+// current word's legal steps: typing it then is a chore, not a choice.
+export function autoGoal(ladder, current, goal) {
+  const cur = ladder.index.get(current), g = ladder.index.get(goal);
+  return cur !== undefined && g !== undefined && current !== goal && ladder.neighbors[cur].includes(g);
+}
+
 // Regular English inflection endings, as [ending, replacement]: a rough
 // stand-in for WordNet's morphy (which the Python side uses to drop these
 // links). Irregulars like mice/mouse are not covered.
@@ -289,12 +316,15 @@ const DETACH = [
   ["ied", "y"], ["ed", "e"], ["ed", ""], ["ing", "e"], ["ing", ""],
   ["ier", "y"], ["iest", "y"], ["er", "e"], ["er", ""], ["est", "e"], ["est", ""],
 ];
+// The noun-plural endings of DETACH (everything before "ied").
+const PLURAL = DETACH.slice(0, DETACH.findIndex(([end]) => end === "ied"));
 
 // Possible base forms of `w` by stripping one regular ending. Bases shorter
 // than 3 letters are skipped: "bed" would otherwise be a form of "be".
-function baseForms(w) {
+// The set keeps the order of `endings`, so the likeliest base comes first.
+function baseForms(w, endings = DETACH) {
   const out = new Set();
-  for (const [end, rep] of DETACH) {
+  for (const [end, rep] of endings) {
     if (!w.endsWith(end)) continue;
     const stem = w.slice(0, -end.length);
     const base = stem + rep;

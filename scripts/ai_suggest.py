@@ -141,7 +141,7 @@ def ask(client, model: str, messages: list[dict], text_format=None, instructions
         instructions=instructions or INSTRUCTIONS,
         input=messages,
         text_format=text_format or Suggestions,
-        max_output_tokens=8000,  # three chains, each with reasons and clues
+        max_output_tokens=16000,  # three chains with reasons and clues, plus reasoning (8000 ran out on Hard)
     )
     if getattr(response, "status", None) == "incomplete":
         reason = getattr(response.incomplete_details, "reason", "unknown")
