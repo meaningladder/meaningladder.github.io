@@ -267,8 +267,7 @@ function showFeedback(context = []) {
     h("p", { class: "sub" }, "This opens a GitHub issue in a new tab (a free account is needed). ",
       "Issues are public, so please don't write today's answers."),
     h("details", { class: "fb-context" }, h("summary", {}, "Also sent"),
-      h("p", {}, info.join("
-")))),
+      h("p", {}, info.join("\n")))),
   [["Cancel", null],
     ["Continue on GitHub", () => {
       const url = feedbackUrl(FEEDBACK_REPO, { kind: kind.value, text: text.value, context: info });
