@@ -36,8 +36,9 @@ rebuilt by `ladderFor` from the date's era plus the file's own `stepLimit` and
 
 **Chain ladders (from 2026-11-13, `"mode": "chain"`).** Every ladder is one
 fixed chain of 6 words (`route` in the puzzle file). The start and goal are
-shown; each of the 4 hidden words shows only its first letter and length, and
-only that word counts. Solving a rung shows why it links (`reasons`); a hint
+shown; each of the 4 hidden words shows only its length (blanks), and only
+that word counts. Each wrong guess shows how close it is to the answer (its
+rank among the answer's closest words: very close, close, warm, cold). Solving a rung shows why it links (`reasons`); a hint
 gives the AI's clue (`clues`), then the word. Difficulty is how obvious the
 links are, not how long the ladder is: the AI labels each link `everyday` or
 `lateral` (a second meaning, a set phrase, a cultural link), and the code

@@ -738,7 +738,7 @@ export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium",
   if (newest.mode === "chain" && old.mode !== "chain") {
     const par = newest.levels?.easy?.par ?? 5;
     return `From ${dayText(newest.from)}, every ladder is ${par} steps and each hidden rung has `
-      + "exactly one answer. You see its first letter and length. Solve a rung to see why it links; "
+      + "exactly one answer. You see its length, and each wrong guess shows how close it is. Solve a rung to see why it links; "
       + "a hint gives a clue, then the word.";
   }
   const was = old.stepLimit !== newest.stepLimit ? ` (it was ${old.stepLimit})` : "";
@@ -845,7 +845,8 @@ export function guideRoute(neighbors, dist, related, from) {
 
 // ------------------------------------------------------------ chain ladders
 // From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): each
-// hidden rung has one answer, shown as its first letter and length.
+// hidden rung has one answer, shown as its length; wrong guesses show how
+// close they are to it.
 
 // A puzzle file's chain, or null if it can't be played as one: par + 1 known
 // words with the right ends, one reason per step, and clues either absent
@@ -862,8 +863,18 @@ export function checkedChain(puzzle, ladder) {
   return route;
 }
 
-// "t _ _ _ _ _": the pattern shown on a hidden rung.
-export const chainPattern = (word) => [word[0], ..."_".repeat(word.length - 1)].join(" ");
+// "_ _ _ _ _ _": the pattern shown on a hidden rung, one blank per letter.
+// No first letter: wrong guesses show how close they are instead.
+export const chainPattern = (word) => [..."_".repeat(word.length)].join(" ");
+
+// How a wrong guess's closeness rank (1 = the answer's closest word) reads.
+export function closenessLabel(rank) {
+  if (typeof rank !== "number") return "";
+  if (rank <= 10) return "very close";
+  if (rank <= 50) return "close";
+  if (rank <= 300) return "warm";
+  return "cold";
+}
 
 // A guess at a hidden rung. `target` is the rung's word, `prev` the word
 // below it, `shown` the words already on screen. Returns
@@ -886,9 +897,9 @@ export function chainGuess(ladder, typed, target, prev, shown = []) {
     return { ok: false, free: true, error: `${word} isn't in our ${size}-word list.` };
   }
   if (shown.includes(word)) return { ok: false, free: true, error: `${word} is already on the ladder.` };
-  if (word[0] !== target[0] || word.length !== target.length) {
+  if (word.length !== target.length) {
     const n = target.length;
-    return { ok: false, free: true, error: `This word starts with “${target[0]}” and has ${n} letter${n === 1 ? "" : "s"}.` };
+    return { ok: false, free: true, error: `This word has ${n} letter${n === 1 ? "" : "s"}.` };
   }
   const p = ladder.index.get(prev);
   return { ok: false, wrong: true, word, near: p !== undefined && ladder.neighbors[p].includes(ladder.index.get(word)) };

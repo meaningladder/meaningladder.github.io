@@ -67,7 +67,7 @@ test("notice text is built from the eras", () => {
 test("the real config announces the November 13 chain ladders", () => {
   assert.equal(rulesNoticeText(config, fixedDay),
     "From November 13, every ladder is 5 steps and each hidden rung has exactly one answer."
-    + " You see its first letter and length. Solve a rung to see why it links; a hint gives a clue, then the word.");
+    + " You see its length, and each wrong guess shows how close it is. Solve a rung to see why it links; a hint gives a clue, then the word.");
   assert.equal(newestEra(config).from, "2026-11-13");
   assert.equal(newestEra(config).mode, "chain");
   assert.equal(classicLabel(config, "2026-11-12"), "classic rules (open ladder, top 100)");

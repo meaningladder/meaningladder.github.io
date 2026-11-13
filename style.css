@@ -443,4 +443,4 @@ a.chip:active { transform: scale(0.95); }
 .rung.chain-rung { min-height: 42px; }
 .pattern { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; font-size: var(--fs-base); font-weight: 700; color: var(--muted); }
 .rung.chain-rung.next .pattern { color: var(--text); }
-.tchip.near { border-color: var(--mid); border-width: 1.5px; }
+.tchip-note { font-weight: 600; font-size: var(--fs-xs); opacity: 0.75; margin-left: 6px; }

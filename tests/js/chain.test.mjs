@@ -2,7 +2,7 @@
 // Run: node --test tests/js/*.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chainGuess, chainPattern, chainShareText, chainSquares, checkedChain, medalFor, resultMedal } from "../../js/logic.js";
+import { chainGuess, chainPattern, closenessLabel, chainShareText, chainSquares, checkedChain, medalFor, resultMedal } from "../../js/logic.js";
 
 const words = ["jeep", "truck", "tanker", "ship", "port", "harbor", "trucks", "tank", "tinker", "turkey"];
 // truck's neighbors: tanker, tank, trucks, turkey (a word list in the ladder's shape).
@@ -35,7 +35,7 @@ test("a fitting wrong guess costs a move and says if it was close", () => {
 
 test("guesses that can't be the answer are free and say why", () => {
   const free = (t) => chainGuess(ladder, t, "tanker", "truck", ["jeep", "truck", "harbor"]);
-  assert.match(free("ship").error, /starts with “t” and has 6 letters/);
+  assert.match(free("ship").error, /This word has 6 letters/);
   assert.match(free("tank").error, /6 letters/);
   assert.match(free("zzzzzz").error, /isn't in our 10-word list/);
   assert.match(free("harbor").error, /already on the ladder/);
@@ -44,9 +44,21 @@ test("guesses that can't be the answer are free and say why", () => {
   for (const t of ["ship", "tank", "zzzzzz", "harbor", "", "t4nker"]) assert.equal(free(t).free, true);
 });
 
-test("pattern shows the first letter and one blank per other letter", () => {
-  assert.equal(chainPattern("tanker"), "t _ _ _ _ _");
-  assert.equal(chainPattern("ox"), "o _");
+test("pattern shows one blank per letter, no first letter", () => {
+  assert.equal(chainPattern("tanker"), "_ _ _ _ _ _");
+  assert.equal(chainPattern("ox"), "_ _");
+});
+
+test("a fitting guess with another first letter is a wrong guess, not a free one", () => {
+  const r = chainGuess(ladder, "harbor", "tanker", "truck", []); // 6 letters, in the list
+  assert.equal(r.wrong, true);
+});
+
+test("closeness labels for wrong guesses", () => {
+  assert.deepEqual([1, 10, 11, 50, 51, 300, 301, 5000].map(closenessLabel),
+    ["very close", "very close", "close", "close", "warm", "warm", "cold", "cold"]);
+  assert.equal(closenessLabel(null), "");
+  assert.equal(closenessLabel("?"), "");
 });
 
 test("a puzzle file's chain is used only when it is complete and consistent", () => {

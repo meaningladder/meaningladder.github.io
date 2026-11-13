@@ -15,7 +15,7 @@ import {
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
   betterMedal, checkedRoute, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
-  bottleneckRoute, GENTLE_RANK, chainGuess, chainPattern, chainShareText,
+  bottleneckRoute, GENTLE_RANK, chainGuess, chainPattern, chainShareText, closenessLabel,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
 import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
@@ -191,14 +191,14 @@ function showChainHelp(rules) {
   openDialog("How to play", h("div", {},
     h("ol", { class: "rules" },
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ` in ${par} steps. The words in between are hidden.`),
-      h("li", {}, "Each hidden word has ", h("b", {}, "one answer"), ", linked to the word below it. You see its first letter and length."),
-      h("li", {}, "Solve a rung and the ladder shows why it links. Words that don't fit the letters are free to try."),
+      h("li", {}, "Each hidden word has ", h("b", {}, "one answer"), ", linked to the word below it. You see how many letters it has."),
+      h("li", {}, "A wrong guess shows how close it is to the answer, from cold to very close. Guesses with the wrong number of letters are free. Solve a rung and the ladder shows why it links."),
       h("li", {}, "Every guess that fits the letters, and every hint, is a ", h("b", {}, "move"), `. A hint gives a clue, then the word. Find all ${par - 1} hidden words in ${par - 1 + slack[0]} moves or fewer for gold.`)),
     h("p", { class: "sub example-caption" }, "Example: jeep to port"),
     h("ol", { class: "example ladder chain" },
-      ex("port", "bar tone-goal", "goal"), ex("s _ _ _", "rung chain-rung"), ex("t _ _ _ _ _", "rung chain-rung next"),
+      ex("port", "bar tone-goal", "goal"), ex("_ _ _ _", "rung chain-rung"), ex("_ _ _ _ _ _", "rung chain-rung next"),
       ex("truck", "bar tone-near"), ex("jeep", "bar tone-near", "start")),
-    h("p", { class: "sub example-caption" }, "Truck: jeeps and trucks are both rugged road vehicles. Then a 6-letter word that starts with t…"),
+    h("p", { class: "sub example-caption" }, "Truck: jeeps and trucks are both rugged road vehicles. Then a 6-letter word: try \u201cvan\u201d? Wrong length, free. \u201ctrailer\u201d? Close, but not it\u2026"),
     h("p", { class: "sub example-caption" }, "Three new ladders every day. Easy links are everyday facts; Medium and Hard add a second meaning or two.")));
 }
 
@@ -1106,7 +1106,9 @@ function playView(ladder, state, saveKey, date, classic = "") {
 // ------------------------------------------------------------ chain ladders
 // From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): the
 // start and goal are shown, and each hidden rung has exactly one answer,
-// shown as its first letter and length. Solving a rung shows why it links.
+// shown as its length. Each wrong guess shows how close it is to the answer
+// (the same ranks as the open ladder's Tried list). Solving a rung shows why
+// it links.
 // state.rungs[k] is the k-th hidden word: { misses: [words], hint: 0-2,
 // solved, revealed }. Moves: every fitting wrong guess and every hint.
 function newChainState(kind, puzzle) {
@@ -1202,9 +1204,10 @@ function chainView(ladder, state, saveKey, date, classic = "") {
       state.moves++;
       error = null;
       const r = state.rungs[k];
-      r.misses = r.misses.filter((m) => m.word !== res.word).concat([{ word: res.word, near: res.near }]);
+      r.misses = r.misses.filter((m) => m.word !== res.word).concat([{ word: res.word, rank: null, family: false }]);
       justMissed = true;
       input.select();
+      resolveRanks(k);
     } else {
       error = res.error; // free: no move
       input.select();
@@ -1282,13 +1285,40 @@ function chainView(ladder, state, saveKey, date, classic = "") {
       out.push(h("li", { class: `rung chain-rung${next ? " next" : ""}`, "aria-current": next ? "step" : null },
         srOnly(`Rung ${k + 1}${next ? ", your next word" : ", hidden"}: `),
         h("span", { class: "pattern", "aria-hidden": "true" }, chainPattern(word)),
-        srOnly(`starts with ${word[0]}, ${word.length} letters`),
+        srOnly(`${word.length} letters`),
         h("span", { class: "num" }, `${word.length} letters`)));
     }
     out.push(h("li", { class: "bar tone-near passed", style: "--fill:100%" }, srOnly("Rung 0, the start: "),
       h("span", {}, puzzle.start, h("span", { class: "tag" }, "start"))));
     justSolved = -1;
     return out;
+  }
+
+  // How close each wrong guess is to the rung's answer: its rank among the
+  // answer's closest words (exact up to #100 from the map, estimated from the
+  // word vectors beyond that). Loaded on the first wrong guess.
+  let scoreCache = { at: -1, scores: null };
+  async function resolveRanks(k) {
+    const r = state.rungs[k];
+    if (!r?.misses.some((m) => m.rank == null && !m.family)) return;
+    let vectors;
+    try {
+      [vectors] = await Promise.all([loadVectors(), ladder.loadFull?.()]);
+    } catch (err) {
+      console.warn("Couldn't load word vectors for ranks.", err);
+      r.misses.forEach((m) => { if (m.rank == null && !m.family) m.rank = "?"; });
+      update();
+      return;
+    }
+    const to = ladder.index.get(chain[k + 1]);
+    if (scoreCache.at !== to) scoreCache = { at: to, scores: scoresFrom(vectors, to) };
+    for (const m of r.misses) {
+      if (m.rank != null || m.family) continue;
+      const from = ladder.index.get(m.word);
+      Object.assign(m, displayRank(ladder, to, from, rankOf(scoreCache.scores, to, from)));
+    }
+    save();
+    update();
   }
 
   function renderTried(k, playing) {
@@ -1298,10 +1328,16 @@ function chainView(ladder, state, saveKey, date, classic = "") {
     const latest = r.misses[r.misses.length - 1];
     tried.replaceChildren(
       h("span", { class: "tried-head" }, "Not it:"),
-      h("ol", { class: "tchips" }, r.misses.map((m) => h("li", {
-        class: `tchip${m.near ? " near" : ""}${m === latest ? " latest" : ""}${m === latest && justMissed ? " enter" : ""}`,
-        title: m.near ? `Close to ${below(k)}, but not this one` : "Not this one" },
-        m.word, m.near ? srOnly(", close but not this one") : null))));
+      h("ol", { class: "tchips" }, triedOrder(r.misses).map((m) => {
+        const known = typeof m.rank === "number";
+        const label = m.family ? "same word family" : closenessLabel(m.rank);
+        const tip = m.family ? "A form of the answer's word family" : known ? `#${m.rank.toLocaleString()} closest to the answer` : "";
+        return h("li", {
+          class: `tchip${m === latest ? " latest" : ""}${m === latest && justMissed ? " enter" : ""}`,
+          style: `--fill:${known ? rankFill(m.rank) : 0}%`, title: tip },
+          m.word, label ? h("span", { class: "tchip-note" }, label) : null,
+          tip ? srOnly(`, ${tip}`) : null);
+      })));
     justMissed = false;
   }
 
@@ -1325,10 +1361,10 @@ function chainView(ladder, state, saveKey, date, classic = "") {
       else if (r.hint === 1) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), clueLine(k)));
       else if (note) feedback.replaceChildren(h("p", { class: "muted" }, note));
       else if (lastSolved >= 0 && state.rungs[lastSolved].solved && !r.misses.length) {
-        feedback.replaceChildren(h("p", { class: "muted" }, `Yes! Now the word after ${below(k)}: ${target.length} letters, starts with “${target[0]}”.`));
+        feedback.replaceChildren(h("p", { class: "muted" }, `Yes! Now the word after ${below(k)}: ${target.length} letters.`));
       } else {
         feedback.replaceChildren(h("p", { class: "muted" },
-          `Which word comes after ${below(k)}? ${target.length} letters, starts with “${target[0]}”.`));
+          `Which word comes after ${below(k)}? ${target.length} letters.`));
       }
     }
     renderWin();
@@ -1377,6 +1413,7 @@ function chainView(ladder, state, saveKey, date, classic = "") {
   }
 
   update();
+  if (state.status === "playing") resolveRanks(rungNow()); // ranks still pending from before a refresh
   if (state.status === "playing") input.focus();
   showIntro();
 }
