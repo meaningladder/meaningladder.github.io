@@ -498,3 +498,7 @@ Tradeoff to remember: less freedom. Open ladders rewarded creative routes;
 chains reward finding *the* route. The old days stay playable as "classic rules
 (open ladder)", so both versions can be compared on real players.
 
+
+Update: the signpost (a free guide word on a middle rung of open ladders) was
+later removed. Chain ladders made it redundant, and the page reads simpler
+without it; hints still follow the same shown route.

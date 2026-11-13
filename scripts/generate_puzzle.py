@@ -101,7 +101,7 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         "graphVersion": cfg["graphVersion"],
         "stepLimit": cfg["stepLimit"],
         "twoWay": bool(cfg.get("twoWay")),
-        # The route the game shows (signpost, hints, give-up), and why each
+        # The route the game shows (hints, give-up), and why each
         # step follows (AI puzzles only). The browser re-checks the route.
         "route": shown_route(ladder, start, goal),
         "reasons": reasons,

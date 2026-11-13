@@ -39,7 +39,7 @@ from common start/goal-pool words with reasons from ConceptNet relations.
 A "related step" is a step that ConceptNet also links with a real relation
 (cafe IS A restaurant, coal IS USED FOR fuel; `data/relations_v1.*`, built by
 `make relations`). Relations never decide whether a typed word counts on an
-open ladder: they choose the route the game shows (signpost, hints, give-up),
+open ladder: they choose the route the game shows (hints, give-up),
 always a shortest one, so par is unchanged. Chains use them for Easy (2+
 related steps) and for seeded reasons. ConceptNet alone was measured too
 hub-heavy (everything via person, city, car) and too sparse to be the rule.

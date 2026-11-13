@@ -175,7 +175,6 @@ async function showHelp(k = null, twoWay = null, mode = null) {
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
     h("ol", { class: "example ladder" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
       ex("ocean", 4, { isStart: true })),
-    h("p", { class: "sub example-caption" }, "The signpost on the ladder is one word from a route, to guide you. You don't have to use it."),
     h("p", { class: "sub example-caption" }, "Three new ladders every day: Easy, Medium and Hard."))
   );
 }
@@ -698,13 +697,10 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // Deterministic, so revisiting the word shows the same hint.
   function hintLine(current, tier) {
     if (stepsTo(current) < 0 || !tier) return `There's no way to ${puzzle.goal} from ${current}. Undo to go back.`;
-    // While you're on the signpost's route, hint along it, so the hint and
-    // the signpost never point two different ways.
-    if (signpost === undefined) signpost = findSignpost();
+    // Hints follow the route the game shows (bestRoute), so they agree with
+    // the give-up route and the result card.
     const cur = ladder.index.get(current);
-    const onGuide = signpost ? signpost.route.indexOf(cur) : -1;
-    const next = onGuide >= 0 ? signpost.route[onGuide + 1]
-      : bestRoute(cur)?.[1] ?? hintStep(ladder.neighbors, dist, costs(), cur);
+    const next = bestRoute(cur)?.[1] ?? hintStep(ladder.neighbors, dist, costs(), cur);
     if (tier >= 2) return `Try “${ladder.words[next]}”.`;
     return clueText(clueFor(ladder, state.path, next, puzzle.goal));
   }
@@ -841,12 +837,6 @@ function playView(ladder, state, saveKey, date, classic = "") {
       el.prepend(prefix);
       return el;
     }
-    // The signpost: one word from a route, shown for free on a middle rung so
-    // a long ladder has a visible direction. A guide only; any route works.
-    if (playing && signpost && row.rung === signpost.rung) {
-      return h("li", { class: "rung signpost" }, srOnly(`Rung ${row.rung} of ${puzzle.par}, signpost, a word on one route: `),
-        h("span", {}, signpost.word, h("span", { class: "tag" }, "signpost")), h("span", { class: "num" }, `${row.d} to go`));
-    }
     const g = ghost.get(row.rung);
     if (g) {
       return h("li", { class: "rung ghost" }, prefix,
@@ -872,10 +862,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
       { duration: 280, easing: "cubic-bezier(0.16, 1, 0.3, 1)" });
   }
 
-  // Never rung 1 (that would hand over the first step), and nothing on
-  // ladders too short to need one. Lazy: it needs the route costs.
-  let signpost;
-  // The route the game shows (signpost, hints, give-up): a shortest route
+  // The route the game shows (hints, give-up): a shortest route
   // whose steps are most often real ConceptNet relations, else the one with
   // the strongest weakest link.
   // The puzzle file's own route comes first: the AI checked that every step
@@ -892,15 +879,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
       ?? bottleneckRoute(ladder.neighbors, dist, from)?.route ?? null;
   }
 
-  function findSignpost() {
-    const rung = Math.max(2, Math.floor(puzzle.par / 2));
-    if (puzzle.par < 3 || rung >= puzzle.par) return null;
-    const route = bestRoute(ladder.index.get(puzzle.start));
-    return route ? { rung, word: ladder.words[route[rung]], route } : null;
-  }
-
   function renderLadder(playing) {
-    if (signpost === undefined) signpost = findSignpost();
     const prevTop = app.querySelector('[aria-current="step"]')?.getBoundingClientRect().top ?? null;
     const dists = state.path.map(stepsTo);
     const lad = ladderRows(dists, puzzle.par);
