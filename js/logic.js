@@ -853,6 +853,20 @@ export function upOneRung(dist, curIdx, wordIdx) {
   return a > 0 && b >= 0 && b === a - 1;
 }
 
+// In-progress saves from before that rule can still hold a level or downward
+// word, which moved the ladder. Cut the path back to just before the first
+// such word, as if Undo had been pressed (moves already counted stay counted).
+// Cutting at the first bad step, not skipping it, keeps every later step legal.
+export function trimToStepsUp(state, dist, index) {
+  const p = state.path;
+  let k = 1;
+  while (k < p.length && upOneRung(dist, index.get(p[k - 1]), index.get(p[k]))) k++;
+  if (k === p.length) return false;
+  state.path = p.slice(0, k);
+  if (state.tried && state.tried.at !== state.path[k - 1]) state.tried = null;
+  return true;
+}
+
 // ------------------------------------------------------------ chain ladders
 // From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): each
 // hidden rung has one answer, shown as its length; wrong guesses show how

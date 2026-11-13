@@ -612,3 +612,18 @@ test("open ladders: only a word one rung closer counts (grandmother = son)", asy
   assert.equal(upOneRung(dist, 3, 1), false);  // already at the goal
 });
 
+
+test("old saves: a same-rung word is wound back off the ladder", async () => {
+  const { trimToStepsUp } = await import("../../js/logic.js");
+  const words = ["a", "b", "c", "d", "e"];
+  const index = new Map(words.map((w, i) => [w, i]));
+  const dist = [3, 2, 2, 1, 0]; // b and c share a rung
+  const s = { path: ["a", "b", "c", "d"], moves: 3, tried: { at: "d", items: [] } };
+  assert.equal(trimToStepsUp(s, dist, index), true);
+  assert.deepEqual(s.path, ["a", "b"]);   // cut before "c", not skipped past it
+  assert.equal(s.moves, 3);               // moves already played stay counted
+  assert.equal(s.tried, null);            // that Tried list was for another word
+  const ok = { path: ["a", "b", "d", "e"], moves: 3 };
+  assert.equal(trimToStepsUp(ok, dist, index), false);
+  assert.deepEqual(ok.path, ["a", "b", "d", "e"]);
+});

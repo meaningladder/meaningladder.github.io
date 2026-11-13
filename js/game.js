@@ -14,7 +14,7 @@ import {
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, checkedRoute, upOneRung, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, checkedRoute, upOneRung, trimToStepsUp, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK, chainGuess, chainPattern, chainShareText, closenessLabel,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -607,6 +607,9 @@ function playView(ladder, state, saveKey, date, classic = "") {
   const goalIdx = ladder.index.get(puzzle.goal);
   const dist = distancesToGoal(ladder.reverse, ladder.words.length, goalIdx);
   const stepsTo = (word) => dist[ladder.index.get(word)];
+  // A same-rung (or downward) word never changes the ladder: old saves that
+  // still have one are wound back to the last step up. Saved just below.
+  if (state.status === "playing") trimToStepsUp(state, dist, ladder.index);
   // Gentlest-route costs (Dijkstra), only computed when a hint or the result
   // screen first needs them, so opening a puzzle stays instant.
   let cost = null;
