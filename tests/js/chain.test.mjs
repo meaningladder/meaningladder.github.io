@@ -24,6 +24,13 @@ test("a plural counts for its singular and a singular for its plural", () => {
   assert.equal(chainGuess(ladder, "ships", "ship", "tanker").note, "Counted as ship.");
   assert.equal(chainGuess(ladder, "truck", "trucks", "jeep").note, "Counted as trucks.");
   assert.equal(chainGuess(ladder, "box", "boxes", "jeep").note, "Counted as boxes.");
+  // -ies and -men plurals, both ways (they don't share a start).
+  const pl = { words: ["city", "cities", "party", "parties", "woman", "women"], neighbors: [] };
+  pl.index = new Map(pl.words.map((w, i) => [w, i]));
+  for (const [a, b] of [["city", "cities"], ["party", "parties"], ["woman", "women"]]) {
+    assert.equal(chainGuess(pl, a, b, "jeep").note, `Counted as ${b}.`);
+    assert.equal(chainGuess(pl, b, a, "jeep").note, `Counted as ${a}.`);
+  }
   // A shorter relative is another word, even with a shared start.
   assert.equal(chainGuess(ladder, "tank", "tanker", "truck").ok, false);
 });

@@ -263,8 +263,8 @@ export function checkStep(ladder, path, typed, goal = null) {
   // "ships" when "ship" is the legal step: a plural means the same thing, so
   // count it as the singular instead of rejecting it.
   if (!isLegal(ladder, path, word)) {
-    const single = singularStep(ladder, path, word);
-    if (single) return { ok: true, word: single, note: `Counted as ${single}.` };
+    const form = singularStep(ladder, path, word) ?? pluralStep(ladder, path, word);
+    if (form) return { ok: true, word: form, note: `Counted as ${form}.` };
   }
   if (!ladder.index.has(word)) {
     const suggestion = didYouMean(ladder, path, word);
@@ -298,6 +298,22 @@ function isLegal(ladder, path, word) {
 function singularStep(ladder, path, word) {
   for (const base of baseForms(word, PLURAL)) if (isLegal(ladder, path, base)) return base;
   return null;
+}
+
+// The other way round: "ship" when "ships" is the legal step. Searches the
+// current word's neighbors for a plural of `word`, else null.
+function pluralStep(ladder, path, word) {
+  const cur = ladder.index.get(path[path.length - 1]);
+  for (const idx of cur === undefined ? [] : ladder.neighbors[cur]) {
+    const w = ladder.words[idx];
+    if (w !== word && baseForms(w, PLURAL).has(word) && isLegal(ladder, path, w)) return w;
+  }
+  return null;
+}
+
+// Is one word a regular plural of the other (cities/city, women/woman)?
+function pluralPair(a, b) {
+  return a !== b && (baseForms(a, PLURAL).has(b) || baseForms(b, PLURAL).has(a));
 }
 
 // Should an open ladder finish by itself? True when the goal is one of the
@@ -910,9 +926,9 @@ export function chainGuess(ladder, typed, target, prev, shown = []) {
   if (!word) return { ok: false, free: true, error: "Type a word first." };
   if (!/^[a-z]+$/.test(word)) return { ok: false, free: true, error: "Letters only, please." };
   if (word === target) return { ok: true };
-  // Inflections only (tankers for tanker, ship for ships), not a shorter
-  // relative: "tank" for "tanker" is another word.
-  if (formOf(word, target) && (word.startsWith(target) || (target.endsWith("s") && target.startsWith(word)))) {
+  // Inflections only (tankers for tanker, city for cities), not a shorter
+  // relative: "tank" for "tanker" is another word. Plurals count both ways.
+  if (pluralPair(word, target) || (formOf(word, target) && word.startsWith(target))) {
     return { ok: true, note: `Counted as ${target}.` };
   }
   if (!ladder.index.has(word)) {

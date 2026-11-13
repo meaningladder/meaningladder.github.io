@@ -627,3 +627,21 @@ test("old saves: a same-rung word is wound back off the ladder", async () => {
   assert.equal(trimToStepsUp(ok, dist, index), false);
   assert.deepEqual(ok.path, ["a", "b", "d", "e"]);
 });
+
+test("a singular counts as its plural when the plural is the legal step", () => {
+  const ws = ["sea", "ship", "ships", "town", "city", "cities", "tow", "tower", "rope", "dock"];
+  const I = Object.fromEntries(ws.map((w, i) => [w, i]));
+  const nb = ws.map(() => []);
+  nb[I.sea] = [I.ships];
+  nb[I.town] = [I.cities];
+  nb[I.rope] = [I.tower];
+  nb[I.dock] = [I.ships];
+  const g = { words: ws, index: new Map(ws.map((w, i) => [w, i])), neighbors: nb };
+  const counted = (w) => ({ ok: true, word: w, note: `Counted as ${w}.` });
+  assert.deepEqual(checkStep(g, ["sea"], "ship"), counted("ships"));
+  assert.deepEqual(checkStep(g, ["town"], "City"), counted("cities"));     // -y to -ies
+  // "tower" is not a plural of "tow".
+  assert.match(checkStep(g, ["rope"], "tow").error, /isn't one of rope's/);
+  // The plural must still be a fresh step.
+  assert.match(checkStep(g, ["sea", "ships", "dock"], "ship").error, /isn't one of dock's/);
+});
