@@ -701,10 +701,19 @@ def pattern_rivals(ladder: Ladder, prev: int, target: int, shown: set[int]) -> l
 
 
 def validate_chain(ladder: Ladder, words: list[str], band: dict,
-                   recent: set[str] = frozenset(), kinds: list[str] | None = None) -> Verdict:
+                   recent: set[str] = frozenset(), kinds: list[str] | None = None,
+                   graph_checks: bool = True) -> Verdict:
     """Is this chain a fair one-answer ladder for the band? `kinds` (AI
     chains) is checked against the band's lateral range; seeded chains pass
-    None. JS twin: validateChain (without the recent and kinds checks)."""
+    None. JS twin: validateChain (without the recent and kinds checks).
+
+    graph_checks: how close each link is in the word map (maxRank), how
+    common the hidden words are (maxWordIndex) and known relations
+    (minLinkedSteps). Seeded chains need them: the graph is all they have.
+    AI chains skip them: GloVe measures similar meaning, not association, so
+    it scored coffee -> cup and bat -> vampire as unrelated and rejected
+    nearly every good AI chain in the first Nov 15 test. The fairness checks
+    (real words, no repeats, one answer per rung, the AI's link kinds) stay."""
     par = band["par"]
     if len(words) != par + 1:
         return Verdict(False, f"{len(words)} words, need exactly {par + 1} ({par} steps)")
@@ -721,7 +730,7 @@ def validate_chain(ladder: Ladder, words: list[str], band: dict,
             return Verdict(False, f"'{w}' is not an allowed start/goal word")
         if w in recent:
             return Verdict(False, f"'{w}' was used in a recent puzzle")
-    common = band.get("maxWordIndex")
+    common = band.get("maxWordIndex") if graph_checks else None
     for w in words[1:-1]:
         if common and ladder.index[w] >= common:
             return Verdict(False, f"'{w}' is too rare a word for {band['label']}")
@@ -729,7 +738,7 @@ def validate_chain(ladder: Ladder, words: list[str], band: dict,
     linked = 0
     for k, (a, b) in enumerate(zip(idx, idx[1:]), 1):
         rank = chain_rank(ladder, a, b)
-        if rank is None or rank > band["maxRank"]:
+        if graph_checks and (rank is None or rank > band["maxRank"]):
             return Verdict(False, f"step {k} {words[k - 1]} -> {words[k]} is too loose a link for "
                                   f"{band['label']} (rank {rank or '100+'}, needs top {band['maxRank']})")
         linked += ladder.related is not None and rel_key(a, b) in ladder.related
@@ -741,7 +750,7 @@ def validate_chain(ladder: Ladder, words: list[str], band: dict,
             return Verdict(False, f"rung {k} '{words[k]}' has rivals: {alt} also follow "
                                   f"{words[k - 1]}, start with '{words[k][0]}' and have "
                                   f"{len(words[k])} letters")
-    if linked < band.get("minLinkedSteps", 0):
+    if graph_checks and linked < band.get("minLinkedSteps", 0):
         return Verdict(False, f"{linked} steps are known relations, {band['label']} needs "
                               f"{band['minLinkedSteps']}")
     if kinds is not None:

@@ -379,7 +379,7 @@ def check_chain(ladder: Ladder, chain: Chain, band: dict, recent: set[str]) -> V
         if any(same_stem(t, w) for t in teaser):
             return Verdict(False, f"the teaser names the hidden word '{w}'")
     return validate_chain(ladder, words, band, recent,
-                          [k.strip().lower() for k in chain.kinds])
+                          [k.strip().lower() for k in chain.kinds], graph_checks=False)
 
 
 def ai_chain(ladder: Ladder, date_str: str, band: dict, recent: set[str], client,

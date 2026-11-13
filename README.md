@@ -29,9 +29,11 @@ only that word counts. Solving a rung shows why it links (`reasons`); a hint
 gives the AI's clue (`clues`), then the word. Difficulty is how obvious the
 links are, not how long the ladder is: the AI labels each link `everyday` or
 `lateral` (a second meaning, a set phrase, a cultural link), and the code
-checks each link's GloVe rank against the level's `maxRank` and that no other
-close word fits a hidden rung's pattern (`validate_chain` in
-`scripts/ladder_core.py`). Medals allow wrong guesses (`medalSlack`: gold up to
+checks the label counts per level and that none of the previous word's 5
+closest words also fits a hidden rung's pattern (`uniqueWindow`;
+`validate_chain` in `scripts/ladder_core.py`). GloVe ranks measure similar
+meaning, not association (coffee -> cup scores as unrelated), so only
+automatic chains are held to `maxRank` and `maxWordIndex`. Medals allow wrong guesses (`medalSlack`: gold up to
 2 moves over the 4 hidden words). Without the AI, `seeded_chain` (and
 `seededChain` in the browser, for missing files and Unlimited) builds a chain
 from common start/goal-pool words with reasons from ConceptNet relations.

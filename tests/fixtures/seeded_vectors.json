@@ -197,44 +197,44 @@
       "level": "easy",
       "gameNumber": 15,
       "route": [
-        "photo",
-        "picture",
-        "movie",
-        "box",
-        "corner",
-        "edge"
+        "eye",
+        "skin",
+        "patch",
+        "dirt",
+        "sand",
+        "trap"
       ],
       "reasons": [
-        "Photo and picture: they are close in meaning.",
-        "Picture and movie: they are close in meaning.",
-        "Movie and box: they often go together.",
-        "Box and corner: they are close in meaning.",
-        "Corner and edge: they often go together."
+        "Eye and skin: they often go together.",
+        "Skin and patch: they often go together.",
+        "Patch and dirt: they often go together.",
+        "Dirt and sand: they often go together.",
+        "Sand and trap: they often go together."
       ],
-      "linked": 4,
-      "attempt": 285
+      "linked": 2,
+      "attempt": 4
     },
     {
       "date": "2026-11-15",
       "level": "medium",
       "gameNumber": 15,
       "route": [
-        "sugar",
-        "juice",
-        "apple",
-        "computer",
-        "machine",
-        "tool"
+        "sail",
+        "ship",
+        "container",
+        "plastic",
+        "toy",
+        "candy"
       ],
       "reasons": [
-        "Sugar and juice: one is part of the other.",
-        "Juice and apple: they often go together.",
-        "Apple and computer: they often go together.",
-        "Computer and machine: one is a kind of the other.",
-        "Machine and tool: they often go together."
+        "Sail and ship: they often go together.",
+        "Ship and container: they often go together.",
+        "Container and plastic: they often go together.",
+        "Plastic and toy: they often go together.",
+        "Toy and candy: they often go together."
       ],
-      "linked": 3,
-      "attempt": 2
+      "linked": 2,
+      "attempt": 1
     },
     {
       "date": "2026-11-15",
@@ -242,18 +242,18 @@
       "gameNumber": 15,
       "route": [
         "contributor",
-        "magazine",
-        "cover",
-        "pocket",
-        "mouse",
+        "editor",
+        "curator",
+        "zoo",
+        "animal",
         "rat"
       ],
       "reasons": [
-        "Contributor and magazine: they often go together.",
-        "Magazine and cover: they often go together.",
-        "Cover and pocket: they often go together.",
-        "Pocket and mouse: they often go together.",
-        "Mouse and rat: they are close in meaning."
+        "Contributor and editor: they often go together.",
+        "Editor and curator: they often go together.",
+        "Curator and zoo: they often go together.",
+        "Zoo and animal: you find one near the other.",
+        "Animal and rat: one is a kind of the other."
       ],
       "linked": 3,
       "attempt": 3
@@ -263,88 +263,88 @@
       "level": "easy",
       "gameNumber": 16,
       "route": [
-        "diamond",
-        "crystal",
-        "mirror",
-        "bathroom",
-        "room",
-        "gym"
+        "guy",
+        "man",
+        "body",
+        "head",
+        "arm",
+        "leg"
       ],
       "reasons": [
-        "Diamond and crystal: one is a kind of the other.",
-        "Crystal and mirror: they often go together.",
-        "Mirror and bathroom: they often go together.",
-        "Bathroom and room: one is a kind of the other.",
-        "Room and gym: they often go together."
+        "Guy and man: one is a kind of the other.",
+        "Man and body: they often go together.",
+        "Body and head: one is part of the other.",
+        "Head and arm: they often go together.",
+        "Arm and leg: they often go together."
       ],
-      "linked": 2,
-      "attempt": 17
+      "linked": 3,
+      "attempt": 8
     },
     {
       "date": "2026-11-16",
       "level": "medium",
       "gameNumber": 16,
       "route": [
-        "lane",
-        "street",
-        "neighborhood",
-        "resident",
-        "friend",
-        "partner"
+        "executive",
+        "officer",
+        "guard",
+        "coast",
+        "port",
+        "hub"
       ],
       "reasons": [
-        "Lane and street: one is a kind of the other.",
-        "Street and neighborhood: one is a kind of the other.",
-        "Neighborhood and resident: they often go together.",
-        "Resident and friend: they often go together.",
-        "Friend and partner: they often go together."
+        "Executive and officer: they often go together.",
+        "Officer and guard: they often go together.",
+        "Guard and coast: they often go together.",
+        "Coast and port: they often go together.",
+        "Port and hub: they often go together."
       ],
-      "linked": 2,
-      "attempt": 6
+      "linked": 3,
+      "attempt": 0
     },
     {
       "date": "2026-11-16",
       "level": "hard",
       "gameNumber": 16,
       "route": [
-        "animal",
-        "dog",
-        "boy",
-        "nephew",
-        "mentor",
-        "predecessor"
+        "imam",
+        "shrine",
+        "sanctuary",
+        "wildlife",
+        "fish",
+        "tuna"
       ],
       "reasons": [
-        "Animal and dog: they often go together.",
-        "Dog and boy: they often go together.",
-        "Boy and nephew: they often go together.",
-        "Nephew and mentor: they often go together.",
-        "Mentor and predecessor: they often go together."
+        "Imam and shrine: they often go together.",
+        "Shrine and sanctuary: they are close in meaning.",
+        "Sanctuary and wildlife: they often go together.",
+        "Wildlife and fish: they often go together.",
+        "Fish and tuna: one is a kind of the other."
       ],
-      "linked": 2,
-      "attempt": 22
+      "linked": 3,
+      "attempt": 1
     },
     {
       "date": "2026-11-17",
       "level": "easy",
       "gameNumber": 17,
       "route": [
-        "center",
-        "museum",
-        "art",
-        "artist",
-        "designer",
-        "costume"
+        "beef",
+        "chicken",
+        "vegetable",
+        "fruit",
+        "flower",
+        "garden"
       ],
       "reasons": [
-        "Center and museum: they often go together.",
-        "Museum and art: you find one near the other.",
-        "Art and artist: they often go together.",
-        "Artist and designer: they often go together.",
-        "Designer and costume: they often go together."
+        "Beef and chicken: they often go together.",
+        "Chicken and vegetable: they often go together.",
+        "Vegetable and fruit: they often go together.",
+        "Fruit and flower: they often go together.",
+        "Flower and garden: they often go together."
       ],
       "linked": 2,
-      "attempt": 165
+      "attempt": 24
     },
     {
       "date": "2026-11-17",
@@ -352,15 +352,15 @@
       "gameNumber": 17,
       "route": [
         "critic",
-        "editor",
+        "columnist",
         "examiner",
         "county",
         "district",
         "province"
       ],
       "reasons": [
-        "Critic and editor: they often go together.",
-        "Editor and examiner: they often go together.",
+        "Critic and columnist: they often go together.",
+        "Columnist and examiner: they often go together.",
         "Examiner and county: they often go together.",
         "County and district: they often go together.",
         "District and province: they often go together."
@@ -375,19 +375,19 @@
       "route": [
         "softball",
         "chess",
-        "champion",
-        "trainer",
-        "owner",
+        "player",
+        "manager",
+        "salesman",
         "dealer"
       ],
       "reasons": [
         "Softball and chess: they often go together.",
-        "Chess and champion: they often go together.",
-        "Champion and trainer: they often go together.",
-        "Trainer and owner: they often go together.",
-        "Owner and dealer: they often go together."
+        "Chess and player: they often go together.",
+        "Player and manager: they often go together.",
+        "Manager and salesman: they often go together.",
+        "Salesman and dealer: they are close in meaning."
       ],
-      "linked": 0,
+      "linked": 1,
       "attempt": 5
     },
     {
@@ -395,44 +395,44 @@
       "level": "easy",
       "gameNumber": 134,
       "route": [
-        "provider",
-        "wireless",
-        "bell",
-        "tower",
-        "castle",
-        "abbey"
+        "cousin",
+        "father",
+        "hometown",
+        "town",
+        "valley",
+        "river"
       ],
       "reasons": [
-        "Provider and wireless: they often go together.",
-        "Wireless and bell: they often go together.",
-        "Bell and tower: they often go together.",
-        "Tower and castle: you find one near the other.",
-        "Castle and abbey: they often go together."
+        "Cousin and father: they often go together.",
+        "Father and hometown: they often go together.",
+        "Hometown and town: one is a kind of the other.",
+        "Town and valley: you find one near the other.",
+        "Valley and river: you find one near the other."
       ],
-      "linked": 2,
-      "attempt": 8
+      "linked": 3,
+      "attempt": 5
     },
     {
       "date": "2027-03-14",
       "level": "medium",
       "gameNumber": 134,
       "route": [
-        "residence",
-        "office",
-        "deputy",
-        "head",
-        "hand",
-        "face"
+        "powerhouse",
+        "rival",
+        "leader",
+        "president",
+        "executive",
+        "head"
       ],
       "reasons": [
-        "Residence and office: they often go together.",
-        "Office and deputy: they often go together.",
-        "Deputy and head: they often go together.",
-        "Head and hand: they often go together.",
-        "Hand and face: they often go together."
+        "Powerhouse and rival: they often go together.",
+        "Rival and leader: they often go together.",
+        "Leader and president: one is a kind of the other.",
+        "President and executive: they often go together.",
+        "Executive and head: they often go together."
       ],
       "linked": 1,
-      "attempt": 32
+      "attempt": 0
     },
     {
       "date": "2027-03-14",
@@ -440,20 +440,20 @@
       "gameNumber": 134,
       "route": [
         "minister",
-        "lawmaker",
-        "member",
-        "commonwealth",
-        "medalist",
+        "interior",
+        "building",
+        "stone",
+        "bronze",
         "butterfly"
       ],
       "reasons": [
-        "Minister and lawmaker: they often go together.",
-        "Lawmaker and member: they often go together.",
-        "Member and commonwealth: they often go together.",
-        "Commonwealth and medalist: they often go together.",
-        "Medalist and butterfly: they often go together."
+        "Minister and interior: they often go together.",
+        "Interior and building: they often go together.",
+        "Building and stone: one is part of the other.",
+        "Stone and bronze: they often go together.",
+        "Bronze and butterfly: they often go together."
       ],
-      "linked": 0,
+      "linked": 2,
       "attempt": 2
     },
     {
@@ -461,22 +461,22 @@
       "level": "easy",
       "gameNumber": 486,
       "route": [
-        "province",
-        "municipality",
-        "town",
-        "valley",
-        "mountain",
-        "slope"
+        "fish",
+        "meat",
+        "seal",
+        "coat",
+        "fur",
+        "clothing"
       ],
       "reasons": [
-        "Province and municipality: they often go together.",
-        "Municipality and town: one is a kind of the other.",
-        "Town and valley: you find one near the other.",
-        "Valley and mountain: they often go together.",
-        "Mountain and slope: they often go together."
+        "Fish and meat: one is a kind of the other.",
+        "Meat and seal: they often go together.",
+        "Seal and coat: they often go together.",
+        "Coat and fur: one is a kind of the other.",
+        "Fur and clothing: they often go together."
       ],
-      "linked": 4,
-      "attempt": 200
+      "linked": 3,
+      "attempt": 2
     },
     {
       "date": "2028-02-29",
@@ -486,18 +486,18 @@
         "jewelry",
         "furniture",
         "wood",
-        "oak",
-        "leaf",
+        "tree",
+        "flower",
         "lotus"
       ],
       "reasons": [
         "Jewelry and furniture: they often go together.",
         "Furniture and wood: one is made from the other.",
-        "Wood and oak: one is a kind of the other.",
-        "Oak and leaf: they often go together.",
-        "Leaf and lotus: they often go together."
+        "Wood and tree: one is a kind of the other.",
+        "Tree and flower: they often go together.",
+        "Flower and lotus: one is a kind of the other."
       ],
-      "linked": 2,
+      "linked": 3,
       "attempt": 1
     },
     {
@@ -506,20 +506,20 @@
       "gameNumber": 486,
       "route": [
         "scoreboard",
-        "clock",
-        "machine",
-        "factory",
-        "textile",
+        "lunch",
+        "meal",
+        "food",
+        "grain",
         "exporter"
       ],
       "reasons": [
-        "Scoreboard and clock: they often go together.",
-        "Clock and machine: one is a kind of the other.",
-        "Machine and factory: they often go together.",
-        "Factory and textile: you find one near the other.",
-        "Textile and exporter: they often go together."
+        "Scoreboard and lunch: they often go together.",
+        "Lunch and meal: one is a kind of the other.",
+        "Meal and food: they often go together.",
+        "Food and grain: they often go together.",
+        "Grain and exporter: they often go together."
       ],
-      "linked": 2,
+      "linked": 3,
       "attempt": 10
     }
   ]

@@ -332,3 +332,19 @@ def test_chain_prompt_has_examples_and_level_style(ladder):
     prompt = build_chain_request(day, CHAIN_DAY.isoformat(), level_band("hard", day.config), set())
     assert "N = 5" in prompt and "Example chains:" in prompt and "lateral" in prompt
 
+
+def test_ai_chains_skip_the_closeness_checks(ladder):
+    """Associations aren't similarity: chains like these came back from the
+    real AI and must pass (rarity and GloVe rank are seeded-only checks)."""
+    from ai_suggest import check_chain
+
+    day = ladder.at(CHAIN_DAY.isoformat())
+    for level, words, lateral in [
+        ("easy", ["bee", "honey", "toast", "bread", "flour", "dough"], 0),
+        ("hard", ["cricketer", "bat", "vampire", "blood", "bank", "vault"], 2),
+    ]:
+        band = level_band(level, day.config)
+        c = chain_of(ladder, level, words=words,
+                     kinds=["lateral"] * lateral + ["everyday"] * (5 - lateral))
+        v = check_chain(day, c, band, set())
+        assert v.ok, v.reason

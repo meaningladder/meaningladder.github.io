@@ -70,7 +70,7 @@
       "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
       "minPar": 5,
       "maxPar": 5,
-      "uniqueWindow": 40,
+      "uniqueWindow": 5,
       "medalSlack": [
         2,
         5,
