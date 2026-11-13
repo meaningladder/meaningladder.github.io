@@ -517,6 +517,89 @@ async function showGame(kind, n, level) {
   view(ladderFor(ladder, state.puzzle), state, saveKey, date, classic); // that puzzle's rules
 }
 
+// ------------------------------------------------------------ shared game-screen parts
+// Used by both playView (open ladders) and chainView (chain ladders), so a
+// fix to the menu, the level switcher, the countdown or sharing lands in both.
+
+// The game menu (three dots). items: [label, fn, enabled()]; `enabled` is
+// read each time the menu opens. Its document listeners end with the screen.
+function gameMenu(items) {
+  const menuBtn = h("button", { class: "icon-btn", "aria-label": "Menu", "aria-haspopup": "true",
+    "aria-expanded": "false", "aria-controls": "game-menu" }, icon("dots-three"));
+  const menu = h("div", { class: "menu", id: "game-menu", role: "menu", hidden: true });
+  const wrap = h("div", { class: "menu-wrap" }, menuBtn, menu);
+  function openMenu(open) {
+    menu.hidden = !open;
+    menuBtn.setAttribute("aria-expanded", String(open));
+    if (open) {
+      menu.replaceChildren(...items.map(([text, fn, enabled]) =>
+        h("button", { role: "menuitem", disabled: !enabled(), onClick: () => { openMenu(false); fn(); } }, text)));
+      menu.querySelector("button:not(:disabled)")?.focus();
+    }
+  }
+  menuBtn.addEventListener("click", () => openMenu(menu.hidden));
+  const onDocClick = (e) => { if (!wrap.contains(e.target)) openMenu(false); };
+  const onKey = (e) => { if (e.key === "Escape" && !menu.hidden) { openMenu(false); menuBtn.focus(); } };
+  document.addEventListener("click", onDocClick);
+  document.addEventListener("keydown", onKey);
+  cleanups.push(() => {
+    document.removeEventListener("click", onDocClick);
+    document.removeEventListener("keydown", onKey);
+  });
+  return wrap;
+}
+
+// Easy | Medium | Hard; solved daily levels carry their medal. Rebuilt on
+// every update, so a medal appears the moment you win.
+function renderLevelSwitcher(el, { daily, date, level, href }) {
+  const results = daily ? getResults() : {};
+  el.replaceChildren(...LEVELS.map((lv) => {
+    const r = results[resultKey(date, lv)];
+    const medal = r?.status === "won" ? resultMedal(r) : null;
+    return h("a", { class: `level-btn${lv === level ? " current" : ""}`, href: href(lv),
+      "aria-current": lv === level ? "page" : null,
+      "aria-label": `${LEVEL_LABEL[lv]}${medal ? `, solved, ${medal.label}` : ""}` },
+      medal ? medalBadge(medal.id, "xs") : null, LEVEL_LABEL[lv]);
+  }));
+}
+
+// "Next ladders in hh:mm:ss". Returns a function that builds a fresh line;
+// each call stops the previous timer (the result card is rebuilt on every
+// update), and leaving the screen stops the last one.
+function makeCountdown() {
+  let timer = null;
+  cleanups.push(() => clearInterval(timer));
+  return () => {
+    const el = h("p", { class: "countdown" });
+    const tick = () => {
+      // Real clock on purpose (even with ?today=): time to the next local midnight.
+      const now = new Date();
+      const ms = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
+      if (ms <= 0) { el.replaceChildren("New ladders are ready! ", h("a", { href: "#/" }, "Play them")); return; }
+      const sec = Math.floor(ms / 1000);
+      const pad = (x) => String(x).padStart(2, "0");
+      el.replaceChildren("Next ladders in ", h("b", {}, `${pad(Math.floor(sec / 3600))}:${pad(Math.floor((sec % 3600) / 60))}:${pad(sec % 60)}`));
+    };
+    tick();
+    clearInterval(timer); // never stack two timers
+    timer = setInterval(tick, 1000);
+    return el;
+  };
+}
+
+// Copy a result to the clipboard, or show it in a selectable box: the
+// Clipboard API needs HTTPS plus permission.
+async function copyShare(text, toast) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.textContent = "Copied to clipboard!";
+  } catch {
+    const box = h("textarea", { rows: "3", readonly: true, class: "share-box", "aria-label": "Result to copy" }, text);
+    toast.replaceChildren("Copy this:", box);
+    box.select();
+  }
+}
+
 function playView(ladder, state, saveKey, date, classic = "") {
   const { puzzle } = state;
   upgradeHintState(state); // saves from before per-word hint memory
@@ -552,32 +635,17 @@ function playView(ladder, state, saveKey, date, classic = "") {
   let justTried = false;     // animate that word's bar once
   let justAdded = false;     // a word was just played: the climber moves
   let justUndone = false;    // Undo: the climber moves back
-  let countdownTimer = null;
-  cleanups.push(() => clearInterval(countdownTimer));
+  const countdown = makeCountdown();
   const save = () => store.set(saveKey, state);
   if (state.status === "playing") save();
 
   // ---- static parts
-  const menuBtn = h("button", { class: "icon-btn", "aria-label": "Menu", "aria-haspopup": "true",
-    "aria-expanded": "false", "aria-controls": "game-menu" }, icon("dots-three"));
-  const menu = h("div", { class: "menu", id: "game-menu", role: "menu", hidden: true });
-  const menuWrap = h("div", { class: "menu-wrap" }, menuBtn, menu);
 
   const status = h("p", { class: "status" });
   // Easy | Medium | Hard switcher; solved daily levels carry their medal.
   // Rebuilt on every update(), so a medal appears the moment you win.
   const switcher = h("nav", { class: "levels compact", "aria-label": "Level" });
-  function renderSwitcher() {
-    const results = state.kind === "daily" ? getResults() : {};
-    switcher.replaceChildren(...LEVELS.map((lv) => {
-      const r = results[resultKey(date, lv)];
-      const medal = r?.status === "won" ? resultMedal(r) : null;
-      return h("a", { class: `level-btn${lv === level ? " current" : ""}`, href: levelHref(lv),
-        "aria-current": lv === level ? "page" : null,
-        "aria-label": `${LEVEL_LABEL[lv]}${medal ? `, solved, ${medal.label}` : ""}` },
-        medal ? medalBadge(medal.id, "xs") : null, LEVEL_LABEL[lv]);
-    }));
-  }
+  const renderSwitcher = () => renderLevelSwitcher(switcher, { daily: state.kind === "daily", date, level, href: levelHref });
   // The theme is shown on the result card, not during play: it's extra
   // reading, and a teaser can point at a sense the route doesn't use.
   const isPractice = state.kind === "practice" || puzzle.source === "practice";
@@ -604,36 +672,19 @@ function playView(ladder, state, saveKey, date, classic = "") {
     title: "A clue first, then the word. Each costs one move." }, "Hint");
   const actions = h("div", { class: "actions" }, undoBtn, hintBtn);
 
-  render(topbar(state.kind === "daily" ? `Game ${puzzle.gameNumber}` : "Unlimited", menuWrap),
-    switcher, status, win, ladderEl, extraEl, feedback, tried, form, actions, trail);
-
-  // ---- menu
-  const menuItems = [
+  // ---- menu (its actions are function declarations below, so hoisted)
+  const menuWrap = gameMenu([
     ["Hint", hint, () => state.status === "playing"],
     ["Give up", confirmGiveUp, () => state.status === "playing"],
     ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
     ["How to play", () => showHelp(ladder.config.stepLimit, ladder.config.twoWay), () => true],
     ["Statistics", showStats, () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
-  ];
-  function openMenu(open) {
-    menu.hidden = !open;
-    menuBtn.setAttribute("aria-expanded", String(open));
-    if (open) {
-      menu.replaceChildren(...menuItems.map(([text, fn, enabled]) =>
-        h("button", { role: "menuitem", disabled: !enabled(), onClick: () => { openMenu(false); fn(); } }, text)));
-      menu.querySelector("button:not(:disabled)")?.focus();
-    }
-  }
-  menuBtn.addEventListener("click", () => openMenu(menu.hidden));
-  const onDocClick = (e) => { if (!menuWrap.contains(e.target)) openMenu(false); };
-  const onKey = (e) => { if (e.key === "Escape" && !menu.hidden) { openMenu(false); menuBtn.focus(); } };
-  document.addEventListener("click", onDocClick);
-  document.addEventListener("keydown", onKey);
-  cleanups.push(() => {
-    document.removeEventListener("click", onDocClick);
-    document.removeEventListener("keydown", onKey);
-  });
+  ]);
+
+  render(topbar(state.kind === "daily" ? `Game ${puzzle.gameNumber}` : "Unlimited", menuWrap),
+    switcher, status, win, ladderEl, extraEl, feedback, tried, form, actions, trail);
+
 
   // ---- actions
   function submit() {
@@ -990,21 +1041,6 @@ function playView(ladder, state, saveKey, date, classic = "") {
     const toast = h("p", { class: "toast", role: "status" });
     const shareBtn = h("button", { class: "btn", onClick: () => share(toast) }, icon("share-network", "btn-icon"), "Share result");
 
-    const countdown = h("p", { class: "countdown" });
-    if (state.kind === "daily") {
-      const tick = () => {
-        // Real clock on purpose (even with ?today=): time to the next local midnight.
-        const now = new Date();
-        const ms = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
-        if (ms <= 0) { countdown.replaceChildren("New ladders are ready! ", h("a", { href: "#/" }, "Play them")); return; }
-        const s = Math.floor(ms / 1000);
-        const pad = (x) => String(x).padStart(2, "0");
-        countdown.replaceChildren("Next ladders in ", h("b", {}, `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`));
-      };
-      tick();
-      clearInterval(countdownTimer); // never stack two timers
-      countdownTimer = setInterval(tick, 1000);
-    }
 
     win.replaceChildren(...[ // .filter(Boolean): replaceChildren(null) would print "null"
       medalBadge(won ? medal.id : "gaveUp", "lg"),
@@ -1023,7 +1059,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
                 `Play ${LEVEL_LABEL[nextLevel(date, getResults(), level)]}`)
             : h("a", { class: "btn btn-quiet", href: "#/" }, "Home")),
       toast,
-      state.kind === "daily" ? countdown : null,
+      state.kind === "daily" ? countdown() : null,
     ].filter(Boolean));
   }
 
@@ -1053,15 +1089,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
       distances: state.path.map(stepsTo), // includes the start, so step 1's change is known
       url: location.origin + location.pathname,
     });
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.textContent = "Copied to clipboard!";
-    } catch {
-      // Clipboard API needs HTTPS + permission; fall back to a selectable box.
-      const box = h("textarea", { rows: "3", readonly: true, class: "share-box", "aria-label": "Result to copy" }, text);
-      toast.replaceChildren("Copy this:", box);
-      box.select();
-    }
+    await copyShare(text, toast);
   }
 
   // A save from before auto-finish can sit one rung below the goal: finish it
@@ -1108,8 +1136,7 @@ function chainView(ladder, state, saveKey, date, classic = "") {
   let note = null;        // "Counted as tanker."
   let justSolved = -1;    // rung index to animate once
   let justMissed = false;
-  let countdownTimer = null;
-  cleanups.push(() => clearInterval(countdownTimer));
+  const countdown = makeCountdown();
   const save = () => store.set(saveKey, state);
   if (state.status === "playing") save();
 
@@ -1117,10 +1144,6 @@ function chainView(ladder, state, saveKey, date, classic = "") {
   const below = (k) => chain[k]; // the word under hidden rung k (chain[k + 1] is its answer)
 
   // ---- static parts (same layout as the open ladder)
-  const menuBtn = h("button", { class: "icon-btn", "aria-label": "Menu", "aria-haspopup": "true",
-    "aria-expanded": "false", "aria-controls": "game-menu" }, icon("dots-three"));
-  const menu = h("div", { class: "menu", id: "game-menu", role: "menu", hidden: true });
-  const menuWrap = h("div", { class: "menu-wrap" }, menuBtn, menu);
   const status = h("p", { class: "status" });
   const switcher = h("nav", { class: "levels compact", "aria-label": "Level" });
   const input = h("input", { id: "guess", type: "text", autocomplete: "off", autocapitalize: "none",
@@ -1136,36 +1159,19 @@ function chainView(ladder, state, saveKey, date, classic = "") {
     title: "A clue first, then the word. Each costs one move." }, "Hint");
   const actions = h("div", { class: "actions" }, hintBtn);
 
-  render(topbar(state.kind === "daily" ? `Game ${puzzle.gameNumber}` : "Unlimited", menuWrap),
-    classic ? h("p", { class: "sub classic-note" }, classic) : null,
-    switcher, status, win, ladderEl, feedback, tried, form, actions);
-
-  const menuItems = [
+  const menuWrap = gameMenu([
     ["Hint", hint, () => state.status === "playing"],
     ["Give up", confirmGiveUp, () => state.status === "playing"],
     ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
     ["How to play", () => showHelp(null, null, "chain"), () => true],
     ["Statistics", showStats, () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
-  ];
-  function openMenu(open) {
-    menu.hidden = !open;
-    menuBtn.setAttribute("aria-expanded", String(open));
-    if (open) {
-      menu.replaceChildren(...menuItems.map(([text, fn, enabled]) =>
-        h("button", { role: "menuitem", disabled: !enabled(), onClick: () => { openMenu(false); fn(); } }, text)));
-      menu.querySelector("button:not(:disabled)")?.focus();
-    }
-  }
-  menuBtn.addEventListener("click", () => openMenu(menu.hidden));
-  const onDocClick = (e) => { if (!menuWrap.contains(e.target)) openMenu(false); };
-  const onKey = (e) => { if (e.key === "Escape" && !menu.hidden) { openMenu(false); menuBtn.focus(); } };
-  document.addEventListener("click", onDocClick);
-  document.addEventListener("keydown", onKey);
-  cleanups.push(() => {
-    document.removeEventListener("click", onDocClick);
-    document.removeEventListener("keydown", onKey);
-  });
+  ]);
+
+  render(topbar(state.kind === "daily" ? `Game ${puzzle.gameNumber}` : "Unlimited", menuWrap),
+    classic ? h("p", { class: "sub classic-note" }, classic) : null,
+    switcher, status, win, ladderEl, feedback, tried, form, actions);
+
 
   // ---- actions
   function solve(k, revealed) {
@@ -1328,17 +1334,7 @@ function chainView(ladder, state, saveKey, date, classic = "") {
     renderWin();
   }
 
-  function renderSwitcher() {
-    const results = state.kind === "daily" ? getResults() : {};
-    switcher.replaceChildren(...LEVELS.map((lv) => {
-      const r = results[resultKey(date, lv)];
-      const medal = r?.status === "won" ? resultMedal(r) : null;
-      return h("a", { class: `level-btn${lv === level ? " current" : ""}`, href: levelHref(lv),
-        "aria-current": lv === level ? "page" : null,
-        "aria-label": `${LEVEL_LABEL[lv]}${medal ? `, solved, ${medal.label}` : ""}` },
-        medal ? medalBadge(medal.id, "xs") : null, LEVEL_LABEL[lv]);
-    }));
-  }
+  const renderSwitcher = () => renderLevelSwitcher(switcher, { daily: state.kind === "daily", date, level, href: levelHref });
 
   function renderWin() {
     win.hidden = state.status === "playing";
@@ -1349,20 +1345,6 @@ function chainView(ladder, state, saveKey, date, classic = "") {
     const n = (x, word = "move") => `${x} ${word}${x === 1 ? "" : "s"}`;
     const toast = h("p", { class: "toast", role: "status" });
     const shareBtn = h("button", { class: "btn", onClick: () => share(toast) }, icon("share-network", "btn-icon"), "Share result");
-    const countdown = h("p", { class: "countdown" });
-    if (state.kind === "daily") {
-      const tick = () => {
-        const now = new Date();
-        const ms = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
-        if (ms <= 0) { countdown.replaceChildren("New ladders are ready! ", h("a", { href: "#/" }, "Play them")); return; }
-        const s = Math.floor(ms / 1000);
-        const pad = (x) => String(x).padStart(2, "0");
-        countdown.replaceChildren("Next ladders in ", h("b", {}, `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`));
-      };
-      tick();
-      clearInterval(countdownTimer);
-      countdownTimer = setInterval(tick, 1000);
-    }
     const nxt = state.kind === "practice" ? null : nextLevel(date, getResults(), level);
     win.replaceChildren(...[
       medalBadge(won ? medal.id : "gaveUp", "lg"),
@@ -1381,7 +1363,7 @@ function chainView(ladder, state, saveKey, date, classic = "") {
           : nxt ? h("a", { class: "btn btn-quiet", href: levelHref(nxt) }, `Play ${LEVEL_LABEL[nxt]}`)
             : h("a", { class: "btn btn-quiet", href: "#/" }, "Home")),
       toast,
-      state.kind === "daily" ? countdown : null,
+      state.kind === "daily" ? countdown() : null,
     ].filter(Boolean));
   }
 
@@ -1391,14 +1373,7 @@ function chainView(ladder, state, saveKey, date, classic = "") {
       rungs: state.rungs.map((r) => ({ solved: r.solved, revealed: r.revealed, misses: r.misses.length })),
       url: location.origin + location.pathname,
     });
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.textContent = "Copied to clipboard!";
-    } catch {
-      const box = h("textarea", { rows: "3", readonly: true, class: "share-box", "aria-label": "Result to copy" }, text);
-      toast.replaceChildren("Copy this:", box);
-      box.select();
-    }
+    await copyShare(text, toast);
   }
 
   update();
