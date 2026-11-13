@@ -414,6 +414,10 @@ async function showHome() {
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics"),
       h("button", { class: "link-btn", onClick: () => showFeedback() }, "Send feedback")),
+    // Plain words for people (and search engines) who don't know the game yet.
+    h("p", { class: "about" }, "Meaning Ladder is a free daily word puzzle. Each day has three word ladders, ",
+      "easy, medium and hard: climb from the start word to the goal one step at a time, ",
+      "each word close in meaning to the last. Play past days or unlimited ladders any time."),
     // ConceptNet's license (CC BY-SA 4.0) asks for credit wherever it's used.
     h("p", { class: "credits" }, "Word links from ",
       h("a", { href: "https://conceptnet.io", rel: "noopener" }, "ConceptNet 5.7"), ", CC BY-SA 4.0."));

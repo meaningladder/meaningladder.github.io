@@ -182,7 +182,8 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .chip-mark { height: 16px; display: grid; place-items: center; }
 
 .credits { text-align: center; font-size: var(--fs-xs); color: var(--muted); margin-top: 14px; }
-.home-foot { display: flex; justify-content: center; gap: 18px; margin-top: 10px; }
+.home-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin-top: 10px; }
+.about { margin-top: 18px; color: var(--muted); font-size: var(--fs-sm); text-align: center; text-wrap: pretty; }
 
 /* ------------------------------------------------------------ level buttons */
 .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }

@@ -8,8 +8,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Meaning Ladder</title>
-  <meta name="description" content="A daily word game: climb from one word to another, one close-in-meaning step at a time.">
+  <title>Meaning Ladder: a daily word ladder puzzle</title>
+  <meta name="description" content="Meaning Ladder is a free daily word puzzle. Climb a word ladder from one word to another, one close-in-meaning step at a time. Three levels a day, plus unlimited play.">
   <link rel="canonical" href="https://meaningladder.github.io/">
   <!-- Google Search Console ownership check (public by design, not a secret). -->
   <meta name="google-site-verification" content="BhnP1DSC3jNXkILVKykEkCNyLl6o3UhBpZvJFGjGfS0">
@@ -24,6 +24,25 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Meaning Ladder: a word ladder from ocean to computer, each step colored by how close it is to the goal.">
   <meta name="twitter:card" content="summary_large_image">
+  <!-- Structured data for search engines: "this page is a game called
+       Meaning Ladder". A data block, never run as a script, so the CSP allows it. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["VideoGame", "WebApplication"],
+    "name": "Meaning Ladder",
+    "url": "https://meaningladder.github.io/",
+    "description": "A free daily word puzzle: climb a word ladder from one word to another, one close-in-meaning step at a time.",
+    "genre": ["Word game", "Puzzle"],
+    "gamePlatform": "Web browser",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Any",
+    "inLanguage": "en",
+    "isAccessibleForFree": true,
+    "image": "https://meaningladder.github.io/assets/og-image.png",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f8f3ea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1d1a17" media="(prefers-color-scheme: dark)">
