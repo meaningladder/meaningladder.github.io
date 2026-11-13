@@ -2,7 +2,7 @@
 // Run: node --test tests/js/*.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chainGuess, chainPattern, closenessLabel, chainShareText, chainSquares, checkedChain, medalFor, resultMedal } from "../../js/logic.js";
+import { chainGuess, closenessLabel, chainShareText, chainSquares, checkedChain, medalFor, resultMedal } from "../../js/logic.js";
 
 const words = ["jeep", "truck", "tanker", "ship", "port", "harbor", "trucks", "tank", "tinker", "turkey"];
 // truck's neighbors: tanker, tank, trucks, turkey (a word list in the ladder's shape).
@@ -42,23 +42,18 @@ test("a fitting wrong guess costs a move and says if it was close", () => {
 
 test("guesses that can't be the answer are free and say why", () => {
   const free = (t) => chainGuess(ladder, t, "tanker", "truck", ["jeep", "truck", "harbor"]);
-  assert.match(free("ship").error, /This word has 6 letters/);
-  assert.match(free("tank").error, /6 letters/);
   assert.match(free("zzzzzz").error, /isn't in our 10-word list/);
   assert.match(free("harbor").error, /already on the ladder/);
   assert.match(free("").error, /Type a word/);
   assert.match(free("t4nker").error, /Letters only/);
-  for (const t of ["ship", "tank", "zzzzzz", "harbor", "", "t4nker"]) assert.equal(free(t).free, true);
+  for (const t of ["zzzzzz", "harbor", "", "t4nker"]) assert.equal(free(t).free, true);
 });
 
-test("pattern shows one blank per letter, no first letter", () => {
-  assert.equal(chainPattern("tanker"), "_ _ _ _ _ _");
-  assert.equal(chainPattern("ox"), "_ _");
-});
-
-test("a fitting guess with another first letter is a wrong guess, not a free one", () => {
-  const r = chainGuess(ladder, "harbor", "tanker", "truck", []); // 6 letters, in the list
-  assert.equal(r.wrong, true);
+test("no length is shown, so a real word of any length is a wrong guess", () => {
+  // tank is a close neighbor of truck; ship isn't.
+  assert.deepEqual(chainGuess(ladder, "tank", "tanker", "truck"), { ok: false, wrong: true, word: "tank", near: true });
+  assert.deepEqual(chainGuess(ladder, "ship", "tanker", "truck"), { ok: false, wrong: true, word: "ship", near: false });
+  assert.equal(chainGuess(ladder, "harbor", "tanker", "truck", []).wrong, true); // same length, other word
 });
 
 test("closeness labels for wrong guesses", () => {

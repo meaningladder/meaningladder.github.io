@@ -296,18 +296,20 @@ LEVEL_STYLE = {
 
 CHAIN_INSTRUCTIONS = f"""\
 You design the daily puzzle for "Meaning Ladder", a word game. A ladder is a
-chain of words: START, hidden words, GOAL. Players see the start, the goal,
-and for each hidden word only its length. They must guess each hidden word
-from the one below it, and only the intended word counts; a wrong guess shows
-how close it is to the answer.
+chain of words: START, hidden words, GOAL. Players see the start and the
+goal, and nothing about the hidden words (not even their length). They must
+guess each hidden word from the one below it, and only the intended word
+counts; a wrong guess shows how close it is to the answer. A paid hint shows
+your clue, then the word.
 
 Suggest {CHAINS_PER_ROUND} different chains, best first. Rules:
 - words: exactly N+1 single lowercase common English words for N steps
   (the request says N), start first, goal last. START and GOAL must come from
   the allowed list, spelled exactly; hidden words can be any common word.
 - Each hidden word must be the obvious, natural next word after the one
-  before it, the first word most people would say. Avoid steps where another
-  close word with the same first letter and length would fit just as well.
+  before it, the first word most people would say. Players get no letters to
+  narrow it down, so avoid any step where another close word would fit just
+  as well.
 - No two words in a chain may be forms of one word (ship, ships).
 - reasons: one short plain sentence per step (N of them), at most
   {MAX_REASON} characters, saying why the word leads to the next, e.g.

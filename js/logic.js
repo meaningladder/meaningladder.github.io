@@ -885,8 +885,8 @@ export function trimToStepsUp(state, dist, index) {
 
 // ------------------------------------------------------------ chain ladders
 // From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): each
-// hidden rung has one answer, shown as its length; wrong guesses show how
-// close they are to it.
+// hidden rung has one answer, shown only as "?" (no length since Nov 13);
+// wrong guesses show how close they are to it. A paid hint gives the length.
 
 // A puzzle file's chain, or null if it can't be played as one: par + 1 known
 // words with the right ends, one reason per step, and clues either absent
@@ -903,10 +903,6 @@ export function checkedChain(puzzle, ladder) {
   return route;
 }
 
-// "_ _ _ _ _ _": the pattern shown on a hidden rung, one blank per letter.
-// No first letter: wrong guesses show how close they are instead.
-export const chainPattern = (word) => [..."_".repeat(word.length)].join(" ");
-
 // How a wrong guess's closeness rank (1 = the answer's closest word) reads.
 export function closenessLabel(rank) {
   if (typeof rank !== "number") return "";
@@ -920,7 +916,7 @@ export function closenessLabel(rank) {
 // below it, `shown` the words already on screen. Returns
 //   { ok: true, note? }                     the answer (or a form / typo of it)
 //   { ok: false, error, free: true }        not a fair guess: no move charged
-//   { ok: false, wrong: true, near, word }  a real, fitting word, but not it
+//   { ok: false, wrong: true, near, word }  a real word, but not it
 export function chainGuess(ladder, typed, target, prev, shown = []) {
   const word = normalize(typed);
   if (!word) return { ok: false, free: true, error: "Type a word first." };
@@ -937,10 +933,7 @@ export function chainGuess(ladder, typed, target, prev, shown = []) {
     return { ok: false, free: true, error: `${word} isn't in our ${size}-word list.` };
   }
   if (shown.includes(word)) return { ok: false, free: true, error: `${word} is already on the ladder.` };
-  if (word.length !== target.length) {
-    const n = target.length;
-    return { ok: false, free: true, error: `This word has ${n} letter${n === 1 ? "" : "s"}.` };
-  }
+  // Hidden words don't show their length, so any real word is a fair guess.
   const p = ladder.index.get(prev);
   return { ok: false, wrong: true, word, near: p !== undefined && ladder.neighbors[p].includes(ladder.index.get(word)) };
 }

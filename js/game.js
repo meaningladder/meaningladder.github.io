@@ -15,7 +15,7 @@ import {
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
   betterMedal, checkedRoute, upOneRung, trimToStepsUp, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
-  bottleneckRoute, GENTLE_RANK, chainGuess, chainPattern, chainShareText, closenessLabel,
+  bottleneckRoute, GENTLE_RANK, chainGuess, chainShareText, closenessLabel,
   FEEDBACK_KINDS, FEEDBACK_MAX, feedbackUrl,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -193,14 +193,14 @@ function showChainHelp(rules) {
   openDialog("How to play", h("div", {},
     h("ol", { class: "rules" },
       h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ` in ${par} steps. The words in between are hidden.`),
-      h("li", {}, "Each hidden word has ", h("b", {}, "one answer"), ", linked to the word below it. You see how many letters it has."),
-      h("li", {}, "A wrong guess shows how close it is to the answer, from cold to very close. Guesses with the wrong number of letters are free. Solve a rung and the ladder shows why it links."),
-      h("li", {}, "Every guess that fits the letters, and every hint, is a ", h("b", {}, "move"), `. A hint gives a clue, then the word. Find all ${par - 1} hidden words in ${par - 1 + slack[0]} moves or fewer for gold.`)),
+      h("li", {}, "Each hidden word has ", h("b", {}, "one answer"), ": the most natural word to follow the one below it."),
+      h("li", {}, "A wrong guess shows how close it is to the answer, from cold to very close. Solve a rung and the ladder shows why it links."),
+      h("li", {}, "Every guess and every hint is a ", h("b", {}, "move"), `. A hint gives a clue (with the word's length and first letter), then the word. Find all ${par - 1} hidden words in ${par - 1 + slack[0]} moves or fewer for gold.`)),
     h("p", { class: "sub example-caption" }, "Example: jeep to port"),
     h("ol", { class: "example ladder chain" },
-      ex("port", "bar tone-goal", "goal"), ex("_ _ _ _", "rung chain-rung"), ex("_ _ _ _ _ _", "rung chain-rung next"),
+      ex("port", "bar tone-goal", "goal"), ex("?", "rung chain-rung"), ex("?", "rung chain-rung next"),
       ex("truck", "bar tone-near"), ex("jeep", "bar tone-near", "start")),
-    h("p", { class: "sub example-caption" }, "Truck: jeeps and trucks are both rugged road vehicles. Then a 6-letter word: try \u201cvan\u201d? Wrong length, free. \u201ctrailer\u201d? Close, but not it\u2026"),
+    h("p", { class: "sub example-caption" }, "Truck: jeeps and trucks are both rugged road vehicles. What comes after truck? \u201cvan\u201d? Warm. \u201ctrailer\u201d? Close, but not it\u2026"),
     h("p", { class: "sub example-caption" }, "Three new ladders every day. Easy links are everyday facts; Medium and Hard add a second meaning or two.")));
 }
 
@@ -1351,9 +1351,9 @@ function chainView(ladder, state, saveKey, date, classic = "") {
       const next = k === cur;
       out.push(h("li", { class: `rung chain-rung${next ? " next" : ""}`, "aria-current": next ? "step" : null },
         srOnly(`Rung ${k + 1}${next ? ", your next word" : ", hidden"}: `),
-        h("span", { class: "pattern", "aria-hidden": "true" }, chainPattern(word)),
-        srOnly(`${word.length} letters`),
-        h("span", { class: "num" }, `${word.length} letters`)));
+        // No length or letters: only a hint gives those away.
+        h("span", { class: "pattern", "aria-hidden": "true" }, "?"),
+        srOnly("hidden word")));
     }
     out.push(h("li", { class: "bar tone-near passed", style: "--fill:100%" }, srOnly("Rung 0, the start: "),
       h("span", {}, puzzle.start, h("span", { class: "tag" }, "start"))));
@@ -1420,7 +1420,6 @@ function chainView(ladder, state, saveKey, date, classic = "") {
     renderTried(k, playing);
     if (playing) {
       const r = state.rungs[k];
-      const target = chain[k + 1];
       input.placeholder = `Word after ${below(k)}`;
       hintBtn.textContent = r.hint === 1 ? "Reveal word" : "Hint";
       const lastSolved = k > 0 ? k - 1 : -1;
@@ -1428,10 +1427,9 @@ function chainView(ladder, state, saveKey, date, classic = "") {
       else if (r.hint === 1) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), clueLine(k)));
       else if (note) feedback.replaceChildren(h("p", { class: "muted" }, note));
       else if (lastSolved >= 0 && state.rungs[lastSolved].solved && !r.misses.length) {
-        feedback.replaceChildren(h("p", { class: "muted" }, `Yes! Now the word after ${below(k)}: ${target.length} letters.`));
+        feedback.replaceChildren(h("p", { class: "muted" }, `Yes! Now the word after ${below(k)}.`));
       } else {
-        feedback.replaceChildren(h("p", { class: "muted" },
-          `Which word comes after ${below(k)}? ${target.length} letters.`));
+        feedback.replaceChildren(h("p", { class: "muted" }, `Which word comes after ${below(k)}?`));
       }
     }
     renderWin();
