@@ -6,6 +6,7 @@ in, so tests can hand it a fake and never spend money or need a key.
 from __future__ import annotations
 
 import re
+import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable
@@ -386,8 +387,15 @@ def ai_chain(ladder: Ladder, date_str: str, band: dict, recent: set[str], client
     """Ask, check, give feedback, repeat (like ai_puzzle). Raises AIUnavailable."""
     model = ladder.config["model"]
     messages = [{"role": "user", "content": build_chain_request(ladder, date_str, band, recent)}]
+    # A time budget per level: chains take the model much longer than pairs,
+    # and three levels must finish well inside the workflow's time limit.
+    deadline = time.monotonic() + ladder.config.get("aiSecondsPerLevel", 360)
     for round_no in range(1, ladder.config["aiRounds"] + 1):
+        if round_no > 1 and time.monotonic() > deadline:
+            raise AIUnavailable(f"out of time after {round_no - 1} rounds")
+        started = time.monotonic()
         suggestions = ask(client, model, messages, ChainSuggestions, CHAIN_INSTRUCTIONS)
+        log(f"  AI round {round_no}: answered in {time.monotonic() - started:.0f}s")
         feedback = []
         for chain in suggestions.chains:
             verdict = check_chain(ladder, chain, band, recent)
@@ -419,5 +427,7 @@ def make_client():
 
     if not os.environ.get("OPENAI_API_KEY"):
         raise AIUnavailable("OPENAI_API_KEY is not set")
-    return openai.OpenAI()
+    # One slow call must not eat the whole job: give up on it after 4 minutes
+    # (one retry), and the caller falls back to the seeded puzzle.
+    return openai.OpenAI(timeout=240, max_retries=1)
 

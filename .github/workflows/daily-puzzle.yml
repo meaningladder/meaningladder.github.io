@@ -50,7 +50,7 @@ concurrency:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40 # three AI chains can take a few minutes each
     permissions:
       contents: write # to commit puzzles/*.json
     steps:
@@ -70,6 +70,7 @@ jobs:
           # Stored ONLY as a repository secret, never in code. If it's missing,
           # the generator falls back to seeded puzzles and logs a warning.
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PYTHONUNBUFFERED: "1" # show progress live in the log
           INPUT_DATE: ${{ inputs.date }}
           INPUT_NO_AI: ${{ inputs.no_ai }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
