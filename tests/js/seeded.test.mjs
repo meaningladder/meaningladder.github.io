@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { chainReason, chainReasons, patternRivals, sameStem, seededChain } from "../../js/seeded.js";
+import { chainReason, chainReasons, patternRivals, puzzleFile, sameStem, seededChain } from "../../js/seeded.js";
 import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, relKey, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -46,7 +46,10 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   assert.equal(rulesFor(config, "2026-11-13").twoWay, true);
   assert.equal(rulesFor(config, "2026-11-12").twoWay, undefined); // older days stay one-way
   assert.equal(rulesFor(config, null).stepLimit, 10); // Unlimited: newest rules
-  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 6);
+  assert.equal(rulesFor(config, "2026-11-12").mode, undefined); // open ladders
+  assert.equal(rulesFor(config, "2026-11-13").mode, "chain"); // chains from today on
+  assert.equal(rulesFor(config, null).mode, "chain");
+  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 5);
   assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
@@ -188,4 +191,47 @@ test("pattern rivals: a second close word with the same first letter and length"
   assert.ok(!sameStem("sea", "seal") && !sameStem("ship", "shop"));
   assert.equal(chainReason("cafe", "restaurant", "IsA"), "Cafe and restaurant: one is a kind of the other.");
   assert.equal(chainReason("box", "corner", undefined), "Box and corner: they often go together.");
+});
+
+test("chain days load their own file name; open days keep the old one", () => {
+  const config = readJson("puzzle_config.json");
+  const file = (d, lv) => puzzleFile(d, lv, rulesFor(config, d));
+  assert.equal(file("2026-11-12", "easy"), "puzzles/2026-11-12-easy.json");
+  assert.equal(file("2026-11-13", "hard"), "puzzles/2026-11-13-hard.chain.json");
+  assert.equal(file("2026-11-14", "medium"), "puzzles/2026-11-14-medium.chain.json");
+  assert.equal(file("2027-01-01", "easy"), "puzzles/2027-01-01-easy.chain.json");
+  assert.equal(puzzleFile("2026-11-13", "easy", null), "puzzles/2026-11-13-easy.json");
+});
+
+test("an open game saved on Nov 13 or 14 keeps the top-10 two-way steps it was made with", async () => {
+  // Those days had open-ladder files before the chain era moved up to Nov 13.
+  // A player who started one keeps it (game:<date>:<level> holds the puzzle);
+  // ladderFor rebuilds its rules from the date's era (now chain) and the file's
+  // stepLimit/twoWay, which must give the same legal steps.
+  const { ladderFor } = await import("../../js/data.js");
+  const config = readJson("puzzle_config.json");
+  const graph = readJson(`data/graph_v${config.graphVersion}.json`);
+  const path = rulesFor(config, "2026-11-13").excludeCandidates;
+  const base = {
+    words: graph.words, index: new Map(graph.words.map((w, i) => [w, i])), neighbors: graph.neighbors,
+    complete: true, candidates: readJson(`data/candidates_v${config.graphVersion}.json`).words,
+    exclusions: new Map([[path, excludedWords(readJson(path))]]), config, views: new Map(),
+  };
+  const openTop10 = twoWayNeighbors(graph.neighbors, 10);
+  let checked = 0;
+  for (const date of ["2026-11-13", "2026-11-14"]) {
+    for (const level of ["easy", "medium", "hard"]) {
+      let p;
+      try { p = readJson(`puzzles/${date}-${level}.json`); } catch { continue; }
+      assert.equal(p.mode, undefined, `${date} ${level}: opens in the open-ladder view`);
+      const view = ladderFor(base, p);
+      assert.equal(view.config.stepLimit, 10);
+      assert.equal(view.config.twoWay, true);
+      if (!checked) assert.deepEqual(view.neighbors, openTop10);
+      assert.equal(view.neighbors, ladderFor(base, { ...p, level: "easy" }).neighbors); // one cached view
+      assert.ok(view.index.has(p.start) && view.index.has(p.goal));
+      checked++;
+    }
+  }
+  assert.ok(checked > 0);
 });

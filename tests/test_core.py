@@ -128,8 +128,8 @@ def test_levels_cover_easy_medium_hard():
     assert easy["level"] == "easy" and easy["label"] == "Easy"
     assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
     assert medium["maxRoutes"] < easy["minRoutes"]
-    # Top-10 two-way rules (from Nov 13): one more step per level.
-    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [4, 5, 6]
+    # Chain ladders (from Nov 13): every level is 5 steps.
+    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [5, 5, 5]
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
 
 
@@ -221,17 +221,38 @@ def test_closer_bands_refuse_wide_step_limits(ladder):
 
 
 # ---------------------------------------------------------------- real data
+# The open-ladder rules that were planned for 2026-11-13 and 14 (top 10, links
+# both ways, par 4/5/6) before the chain era moved up to Nov 13. No date uses
+# them now, but they are what the open puzzle files of those two days were
+# made under (players who started them keep playing them: same stepLimit and
+# twoWay as the chain era), and the open-ladder tests below run on them.
+OPEN_TOP10 = {
+    "from": "2026-11-13", "stepLimit": 10, "twoWay": True,
+    "excludeCandidates": "data/candidates_exclude_2026-11-13.json", "minPar": 3, "maxPar": 7,
+    "levels": {
+        "easy": {"label": "Easy", "par": 4, "minRoutes": 1, "maxRoutes": 100000,
+                 "minCloserFirstMoves": 3},
+        "medium": {"label": "Medium", "par": 5, "minRoutes": 1, "maxRoutes": 100000,
+                   "minCloserFirstMoves": 3},
+        "hard": {"label": "Hard", "par": 6, "minRoutes": 1, "maxRoutes": 100000},
+    },
+}
+
+
 @pytest.fixture(scope="module")
 def ladder():
-    # The last open-play day: the newest rules (chains, from Nov 15) have
+    # Open top-10 two-way rules; the newest rules (chains, from Nov 13) have
     # their own tests at the end of this file.
-    return load_ladder(date_str="2026-11-14")
+    from ladder_core import ladder_view
+
+    base = load_ladder()
+    return ladder_view(base, {**base.at("2026-11-12").config, **OPEN_TOP10})
 
 
 def test_ladder_view_cuts_neighbor_lists(ladder):
     from ladder_core import ladder_view
 
-    old, new = ladder.at("2026-11-12"), ladder.at("2026-11-13")
+    old, new = ladder.at("2026-11-12"), ladder  # top 100 one-way; top 10 both ways
     top20 = ladder_view(ladder, {**new.config, "stepLimit": 20, "twoWay": False})
     i = ladder.index["door"]
     assert len(old.neighbors[i]) == 100 and len(top20.neighbors[i]) == 20
@@ -290,12 +311,12 @@ def test_seeded_puzzle_same_date_same_puzzle(ladder):
     assert first[2].ok and first[2].par == band["par"]
     # Each level of a day is an independent puzzle.
     hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert hard[:2] != first[:2] and hard[2].par == 6  # Nov 17: top-10 two-way rules
+    assert hard[:2] != first[:2] and hard[2].par == 6  # open top-10 two-way rules
 
 
 def test_seeded_puzzles_match_fixture(ladder):
     fx = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    for p in fx["puzzles"][3:9]:  # both rules eras; the full list runs in the JS test
+    for p in fx["puzzles"][3:6]:  # Nov 12, top 100; the full list runs in the JS test
         dated = ladder.at(p["date"])
         assert dated.config["stepLimit"] == p["stepLimit"]
         start, goal, verdict, attempt = seeded_puzzle(
@@ -392,7 +413,7 @@ def test_goals_few_words_step_to_are_rejected(ladder):
 
     # The rule itself, on the one-way top-20 lists where it was needed (the
     # two-way era drops it: every word has 40+ links in).
-    new = ladder_view(ladder, {**ladder.at("2026-11-13").config, "stepLimit": 20,
+    new = ladder_view(ladder, {**ladder.config, "stepLimit": 20,
                                "twoWay": False, "minGoalInDegree": 12})
     old = ladder.at("2026-11-12")
     for goal in ("anchor", "butterfly"):
@@ -443,19 +464,39 @@ def test_guide_route_keeps_par_and_prefers_relations(ladder):
 
 
 # ---------------------------------------------------------------- chain mode
-def test_chain_era_starts_nov_15(ladder):
+def test_chain_era_starts_nov_13(ladder):
     from ladder_core import is_chain, rules_for
 
     cfg = ladder.base_config
-    assert not is_chain(rules_for(cfg, "2026-11-14"))
-    new = rules_for(cfg, "2026-11-15")
-    assert is_chain(new) and is_chain(rules_for(cfg, None))
+    assert [e["from"] for e in cfg["rules"]] == ["2026-11-01", "2026-11-13"]
+    assert not is_chain(rules_for(cfg, "2026-11-12"))
+    new = rules_for(cfg, "2026-11-13")
+    assert is_chain(new) and is_chain(rules_for(cfg, "2026-11-14")) and is_chain(rules_for(cfg, None))
     # Every level is 5 steps; difficulty is how loose the links may be.
     assert [new["levels"][lv]["par"] for lv in LEVELS] == [5, 5, 5]
     ranks = [new["levels"][lv]["maxRank"] for lv in LEVELS]
     assert ranks == sorted(ranks) and ranks[-1] <= 40  # the browser's lists stop at 40
     laterals = [new["levels"][lv]["lateral"] for lv in LEVELS]
     assert laterals == sorted(laterals) and laterals[0] == [0, 0]
+
+
+def test_open_games_saved_on_chain_days_keep_their_steps(ladder):
+    """Nov 13 and 14 have open-ladder files, made under OPEN_TOP10. Players who
+    started one keep it, and the browser rebuilds its rules from the date's era
+    (now the chain era) plus the file's stepLimit/twoWay. Those must give the
+    very same legal steps and start/goal pool."""
+    for d in ("2026-11-13", "2026-11-14"):
+        dated = ladder.at(d)
+        assert (dated.config["stepLimit"], dated.config["twoWay"]) == (10, True)
+        assert dated.neighbors == ladder.neighbors
+        assert dated.candidates == ladder.candidates
+    for path in sorted((ROOT / "puzzles").glob("2026-11-1[34]-*.json")):
+        if path.name.endswith(".chain.json"):
+            continue
+        p = json.loads(path.read_text(encoding="utf-8"))
+        assert "mode" not in p and (p["stepLimit"], p["twoWay"]) == (10, True), path.name
+        v = validate_pair(ladder, p["start"], p["goal"], level_band(p["level"], ladder.config))
+        assert v.ok and v.par == p["par"], path.name
 
 
 @pytest.fixture(scope="module")

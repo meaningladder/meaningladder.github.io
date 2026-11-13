@@ -151,7 +151,10 @@ async function showHelp(k = null, twoWay = null, mode = null) {
     // A note about the other era, built from config.rules (not hard-coded).
     const newest = newestEra(config); // the newest era players can see
     const day = (s) => fmt(s, { month: "long", day: "numeric" });
-    if (newest && k !== newest.stepLimit) {
+    if (newest?.mode === "chain") {
+      // An open archive day: the newest ladders are a different game.
+      eraNote = ` (Ladders from ${day(newest.from)} on have one hidden answer per rung instead.)`;
+    } else if (newest && k !== newest.stepLimit) {
       eraNote = today() < newest.from
         ? ` From ${day(newest.from)} each step must be in the top ${newest.stepLimit} instead.`
         : ` (Ladders from ${day(newest.from)} on use the top ${newest.stepLimit}.)`;
@@ -179,7 +182,7 @@ async function showHelp(k = null, twoWay = null, mode = null) {
   );
 }
 
-// How to play, chain ladders (from 2026-11-15): one answer per rung.
+// How to play, chain ladders (from 2026-11-13): one answer per rung.
 function showChainHelp(rules) {
   const par = rules.levels?.easy?.par ?? 5;
   const slack = rules.medalSlack ?? [2, 5, 8];
@@ -211,7 +214,10 @@ async function showIntro(k = null) {
   try { config = await loadConfig(); } catch { return; }
   const newest = newestEra(config);
   if (!newest) return;
-  const seenKey = `seenRules:${newest.from}`;
+  // The mode is in the key: the open-ladder era that briefly started on
+  // 2026-11-13 used "seenRules:2026-11-13", and dismissing that notice must
+  // not hide the chain one that now starts on the same day.
+  const seenKey = `seenRules:${newest.from}${newest.mode ? `:${newest.mode}` : ""}`;
   if (newcomer) {
     // Only once the era has begun: a player who starts the day before the
     // change still learns the old rules first and needs the notice later.
@@ -1070,7 +1076,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
 }
 
 // ------------------------------------------------------------ chain ladders
-// From the 2026-11-15 era a ladder is one fixed chain (puzzle.route): the
+// From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): the
 // start and goal are shown, and each hidden rung has exactly one answer,
 // shown as its first letter and length. Solving a rung shows why it links.
 // state.rungs[k] is the k-th hidden word: { misses: [words], hint: 0-2,

@@ -8,11 +8,11 @@ import openai
 import pytest
 
 from ai_suggest import Pair, Suggestions
-from generate_puzzle import make_puzzle, recent_words, write_puzzle
+from generate_puzzle import make_puzzle, puzzle_filename, recent_words, write_puzzle
 from ladder_core import level_band, load_ladder, validate_pair
 
-DAY = date(2026, 11, 14)  # the last open-play day; chain days have their own tests below
-LEVEL = "medium"  # par 5 under the top-10 two-way rules (Nov 13-14)
+DAY = date(2026, 11, 12)  # the last open-play day; chain days (from Nov 13) have their own tests below
+LEVEL = "hard"  # par 4 under the original top-100 rules
 CHAIN_DAY = date(2026, 11, 17)
 SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
                "source", "graphVersion", "stepLimit", "twoWay", "route", "reasons"}
@@ -96,23 +96,18 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
     assert set(p1) == SPEC_FIELDS
     assert p1["par"] == level_band(LEVEL, ladder.config)["par"]
     assert p1["level"] == LEVEL
-    assert p1["gameNumber"] == 14  # launch 2026-11-01 is game 1
-    assert p1["stepLimit"] == 10 and p1["par"] == 5 and p1["twoWay"] is True  # Nov 14
+    assert p1["gameNumber"] == 12  # launch 2026-11-01 is game 1
+    assert p1["stepLimit"] == 100 and p1["par"] == 4 and p1["twoWay"] is False  # Nov 12
 
 
 def test_puzzles_follow_their_dates_rules(ladder):
-    """Before Nov 13 the original top-100 rules apply, even with a newest-rules ladder."""
+    """Before Nov 13 the original top-100 open rules apply; from Nov 13 every
+    day is a chain, whatever rules the ladder passed in was viewed under."""
     old = make_puzzle(ladder, date(2026, 11, 12), "hard", set(), None, quiet)
     new = make_puzzle(ladder, date(2026, 11, 13), "hard", set(), None, quiet)
     assert (old["stepLimit"], old["par"]) == (100, 4)
-    assert (new["stepLimit"], new["par"], new["twoWay"]) == (10, 6, True)
-    assert old["twoWay"] is False
-    # Each new-era level's first-move band holds for the seeded pick.
-    for level in ("easy", "medium", "hard"):
-        p = make_puzzle(ladder, date(2026, 11, 14), level, set(), None, quiet)
-        band = level_band(level, ladder.at("2026-11-14").config)
-        v = validate_pair(ladder.at("2026-11-14"), p["start"], p["goal"], band)
-        assert v.ok and band.get("minCloserFirstMoves", 0) <= v.closer
+    assert old["twoWay"] is False and "mode" not in old
+    assert (new["mode"], new["stepLimit"], new["par"], new["twoWay"]) == ("chain", 10, 5, True)
 
 
 def test_write_never_overwrites(tmp_path, ladder):
@@ -125,12 +120,57 @@ def test_write_never_overwrites(tmp_path, ladder):
 
 
 def test_recent_words(tmp_path):
-    write_puzzle(tmp_path, {"date": "2026-11-15", "level": "hard", "start": "ore", "goal": "pie"})
-    write_puzzle(tmp_path, {"date": "2026-11-17", "level": "easy", "start": "sun", "goal": "jam"})
+    write_puzzle(tmp_path, {"date": "2026-11-12", "level": "hard", "start": "ore", "goal": "pie"})
+    write_puzzle(tmp_path, {"date": "2026-11-17", "level": "easy", "mode": "chain",
+                            "start": "sun", "goal": "jam"})
     write_puzzle(tmp_path, {"date": "2026-10-01", "start": "old", "goal": "news"})  # legacy name
-    assert (tmp_path / "2026-11-15-hard.json").exists()
-    # The same day's other levels count too, so a day's three puzzles don't repeat words.
+    assert (tmp_path / "2026-11-12-hard.json").exists()
+    assert (tmp_path / "2026-11-17-easy.chain.json").exists()
+    # Both file kinds count, and the same day's other levels too, so a day's
+    # three puzzles don't repeat words.
     assert recent_words(tmp_path, date(2026, 11, 17), 30) == {"ore", "pie", "sun", "jam"}
+
+
+def test_chain_days_get_their_own_file_name():
+    assert puzzle_filename("2026-11-12", "easy") == "2026-11-12-easy.json"
+    assert puzzle_filename("2026-11-13", "easy", chain=True) == "2026-11-13-easy.chain.json"
+    assert puzzle_filename("2026-10-01", None) == "2026-10-01.json"  # legacy
+
+
+def test_chain_file_sits_next_to_an_open_file_for_the_same_day(tmp_path):
+    """Nov 13 and 14 had open-ladder files before the chain era moved to Nov 13.
+    The chain puzzle for that day is a new file; the open one is never touched."""
+    open_p = {"date": "2026-11-13", "level": "hard", "start": "ore", "goal": "pie"}
+    open_path = write_puzzle(tmp_path, open_p)
+    before = open_path.read_bytes()
+    chain_path = write_puzzle(tmp_path, {**open_p, "mode": "chain", "start": "sun"})
+    assert chain_path.name == "2026-11-13-hard.chain.json" and open_path.name == "2026-11-13-hard.json"
+    assert open_path.read_bytes() == before
+    with pytest.raises(FileExistsError):  # and a chain file is never overwritten either
+        write_puzzle(tmp_path, {**open_p, "mode": "chain", "start": "changed"})
+    assert json.loads(chain_path.read_text())["start"] == "sun"
+
+
+def test_cli_writes_chain_files_and_never_overwrites(tmp_path, capsys):
+    """A chain day with an old open file: main() writes the .chain.json beside
+    it, leaves the open file byte for byte, and skips the chain file next run."""
+    from generate_puzzle import main
+
+    open_path = tmp_path / "2026-11-13-easy.json"
+    open_path.write_text('{"date": "2026-11-13", "level": "easy", "start": "ore", "goal": "pie"}\n')
+    before = open_path.read_bytes()
+    main(["--date", "2026-11-13", "--level", "easy", "--no-ai", "--out", str(tmp_path)])
+    chain_path = tmp_path / "2026-11-13-easy.chain.json"
+    made = json.loads(chain_path.read_text())
+    assert made["mode"] == "chain" and made["date"] == "2026-11-13"
+    assert open_path.read_bytes() == before
+    written = chain_path.read_bytes()
+    capsys.readouterr()
+    main(["--date", "2026-11-13", "--level", "easy", "--no-ai", "--out", str(tmp_path)])
+    assert "exists, skipping" in capsys.readouterr().out
+    assert chain_path.read_bytes() == written
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["2026-11-13-easy.chain.json",
+                                                          "2026-11-13-easy.json"]
 
 
 def test_is_live_uses_earliest_time_zone():
@@ -189,7 +229,7 @@ def test_prompt_offers_verified_pairs(ladder):
     from ai_suggest import build_request
 
     band = level_band("hard", ladder.config)
-    prompt = build_request(ladder, "2026-11-14", band, set())
+    prompt = build_request(ladder, DAY.isoformat(), band, set())
     assert "Verified pairs" in prompt
     s, g = prompt.split("\n- ", 1)[1].split("\n")[0].split(" -> ")
     assert validate_pair(ladder, s, g, band).ok
@@ -247,7 +287,7 @@ def test_ai_must_explain_every_step(ladder, good_pair):
                for a, b in zip(puzzle["route"], puzzle["route"][1:]))
 
 
-# ---------------------------------------------------------------- chain days (from Nov 15)
+# ---------------------------------------------------------------- chain days (from Nov 13)
 CHAIN_FIELDS = SPEC_FIELDS | {"mode", "clues", "kinds"}
 
 

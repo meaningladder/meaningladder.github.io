@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse, checkedChain } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, chainReasons, cutNeighbors, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, rulesFor, seedBase, seededChain, seededPuzzle } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, chainReasons, cutNeighbors, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, puzzleFile, rulesFor, seedBase, seededChain, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -175,7 +175,8 @@ export function ladderFor(base, puzzle) {
   return viewOf(base, { ...rules, stepLimit: k });
 }
 
-// One level of a day's puzzle (puzzles/YYYY-MM-DD-<level>.json), or the
+// One level of a day's puzzle (puzzles/YYYY-MM-DD-<level>.json, or
+// YYYY-MM-DD-<level>.chain.json on chain days: see puzzleFile), or the
 // identical-everywhere seeded fallback if the file is missing.
 export async function loadDailyPuzzle(base, dateStr, level) {
   await ensureWidth(base, rulesFor(base.config, dateStr).stepLimit ?? DEFAULT_STEP_LIMIT);
@@ -183,7 +184,7 @@ export async function loadDailyPuzzle(base, dateStr, level) {
   const { config } = ladder;
   const chain = config.mode === "chain";
   try {
-    const p = await getJson(`puzzles/${dateStr}-${level}.json`);
+    const p = await getJson(puzzleFile(dateStr, level, config));
     if (p.graphVersion === config.graphVersion && ladder.index.has(p.start) && ladder.index.has(p.goal)
         && (!chain || (p.mode === "chain" && checkedChain(p, ladder)))) {
       return p;

@@ -638,7 +638,7 @@ def seeded_puzzle(ladder: Ladder, date_str: str, band: dict) -> tuple[str, str, 
 
 
 # ---------------------------------------------------------------- chain mode
-# From the 2026-11-15 era ("mode": "chain"), a ladder is one fixed chain of
+# From the 2026-11-13 era ("mode": "chain"), a ladder is one fixed chain of
 # par + 1 words. Each hidden rung has exactly ONE answer, shown as its first
 # letter and length, and difficulty is how obvious each link is (the AI
 # labels links "everyday" or "lateral"; the graph checks how close they are).

@@ -1,4 +1,4 @@
-// Chain ladders (from 2026-11-15): one fixed chain, one answer per rung.
+// Chain ladders (from 2026-11-13): one fixed chain, one answer per rung.
 // Run: node --test tests/js/*.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";

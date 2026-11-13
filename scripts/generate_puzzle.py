@@ -6,7 +6,10 @@
     python scripts/generate_puzzle.py --no-ai --dry-run   # seeded only, print, write nothing
 
 Writes puzzles/YYYY-MM-DD-<level>.json (level = easy, medium, hard) and never
-overwrites an existing file.
+overwrites an existing file. Chain-era days ("mode": "chain") get their own
+name, puzzles/YYYY-MM-DD-<level>.chain.json, so a day whose rules changed
+after its open-ladder file was written (2026-11-13 and 14) keeps that file
+untouched for the players already on it.
 """
 from __future__ import annotations
 
@@ -42,7 +45,8 @@ def recent_words(puzzle_dir: Path, day: date, days: int, extra: list[dict] = ())
     words = set()
     for back in range(0, days + 1):
         d = (day - timedelta(days=back)).isoformat()
-        for path in puzzle_dir.glob(f"{d}*.json"):  # d-easy.json, d-hard.json, legacy d.json
+        # d-easy.json, d-easy.chain.json, legacy d.json: every kind counts
+        for path in puzzle_dir.glob(f"{d}*.json"):
             p = json.loads(path.read_text(encoding="utf-8"))
             words |= {p["start"], p["goal"]}
     for p in extra:  # puzzles made earlier in this same run (matters for --dry-run)
@@ -156,15 +160,22 @@ def make_chain_puzzle(ladder: Ladder, day: date, level: str, band: dict, recent:
     }
 
 
-def puzzle_filename(date_str: str, level: str | None) -> str:
-    return f"{date_str}-{level}.json" if level else f"{date_str}.json"
+def puzzle_filename(date_str: str, level: str | None, chain: bool = False) -> str:
+    """Open ladders: YYYY-MM-DD-<level>.json. Chain ladders: YYYY-MM-DD-<level>.chain.json,
+    a separate name so a chain day never collides with (or overwrites) an
+    open puzzle written for the same date under older rules.
+    JS twin: puzzleFile in js/seeded.js."""
+    if not level:
+        return f"{date_str}.json"  # legacy one-puzzle-a-day files
+    return f"{date_str}-{level}{'.chain' if chain else ''}.json"
 
 
 def write_puzzle(puzzle_dir: Path, puzzle: dict) -> Path:
     """Mode "x" = exclusive create: the OS raises FileExistsError instead of
     overwriting, so even a race between two runs can't clobber a puzzle."""
     puzzle_dir.mkdir(exist_ok=True)
-    path = puzzle_dir / puzzle_filename(puzzle["date"], puzzle.get("level"))
+    path = puzzle_dir / puzzle_filename(puzzle["date"], puzzle.get("level"),
+                                        puzzle.get("mode") == "chain")
     with open(path, "x", encoding="utf-8") as f:
         json.dump(puzzle, f, indent=2)
         f.write("\n")
@@ -216,8 +227,9 @@ def main(argv=None) -> int:
         if day < launch:
             print(f"{day}: before launch ({launch}), skipping")
             continue
+        chain = is_chain(ladder.at(day.isoformat()).config)  # the day's rules pick the file name
         for level in levels:
-            path = args.out / puzzle_filename(day.isoformat(), level)
+            path = args.out / puzzle_filename(day.isoformat(), level, chain)
             if path.exists():
                 print(f"{day} {level}: {path.name} exists, skipping (puzzles are never overwritten)")
                 continue

@@ -844,7 +844,7 @@ export function guideRoute(neighbors, dist, related, from) {
 }
 
 // ------------------------------------------------------------ chain ladders
-// From the 2026-11-15 era a ladder is one fixed chain (puzzle.route): each
+// From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): each
 // hidden rung has one answer, shown as its first letter and length.
 
 // A puzzle file's chain, or null if it can't be played as one: par + 1 known

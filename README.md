@@ -10,7 +10,13 @@ ocean → wave → signal → network → computer
 
 Every day has **three ladders: Easy, Medium and Hard**. Solving any of them
 keeps your streak alive. Unlimited mode has the same three levels. Puzzle files
-are `puzzles/YYYY-MM-DD-<level>.json`.
+are `puzzles/YYYY-MM-DD-<level>.json` for open-ladder days and
+`puzzles/YYYY-MM-DD-<level>.chain.json` for chain days (from 2026-11-13;
+`puzzle_filename` in `scripts/generate_puzzle.py`, `puzzleFile` in
+`js/seeded.js`). The separate name means a day whose rules change after its
+file was written gets a new file instead of overwriting one players may
+already be on: 2026-11-13 and 14 keep their open `.json` files for saved games,
+and everyone else gets that day's chain.
 
 **Rules eras.** The rules live in `puzzle_config.json` under `rules`, one entry
 per era, each with a `from` date. A date always keeps the rules it was played
@@ -19,10 +25,16 @@ under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
 | From | Legal steps | Easy | Medium | Hard |
 |---|---|---|---|---|
 | 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
-| 2026-11-13 | top 10, links both ways | par 4, 3+ good first moves | par 5, 3+ good first moves | par 6 |
-| 2026-11-15 | **chain**: one answer per rung | 5 steps, links in each other's top 10, all everyday | 5 steps, top 20, 1-2 lateral links | 5 steps, top 40, 2-3 lateral links |
+| 2026-11-13 | **chain**: one answer per rung | 5 steps, links in each other's top 10, all everyday | 5 steps, top 20, 1-2 lateral links | 5 steps, top 40, 2-3 lateral links |
 
-**Chain ladders (from 2026-11-15, `"mode": "chain"`).** Every ladder is one
+A top-10 two-way open era (par 4/5/6) was planned for 2026-11-13 and its
+files for Nov 13 and 14 were written, but the chain era moved up to Nov 13
+before it was played much. Its era was removed from the config; the chain era
+keeps `stepLimit` 10 and `twoWay`, so an open game saved on those days (and
+rebuilt by `ladderFor` from the date's era plus the file's own `stepLimit` and
+`twoWay`) still has exactly the same legal steps.
+
+**Chain ladders (from 2026-11-13, `"mode": "chain"`).** Every ladder is one
 fixed chain of 6 words (`route` in the puzzle file). The start and goal are
 shown; each of the 4 hidden words shows only its first letter and length, and
 only that word counts. Solving a rung shows why it links (`reasons`); a hint
@@ -55,8 +67,8 @@ The graph file always stores the top 100. A tighter era just uses the first N
 of each (already sorted) list, so no data file changes. New puzzle files record
 their `stepLimit`; files without one are from the top-100 era.
 
-From 2026-11-13 links work both ways (`twoWay`): a step counts if either word
-is among the other's 10 closest. Playtests found the one-way top 20 too strict
+The top-10 two-way open rules (`twoWay`, planned for 2026-11-13, see above): a
+step counts if either word is among the other's 10 closest. Playtests found the one-way top 20 too strict
 (champ to dress needed "reigning" from a list of boxing words) and top 40 both
 ways too short (mostly 3 steps); top 25 and top 15 were still asked to be
 longer. Top 10 both ways makes most ladders 4-6 steps (champ to dress is par 5).
@@ -92,7 +104,7 @@ DAILY (GitHub Actions, .github/workflows/daily-puzzle.yml, 06:17 + 08:47 UTC)
   scripts/generate_puzzle.py --ahead 1   (tomorrow, just before it starts in UTC+14)
     OpenAI suggests start/goal + theme + teaser → BFS validates against the graph
     → retry with feedback → seeded fallback if anything fails
-  → puzzles/YYYY-MM-DD.json → commit → redeploy site
+  → puzzles/YYYY-MM-DD-<level>[.chain].json → commit → redeploy site
 
 IN THE BROWSER (index.html, style.css, js/)
   load graph + today's puzzle (or compute the identical seeded fallback)

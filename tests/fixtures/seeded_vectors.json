@@ -117,81 +117,141 @@
       "routes": 43,
       "closer": 4,
       "attempt": 3
-    },
-    {
-      "date": "2026-11-13",
-      "level": "easy",
-      "stepLimit": 10,
-      "gameNumber": 13,
-      "start": "missionary",
-      "goal": "lecturer",
-      "par": 4,
-      "routes": 34,
-      "closer": 9,
-      "attempt": 7
-    },
-    {
-      "date": "2026-11-13",
-      "level": "medium",
-      "stepLimit": 10,
-      "gameNumber": 13,
-      "start": "desktop",
-      "goal": "son",
-      "par": 5,
-      "routes": 9,
-      "closer": 8,
-      "attempt": 0
-    },
-    {
-      "date": "2026-11-13",
-      "level": "hard",
-      "stepLimit": 10,
-      "gameNumber": 13,
-      "start": "organ",
-      "goal": "buffer",
-      "par": 6,
-      "routes": 13,
-      "closer": 6,
-      "attempt": 15
-    },
-    {
-      "date": "2026-11-14",
-      "level": "easy",
-      "stepLimit": 10,
-      "gameNumber": 14,
-      "start": "incumbent",
-      "goal": "corner",
-      "par": 4,
-      "routes": 3,
-      "closer": 3,
-      "attempt": 7
-    },
-    {
-      "date": "2026-11-14",
-      "level": "medium",
-      "stepLimit": 10,
-      "gameNumber": 14,
-      "start": "website",
-      "goal": "powerhouse",
-      "par": 5,
-      "routes": 20,
-      "closer": 7,
-      "attempt": 1
-    },
-    {
-      "date": "2026-11-14",
-      "level": "hard",
-      "stepLimit": 10,
-      "gameNumber": 14,
-      "start": "cap",
-      "goal": "train",
-      "par": 6,
-      "routes": 105,
-      "closer": 11,
-      "attempt": 16
     }
   ],
   "chains": [
+    {
+      "date": "2026-11-13",
+      "level": "easy",
+      "gameNumber": 13,
+      "route": [
+        "boyfriend",
+        "husband",
+        "son",
+        "grandson",
+        "prophet",
+        "imam"
+      ],
+      "reasons": [
+        "Boyfriend and husband: they often go together.",
+        "Husband and son: they often go together.",
+        "Son and grandson: they often go together.",
+        "Grandson and prophet: they often go together.",
+        "Prophet and imam: they often go together."
+      ],
+      "linked": 2,
+      "attempt": 35
+    },
+    {
+      "date": "2026-11-13",
+      "level": "medium",
+      "gameNumber": 13,
+      "route": [
+        "elbow",
+        "wrist",
+        "glove",
+        "leather",
+        "fabric",
+        "cotton"
+      ],
+      "reasons": [
+        "Elbow and wrist: they often go together.",
+        "Wrist and glove: they often go together.",
+        "Glove and leather: they often go together.",
+        "Leather and fabric: one is a kind of the other.",
+        "Fabric and cotton: one is a kind of the other."
+      ],
+      "linked": 2,
+      "attempt": 9
+    },
+    {
+      "date": "2026-11-13",
+      "level": "hard",
+      "gameNumber": 13,
+      "route": [
+        "mediator",
+        "representative",
+        "resident",
+        "doctor",
+        "medication",
+        "hormone"
+      ],
+      "reasons": [
+        "Mediator and representative: they often go together.",
+        "Representative and resident: they often go together.",
+        "Resident and doctor: one is a kind of the other.",
+        "Doctor and medication: you find one near the other.",
+        "Medication and hormone: they often go together."
+      ],
+      "linked": 3,
+      "attempt": 14
+    },
+    {
+      "date": "2026-11-14",
+      "level": "easy",
+      "gameNumber": 14,
+      "route": [
+        "juice",
+        "apple",
+        "computer",
+        "user",
+        "log",
+        "cabin"
+      ],
+      "reasons": [
+        "Juice and apple: they often go together.",
+        "Apple and computer: they often go together.",
+        "Computer and user: they often go together.",
+        "User and log: they often go together.",
+        "Log and cabin: they often go together."
+      ],
+      "linked": 3,
+      "attempt": 54
+    },
+    {
+      "date": "2026-11-14",
+      "level": "medium",
+      "gameNumber": 14,
+      "route": [
+        "freeway",
+        "road",
+        "hill",
+        "house",
+        "office",
+        "deputy"
+      ],
+      "reasons": [
+        "Freeway and road: one is a kind of the other.",
+        "Road and hill: they often go together.",
+        "Hill and house: they often go together.",
+        "House and office: they often go together.",
+        "Office and deputy: they often go together."
+      ],
+      "linked": 3,
+      "attempt": 0
+    },
+    {
+      "date": "2026-11-14",
+      "level": "hard",
+      "gameNumber": 14,
+      "route": [
+        "tower",
+        "building",
+        "library",
+        "student",
+        "fellow",
+        "compatriot"
+      ],
+      "reasons": [
+        "Tower and building: they often go together.",
+        "Building and library: one is a kind of the other.",
+        "Library and student: you find one near the other.",
+        "Student and fellow: they often go together.",
+        "Fellow and compatriot: they are close in meaning."
+      ],
+      "linked": 4,
+      "attempt": 28
+    },
     {
       "date": "2026-11-15",
       "level": "easy",
@@ -257,138 +317,6 @@
       ],
       "linked": 3,
       "attempt": 3
-    },
-    {
-      "date": "2026-11-16",
-      "level": "easy",
-      "gameNumber": 16,
-      "route": [
-        "guy",
-        "man",
-        "body",
-        "head",
-        "arm",
-        "leg"
-      ],
-      "reasons": [
-        "Guy and man: one is a kind of the other.",
-        "Man and body: they often go together.",
-        "Body and head: one is part of the other.",
-        "Head and arm: they often go together.",
-        "Arm and leg: they often go together."
-      ],
-      "linked": 3,
-      "attempt": 8
-    },
-    {
-      "date": "2026-11-16",
-      "level": "medium",
-      "gameNumber": 16,
-      "route": [
-        "executive",
-        "officer",
-        "guard",
-        "coast",
-        "port",
-        "hub"
-      ],
-      "reasons": [
-        "Executive and officer: they often go together.",
-        "Officer and guard: they often go together.",
-        "Guard and coast: they often go together.",
-        "Coast and port: they often go together.",
-        "Port and hub: they often go together."
-      ],
-      "linked": 3,
-      "attempt": 0
-    },
-    {
-      "date": "2026-11-16",
-      "level": "hard",
-      "gameNumber": 16,
-      "route": [
-        "imam",
-        "shrine",
-        "sanctuary",
-        "wildlife",
-        "fish",
-        "tuna"
-      ],
-      "reasons": [
-        "Imam and shrine: they often go together.",
-        "Shrine and sanctuary: they are close in meaning.",
-        "Sanctuary and wildlife: they often go together.",
-        "Wildlife and fish: they often go together.",
-        "Fish and tuna: one is a kind of the other."
-      ],
-      "linked": 3,
-      "attempt": 1
-    },
-    {
-      "date": "2026-11-17",
-      "level": "easy",
-      "gameNumber": 17,
-      "route": [
-        "beef",
-        "chicken",
-        "vegetable",
-        "fruit",
-        "flower",
-        "garden"
-      ],
-      "reasons": [
-        "Beef and chicken: they often go together.",
-        "Chicken and vegetable: they often go together.",
-        "Vegetable and fruit: they often go together.",
-        "Fruit and flower: they often go together.",
-        "Flower and garden: they often go together."
-      ],
-      "linked": 2,
-      "attempt": 24
-    },
-    {
-      "date": "2026-11-17",
-      "level": "medium",
-      "gameNumber": 17,
-      "route": [
-        "critic",
-        "columnist",
-        "examiner",
-        "county",
-        "district",
-        "province"
-      ],
-      "reasons": [
-        "Critic and columnist: they often go together.",
-        "Columnist and examiner: they often go together.",
-        "Examiner and county: they often go together.",
-        "County and district: they often go together.",
-        "District and province: they often go together."
-      ],
-      "linked": 2,
-      "attempt": 1
-    },
-    {
-      "date": "2026-11-17",
-      "level": "hard",
-      "gameNumber": 17,
-      "route": [
-        "softball",
-        "chess",
-        "player",
-        "manager",
-        "salesman",
-        "dealer"
-      ],
-      "reasons": [
-        "Softball and chess: they often go together.",
-        "Chess and player: they often go together.",
-        "Player and manager: they often go together.",
-        "Manager and salesman: they often go together.",
-        "Salesman and dealer: they are close in meaning."
-      ],
-      "linked": 1,
-      "attempt": 5
     },
     {
       "date": "2027-03-14",

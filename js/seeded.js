@@ -131,6 +131,13 @@ export function rulesFor(config, dateStr) {
   return { ...rest, ...era };
 }
 
+// A daily puzzle's file name. `rules` is that date's rulesFor(config, date).
+// Chain days get their own name (2026-11-13-easy.chain.json) so a day whose
+// rules changed after its open-ladder file was written keeps that file for
+// the players already on it. Python twin: puzzle_filename.
+export const puzzleFile = (dateStr, level, rules) =>
+  `puzzles/${dateStr}-${level}${rules?.mode === "chain" ? ".chain" : ""}.json`;
+
 // Each neighbor list cut to the step limit. The lists are sorted by
 // similarity, so the first 20 ARE the top 20 (Python: ladder_view).
 export const cutNeighbors = (neighbors, k) => neighbors.map((row) => row.slice(0, k));
@@ -279,7 +286,7 @@ export function seededPuzzle(ladder, dateStr, band) {
 }
 
 // ------------------------------------------------------------ chain mode
-// From the 2026-11-15 era ("mode": "chain") a ladder is one fixed chain of
+// From the 2026-11-13 era ("mode": "chain") a ladder is one fixed chain of
 // par + 1 words with ONE answer per hidden rung, shown as its first letter
 // and length. Python twins: the "chain mode" section of ladder_core.py.
 

@@ -25,7 +25,9 @@ jobs:
           day=$(date -u -d tomorrow +%F)
           failed=0
           for level in easy medium hard; do
-            url="$site/puzzles/$day-$level.json"
+            # Every day from 2026-11-13 on is a chain day: puzzles/<day>-<level>.chain.json
+            # (scripts/generate_puzzle.py puzzle_filename). Open-ladder days used <day>-<level>.json.
+            url="$site/puzzles/$day-$level.chain.json"
             code=$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 20 "$url")
             if [ "$code" = "200" ]; then echo "ok   $url"; else echo "::error::$url returned $code"; failed=1; fi
           done

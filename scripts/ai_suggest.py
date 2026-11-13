@@ -263,7 +263,7 @@ def ai_puzzle(
 
 
 # ---------------------------------------------------------------- chain mode
-# From the 2026-11-15 era every ladder is one fixed 5-step chain with one
+# From the 2026-11-13 era every ladder is one fixed 5-step chain with one
 # answer per rung. The AI writes the whole chain, a reason and a clue per
 # step, and labels each link; validate_chain (ladder_core) checks it all.
 CHAINS_PER_ROUND = 3

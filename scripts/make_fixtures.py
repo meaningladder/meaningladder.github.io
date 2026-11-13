@@ -12,11 +12,11 @@ from ladder_core import (ROOT, LEVELS, chain_reasons, fnv1a32, game_number, is_c
 OUT = ROOT / "tests" / "fixtures" / "seeded_vectors.json"
 HASH_INPUTS = ["", "a", "foobar", "2026-11-12#0", "2026-11-12#1", "sample#2026-11-12", "héllo"]
 SEEDS = [0, 1, 42, 0xDEADBEEF, 0xFFFFFFFF]
-# Two days under the original top-100 rules, two under the top-10 two-way
-# rules, then chain days (from 2026-11-15): ordinary ones, a DST-change day
+# Two days under the original top-100 rules (open ladders), then chain days
+# (from 2026-11-13): ordinary ones, a DST-change day
 # (US: 2027-03-14) and a leap day.
-DATES = ["2026-11-05", "2026-11-12", "2026-11-13", "2026-11-14"] + [
-    (date(2026, 11, 15) + timedelta(days=i)).isoformat() for i in range(3)] + ["2027-03-14", "2028-02-29"]
+DATES = ["2026-11-05", "2026-11-12"] + [
+    (date(2026, 11, 13) + timedelta(days=i)).isoformat() for i in range(3)] + ["2027-03-14", "2028-02-29"]
 
 
 def main() -> None:

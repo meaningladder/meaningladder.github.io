@@ -502,3 +502,9 @@ chains reward finding *the* route. The old days stay playable as "classic rules
 Update: the signpost (a free guide word on a middle rung of open ladders) was
 later removed. Chain ladders made it redundant, and the page reads simpler
 without it; hints still follow the same shown route.
+
+Update: the chain rules moved up to November 13, a day whose open-ladder files
+were already live and being played. Chain days now get their own file name
+(`2026-11-13-easy.chain.json`) instead of replacing the open one: never
+overwrite a puzzle someone may already be playing. Saved games keep the old file,
+new players get the chain, and the generator's "x" (create only) mode still guards both.
