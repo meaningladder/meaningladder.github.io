@@ -379,6 +379,23 @@ dialog ul { padding-left: 1.1em; margin: 0; display: grid; gap: 8px; }
 dialog .example { margin: 12px 0; display: grid; gap: 5px; }
 dialog .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
 
+/* Send feedback */
+.fb { display: grid; gap: 6px; }
+.fb label { font-size: var(--fs-sm); font-weight: 700; margin-top: 6px; }
+.fb select, .fb textarea {
+  width: 100%; padding: 10px 12px; font: inherit; color: var(--text);
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: var(--r-control); outline: none;
+}
+.fb select { min-height: 44px; }
+.fb textarea { resize: vertical; min-height: 110px; }
+.fb select:focus, .fb textarea:focus { border-color: var(--strong); }
+.fb textarea::placeholder { color: var(--muted); }
+.fb .sub { margin-top: 6px; color: var(--muted); font-size: var(--fs-sm); }
+.fb-error { color: var(--error); font-size: var(--fs-sm); font-weight: 600; }
+.fb-error:empty { display: none; }
+.fb-context summary { cursor: pointer; font-size: var(--fs-sm); color: var(--muted); }
+.fb-context p { margin-top: 6px; font-size: var(--fs-xs); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+
 /* ------------------------------------------------------------ icons & medals */
 .inline-icon { width: 1.05em; height: 1.05em; vertical-align: -0.16em; margin-right: 6px; color: var(--accent); }
 .btn-icon { width: 18px; height: 18px; flex: none; }

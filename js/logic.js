@@ -960,3 +960,29 @@ export function chainShareText({ label, moves, par, slack, rungs, gaveUp = false
     .filter(Boolean).join("\n");
 }
 
+
+// ------------------------------------------------------------ feedback
+// The site has no server, so feedback goes to a GitHub issue. This builds the
+// "new issue" link for the repo's feedback form (.github/ISSUE_TEMPLATE/
+// feedback.yml), filled in with what the player typed and which game they
+// were on. Long text is cut so the link stays well under URL limits.
+export const FEEDBACK_KINDS = [
+  "A puzzle (a word or link that felt wrong)",
+  "Something broke",
+  "An idea",
+  "Something else",
+];
+export const FEEDBACK_MAX = 1500;
+
+export function feedbackUrl(repo, { kind, text, context = [] }) {
+  const details = String(text ?? "").trim().slice(0, FEEDBACK_MAX);
+  const first = details.split("\n")[0].slice(0, 60).trim();
+  const params = new URLSearchParams({
+    template: "feedback.yml",
+    title: `[Feedback] ${first || "Game feedback"}`,
+    kind: FEEDBACK_KINDS.includes(kind) ? kind : FEEDBACK_KINDS[3],
+    details,
+    context: context.filter(Boolean).join("\n"),
+  });
+  return `https://github.com/${repo}/issues/new?${params}`;
+}

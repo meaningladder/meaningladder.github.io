@@ -16,6 +16,7 @@ import {
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
   betterMedal, checkedRoute, upOneRung, trimToStepsUp, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK, chainGuess, chainPattern, chainShareText, closenessLabel,
+  FEEDBACK_KINDS, FEEDBACK_MAX, feedbackUrl,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
 import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
@@ -125,10 +126,11 @@ function openDialog(title, body, actions = [["Close", null]]) {
     // focus Close and scroll a long dialog to its bottom.
     h("h2", { id: "dlg-title", tabindex: "-1", autofocus: true }, title),
     body,
-    h("div", { class: "dialog-actions" }, actions.map(([label, fn, primary]) =>
+    // An action's optional 4th item is a check: false keeps the dialog open.
+    h("div", { class: "dialog-actions" }, actions.map(([label, fn, primary, check]) =>
       h("button", {
         class: primary ? "btn" : "btn btn-quiet",
-        onClick: () => { dlg.close(); fn?.(); },
+        onClick: () => { if (check && !check()) return; dlg.close(); fn?.(); },
       }, label))));
   dlg.addEventListener("close", () => dlg.remove());
   document.body.append(dlg);
@@ -237,6 +239,46 @@ function showStats() {
   openDialog("Statistics", h("div", {}, statsRow(s),
     h("p", { class: "sub stats-note" },
       `Solved so far: ${easy} easy, ${medium} medium, ${hard} hard.`)));
+}
+
+// ------------------------------------------------------------ feedback
+// Which game the player was on, for the feedback form.
+function feedbackContext(state) {
+  const p = state.puzzle;
+  const which = state.kind === "daily" ? `Game ${p.gameNumber} (${p.date})` : "Unlimited";
+  return [`${which}, ${p.level ?? "medium"}, ${p.mode === "chain" ? "chain" : "open"} ladder`,
+    `Status: ${state.status}, ${state.moves ?? 0} moves`];
+}
+
+// No server: "Continue on GitHub" opens the repo's feedback issue form, filled
+// in. `context` names the game the player is on (no words, so no spoilers).
+const FEEDBACK_REPO = "meaningladder/meaningladder.github.io";
+
+function showFeedback(context = []) {
+  const kind = h("select", { id: "fb-kind" },
+    FEEDBACK_KINDS.map((k) => h("option", { value: k }, k)));
+  const text = h("textarea", { id: "fb-text", rows: 5, maxlength: FEEDBACK_MAX,
+    placeholder: "What happened, or what would make the game better?" });
+  const hint = h("p", { class: "fb-error", "aria-live": "polite" });
+  const info = [...context, `Browser: ${navigator.userAgent}`];
+  openDialog("Send feedback", h("div", { class: "fb" },
+    h("label", { for: "fb-kind" }, "What is it about?"), kind,
+    h("label", { for: "fb-text" }, "Your feedback"), text, hint,
+    h("p", { class: "sub" }, "This opens a GitHub issue in a new tab (a free account is needed). ",
+      "Issues are public, so please don't write today's answers."),
+    h("details", { class: "fb-context" }, h("summary", {}, "Also sent"),
+      h("p", {}, info.join("
+")))),
+  [["Cancel", null],
+    ["Continue on GitHub", () => {
+      const url = feedbackUrl(FEEDBACK_REPO, { kind: kind.value, text: text.value, context: info });
+      window.open(url, "_blank", "noopener");
+    }, true, () => {
+      if (text.value.trim()) return true;
+      hint.textContent = "Write a few words first.";
+      text.focus();
+      return false;
+    }]]);
 }
 
 function statsRow(s) {
@@ -371,7 +413,8 @@ async function showHome() {
     practice,
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
-      h("button", { class: "link-btn", onClick: showStats }, "Statistics")),
+      h("button", { class: "link-btn", onClick: showStats }, "Statistics"),
+      h("button", { class: "link-btn", onClick: () => showFeedback() }, "Send feedback")),
     // ConceptNet's license (CC BY-SA 4.0) asks for credit wherever it's used.
     h("p", { class: "credits" }, "Word links from ",
       h("a", { href: "https://conceptnet.io", rel: "noopener" }, "ConceptNet 5.7"), ", CC BY-SA 4.0."));
@@ -682,6 +725,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
     ["How to play", () => showHelp(ladder.config.stepLimit, ladder.config.twoWay), () => true],
     ["Statistics", showStats, () => true],
+    ["Send feedback", () => showFeedback(feedbackContext(state)), () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
   ]);
 
@@ -1186,6 +1230,7 @@ function chainView(ladder, state, saveKey, date, classic = "") {
     ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
     ["How to play", () => showHelp(null, null, "chain"), () => true],
     ["Statistics", showStats, () => true],
+    ["Send feedback", () => showFeedback(feedbackContext(state)), () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
   ]);
 

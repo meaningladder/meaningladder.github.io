@@ -1,0 +1,29 @@
+name: Game feedback
+description: A problem with a puzzle, a bug, or an idea. The game's "Send feedback" opens this form pre-filled.
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is it about?
+      options:
+        - A puzzle (a word or link that felt wrong)
+        - Something broke
+        - An idea
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened?
+      description: Please don't write the answers if a puzzle is still live. Others can read this.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Game and browser
+      description: Filled in by the game.
+      render: text
