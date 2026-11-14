@@ -12,6 +12,7 @@ from ladder_core import (ROOT, LEVELS, chain_reasons, fnv1a32, game_number, is_c
 OUT = ROOT / "tests" / "fixtures" / "seeded_vectors.json"
 HASH_INPUTS = ["", "a", "foobar", "2026-11-12#0", "2026-11-12#1", "sample#2026-11-12", "héllo"]
 SEEDS = [0, 1, 42, 0xDEADBEEF, 0xFFFFFFFF]
+# Nov 13-14 are the only chain days; Nov 15 on is open again (top 10 both ways).
 # Two days under the original top-100 rules (open ladders), then chain days
 # (from 2026-11-13): ordinary ones, a DST-change day
 # (US: 2027-03-14) and a leap day.

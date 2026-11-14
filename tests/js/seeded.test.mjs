@@ -48,7 +48,8 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   assert.equal(rulesFor(config, null).stepLimit, 10); // Unlimited: newest rules
   assert.equal(rulesFor(config, "2026-11-12").mode, undefined); // open ladders
   assert.equal(rulesFor(config, "2026-11-13").mode, "chain"); // chains from today on
-  assert.equal(rulesFor(config, null).mode, "chain");
+  assert.equal(rulesFor(config, "2026-11-15").mode, undefined); // open ladders again
+  assert.equal(rulesFor(config, null).mode, undefined); // Unlimited follows the newest era
   assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 5);
   assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
@@ -163,7 +164,7 @@ test("seeded chains match Python for every chain fixture date and level", () => 
   // The browser's lists stop at 40; the chain rules never look further.
   const head = graph.neighbors.map((row) => row.slice(0, 40));
   const views = new Map();
-  assert.ok(fixture.chains.length >= 9);
+  assert.ok(fixture.chains.length >= 6); // 3 levels x Nov 13-14
   for (const c of fixture.chains) {
     const rules = rulesFor(config, c.date);
     assert.equal(rules.mode, "chain", c.date);
@@ -199,7 +200,8 @@ test("chain days load their own file name; open days keep the old one", () => {
   assert.equal(file("2026-11-12", "easy"), "puzzles/2026-11-12-easy.json");
   assert.equal(file("2026-11-13", "hard"), "puzzles/2026-11-13-hard.chain.json");
   assert.equal(file("2026-11-14", "medium"), "puzzles/2026-11-14-medium.chain.json");
-  assert.equal(file("2027-01-01", "easy"), "puzzles/2027-01-01-easy.chain.json");
+  assert.equal(file("2026-11-15", "easy"), "puzzles/2026-11-15-easy.json"); // open again
+  assert.equal(file("2027-01-01", "easy"), "puzzles/2027-01-01-easy.json");
   assert.equal(puzzleFile("2026-11-13", "easy", null), "puzzles/2026-11-13-easy.json");
 });
 

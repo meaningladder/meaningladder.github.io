@@ -241,7 +241,7 @@ OPEN_TOP10 = {
 
 @pytest.fixture(scope="module")
 def ladder():
-    # Open top-10 two-way rules; the newest rules (chains, from Nov 13) have
+    # Open top-10 two-way rules; the chain rules (Nov 13-14) have
     # their own tests at the end of this file.
     from ladder_core import ladder_view
 
@@ -468,10 +468,12 @@ def test_chain_era_starts_nov_13(ladder):
     from ladder_core import is_chain, rules_for
 
     cfg = ladder.base_config
-    assert [e["from"] for e in cfg["rules"]] == ["2026-11-01", "2026-11-13"]
+    assert [e["from"] for e in cfg["rules"]] == ["2026-11-01", "2026-11-13", "2026-11-15"]
     assert not is_chain(rules_for(cfg, "2026-11-12"))
     new = rules_for(cfg, "2026-11-13")
-    assert is_chain(new) and is_chain(rules_for(cfg, "2026-11-14")) and is_chain(rules_for(cfg, None))
+    assert is_chain(new) and is_chain(rules_for(cfg, "2026-11-14"))
+    # Open ladders again from Nov 15, and in Unlimited.
+    assert not is_chain(rules_for(cfg, "2026-11-15")) and not is_chain(rules_for(cfg, None))
     # Every level is 5 steps; difficulty is how loose the links may be.
     assert [new["levels"][lv]["par"] for lv in LEVELS] == [5, 5, 5]
     ranks = [new["levels"][lv]["maxRank"] for lv in LEVELS]
@@ -501,7 +503,7 @@ def test_open_games_saved_on_chain_days_keep_their_steps(ladder):
 
 @pytest.fixture(scope="module")
 def chain_day(ladder):
-    return ladder.at("2026-11-20")
+    return ladder.at("2026-11-14")  # chains ran Nov 13-14 only
 
 
 def test_seeded_chains_are_fair_and_deterministic(chain_day):

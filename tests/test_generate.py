@@ -13,7 +13,7 @@ from ladder_core import level_band, load_ladder, validate_pair
 
 DAY = date(2026, 11, 12)  # the last open-play day; chain days (from Nov 13) have their own tests below
 LEVEL = "hard"  # par 4 under the original top-100 rules
-CHAIN_DAY = date(2026, 11, 17)
+CHAIN_DAY = date(2026, 11, 14)  # chains ran Nov 13-14 only
 SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
                "source", "graphVersion", "stepLimit", "twoWay", "route", "reasons"}
 
@@ -101,13 +101,17 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
 
 
 def test_puzzles_follow_their_dates_rules(ladder):
-    """Before Nov 13 the original top-100 open rules apply; from Nov 13 every
-    day is a chain, whatever rules the ladder passed in was viewed under."""
+    """Before Nov 13 the original top-100 open rules apply; Nov 13-14 are
+    chains; from Nov 15 ladders are open again (top 10 both ways)."""
     old = make_puzzle(ladder, date(2026, 11, 12), "hard", set(), None, quiet)
     new = make_puzzle(ladder, date(2026, 11, 13), "hard", set(), None, quiet)
     assert (old["stepLimit"], old["par"]) == (100, 4)
     assert old["twoWay"] is False and "mode" not in old
     assert (new["mode"], new["stepLimit"], new["par"], new["twoWay"]) == ("chain", 10, 5, True)
+    assert make_puzzle(ladder, date(2026, 11, 14), "hard", set(), None, quiet)["mode"] == "chain"
+    for level, par in (("easy", 4), ("medium", 5), ("hard", 6)):
+        p = make_puzzle(ladder, date(2026, 11, 15), level, set(), None, quiet)
+        assert "mode" not in p and (p["stepLimit"], p["par"], p["twoWay"]) == (10, par, True)
 
 
 def test_write_never_overwrites(tmp_path, ladder):

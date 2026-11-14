@@ -513,7 +513,9 @@ async function showArchive() {
     `Games before ${fmt(newest.from, { month: "long", day: "numeric" })} use classic rules: `
     + (newest.mode === "chain" && rulesFor(config, before).mode !== "chain"
       ? "open ladders, where any close word counts as a step."
-      : `each step may be any of the previous word's ${rulesFor(config, before).stepLimit} closest words.`));
+      : newest.mode !== "chain" && rulesFor(config, before).mode === "chain"
+        ? "chain ladders, where each hidden rung has one answer."
+        : `each step may be any of the previous word's ${rulesFor(config, before).stepLimit} closest words.`));
   render(topbar("Previous games"), classicNote, ...months);
 }
 

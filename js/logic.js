@@ -717,7 +717,8 @@ export function isClassicDay(config, dateStr) {
 export function classicLabel(config, dateStr) {
   if (!isClassicDay(config, dateStr)) return "";
   const era = [...config.rules].reverse().find((e) => e.from <= dateStr) ?? config.rules[0];
-  return newestEra(config).mode === "chain" && era.mode !== "chain"
+  if (era.mode === "chain") return "classic rules (chain ladder)";
+  return newestEra(config).mode === "chain"
     ? `classic rules (open ladder, top ${era.stepLimit})`
     : `classic rules (top ${era.stepLimit})`;
 }
@@ -756,6 +757,10 @@ export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium",
     return `From ${dayText(newest.from)}, every ladder is ${par} steps and each hidden rung has `
       + "exactly one answer. You see its length, and each wrong guess shows how close it is. Solve a rung to see why it links; "
       + "a hint gives a clue, then the word.";
+  }
+  if (old.mode === "chain" && newest.mode !== "chain") {
+    return `From ${dayText(newest.from)}, ladders are open again: any word one rung closer to the goal is a step. `
+      + "Your ladder turns from red to green as you climb, and each word that isn't a step up shows how close it was.";
   }
   const was = old.stepLimit !== newest.stepLimit ? ` (it was ${old.stepLimit})` : "";
   // Two-way eras: a step counts if EITHER word is among the other's closest.

@@ -117,6 +117,114 @@
       "routes": 43,
       "closer": 4,
       "attempt": 3
+    },
+    {
+      "date": "2026-11-15",
+      "level": "easy",
+      "stepLimit": 10,
+      "gameNumber": 15,
+      "start": "lens",
+      "goal": "rope",
+      "par": 4,
+      "routes": 4,
+      "closer": 3,
+      "attempt": 14
+    },
+    {
+      "date": "2026-11-15",
+      "level": "medium",
+      "stepLimit": 10,
+      "gameNumber": 15,
+      "start": "sail",
+      "goal": "candy",
+      "par": 5,
+      "routes": 30,
+      "closer": 9,
+      "attempt": 1
+    },
+    {
+      "date": "2026-11-15",
+      "level": "hard",
+      "stepLimit": 10,
+      "gameNumber": 15,
+      "start": "pastor",
+      "goal": "surface",
+      "par": 6,
+      "routes": 118,
+      "closer": 16,
+      "attempt": 0
+    },
+    {
+      "date": "2027-03-14",
+      "level": "easy",
+      "stepLimit": 10,
+      "gameNumber": 134,
+      "start": "sweat",
+      "goal": "camp",
+      "par": 4,
+      "routes": 6,
+      "closer": 3,
+      "attempt": 2
+    },
+    {
+      "date": "2027-03-14",
+      "level": "medium",
+      "stepLimit": 10,
+      "gameNumber": 134,
+      "start": "rogue",
+      "goal": "fax",
+      "par": 5,
+      "routes": 10,
+      "closer": 5,
+      "attempt": 3
+    },
+    {
+      "date": "2027-03-14",
+      "level": "hard",
+      "stepLimit": 10,
+      "gameNumber": 134,
+      "start": "settler",
+      "goal": "basket",
+      "par": 6,
+      "routes": 24,
+      "closer": 8,
+      "attempt": 39
+    },
+    {
+      "date": "2028-02-29",
+      "level": "easy",
+      "stepLimit": 10,
+      "gameNumber": 486,
+      "start": "fish",
+      "goal": "clothing",
+      "par": 4,
+      "routes": 5,
+      "closer": 3,
+      "attempt": 2
+    },
+    {
+      "date": "2028-02-29",
+      "level": "medium",
+      "stepLimit": 10,
+      "gameNumber": 486,
+      "start": "cape",
+      "goal": "undergraduate",
+      "par": 5,
+      "routes": 13,
+      "closer": 5,
+      "attempt": 2
+    },
+    {
+      "date": "2028-02-29",
+      "level": "hard",
+      "stepLimit": 10,
+      "gameNumber": 486,
+      "start": "colonel",
+      "goal": "tourist",
+      "par": 6,
+      "routes": 109,
+      "closer": 17,
+      "attempt": 2
     }
   ],
   "chains": [
@@ -251,204 +359,6 @@
       ],
       "linked": 4,
       "attempt": 28
-    },
-    {
-      "date": "2026-11-15",
-      "level": "easy",
-      "gameNumber": 15,
-      "route": [
-        "eye",
-        "skin",
-        "patch",
-        "dirt",
-        "sand",
-        "trap"
-      ],
-      "reasons": [
-        "Eye and skin: they often go together.",
-        "Skin and patch: they often go together.",
-        "Patch and dirt: they often go together.",
-        "Dirt and sand: they often go together.",
-        "Sand and trap: they often go together."
-      ],
-      "linked": 2,
-      "attempt": 4
-    },
-    {
-      "date": "2026-11-15",
-      "level": "medium",
-      "gameNumber": 15,
-      "route": [
-        "sail",
-        "ship",
-        "container",
-        "plastic",
-        "toy",
-        "candy"
-      ],
-      "reasons": [
-        "Sail and ship: they often go together.",
-        "Ship and container: they often go together.",
-        "Container and plastic: they often go together.",
-        "Plastic and toy: they often go together.",
-        "Toy and candy: they often go together."
-      ],
-      "linked": 2,
-      "attempt": 1
-    },
-    {
-      "date": "2026-11-15",
-      "level": "hard",
-      "gameNumber": 15,
-      "route": [
-        "contributor",
-        "editor",
-        "curator",
-        "zoo",
-        "animal",
-        "rat"
-      ],
-      "reasons": [
-        "Contributor and editor: they often go together.",
-        "Editor and curator: they often go together.",
-        "Curator and zoo: they often go together.",
-        "Zoo and animal: you find one near the other.",
-        "Animal and rat: one is a kind of the other."
-      ],
-      "linked": 3,
-      "attempt": 3
-    },
-    {
-      "date": "2027-03-14",
-      "level": "easy",
-      "gameNumber": 134,
-      "route": [
-        "cousin",
-        "father",
-        "hometown",
-        "town",
-        "valley",
-        "river"
-      ],
-      "reasons": [
-        "Cousin and father: they often go together.",
-        "Father and hometown: they often go together.",
-        "Hometown and town: one is a kind of the other.",
-        "Town and valley: you find one near the other.",
-        "Valley and river: you find one near the other."
-      ],
-      "linked": 3,
-      "attempt": 5
-    },
-    {
-      "date": "2027-03-14",
-      "level": "medium",
-      "gameNumber": 134,
-      "route": [
-        "powerhouse",
-        "rival",
-        "leader",
-        "president",
-        "executive",
-        "head"
-      ],
-      "reasons": [
-        "Powerhouse and rival: they often go together.",
-        "Rival and leader: they often go together.",
-        "Leader and president: one is a kind of the other.",
-        "President and executive: they often go together.",
-        "Executive and head: they often go together."
-      ],
-      "linked": 1,
-      "attempt": 0
-    },
-    {
-      "date": "2027-03-14",
-      "level": "hard",
-      "gameNumber": 134,
-      "route": [
-        "minister",
-        "interior",
-        "building",
-        "stone",
-        "bronze",
-        "butterfly"
-      ],
-      "reasons": [
-        "Minister and interior: they often go together.",
-        "Interior and building: they often go together.",
-        "Building and stone: one is part of the other.",
-        "Stone and bronze: they often go together.",
-        "Bronze and butterfly: they often go together."
-      ],
-      "linked": 2,
-      "attempt": 2
-    },
-    {
-      "date": "2028-02-29",
-      "level": "easy",
-      "gameNumber": 486,
-      "route": [
-        "fish",
-        "meat",
-        "seal",
-        "coat",
-        "fur",
-        "clothing"
-      ],
-      "reasons": [
-        "Fish and meat: one is a kind of the other.",
-        "Meat and seal: they often go together.",
-        "Seal and coat: they often go together.",
-        "Coat and fur: one is a kind of the other.",
-        "Fur and clothing: they often go together."
-      ],
-      "linked": 3,
-      "attempt": 2
-    },
-    {
-      "date": "2028-02-29",
-      "level": "medium",
-      "gameNumber": 486,
-      "route": [
-        "jewelry",
-        "furniture",
-        "wood",
-        "tree",
-        "flower",
-        "lotus"
-      ],
-      "reasons": [
-        "Jewelry and furniture: they often go together.",
-        "Furniture and wood: one is made from the other.",
-        "Wood and tree: one is a kind of the other.",
-        "Tree and flower: they often go together.",
-        "Flower and lotus: one is a kind of the other."
-      ],
-      "linked": 3,
-      "attempt": 1
-    },
-    {
-      "date": "2028-02-29",
-      "level": "hard",
-      "gameNumber": 486,
-      "route": [
-        "scoreboard",
-        "lunch",
-        "meal",
-        "food",
-        "grain",
-        "exporter"
-      ],
-      "reasons": [
-        "Scoreboard and lunch: they often go together.",
-        "Lunch and meal: one is a kind of the other.",
-        "Meal and food: they often go together.",
-        "Food and grain: they often go together.",
-        "Grain and exporter: they often go together."
-      ],
-      "linked": 3,
-      "attempt": 10
     }
   ]
 }
