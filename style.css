@@ -33,6 +33,9 @@
   --stair-sat: 60%;       /* climbed rungs: hue by height (stairStep), red to green */
   --stair-light: 76%;
   --stair-lift: 0.03%;    /* per hue degree, so the steps also differ in grayscale */
+  --bar-sat: 65%;         /* the strong bar under rungs and guesses: 3:1+ on the track */
+  --bar-light: 36%;
+  --bar-lift: -0.05%;
   --rail: #d9cab6;        /* ladder rails and pegs */       /* rejected words: one neutral clay, length = closeness */
   --error: #b4473d;
   --focus: #a65f42;
@@ -76,6 +79,9 @@
     --stair-sat: 32%;
     --stair-light: 28%;
     --stair-lift: 0.04%;
+    --bar-sat: 65%;
+    --bar-light: 62%;
+    --bar-lift: -0.04%;
     --rail: #4b433c;
     --error: #f0928a;
     --focus: #e39573;
@@ -143,7 +149,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 
 .btn-quiet {
   background: transparent; color: var(--text); border-color: var(--line);
-  font-weight: 600; min-height: 38px; padding: 0 14px; font-size: var(--fs-sm);
+  font-weight: 600; min-height: 44px; padding: 0 14px; font-size: var(--fs-sm);
 }
 @media (hover: hover) { .btn-quiet:hover:not(:disabled) { background: var(--surface); filter: none; } }
 
@@ -155,7 +161,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 }
 
 .icon-btn {
-  width: 40px; height: 40px; display: grid; place-items: center;
+  width: 44px; height: 44px; display: grid; place-items: center;
   background: none; border: 0; border-radius: 50%; color: var(--text);
 }
 @media (hover: hover) { .icon-btn:hover { background: var(--track); } }
@@ -209,7 +215,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .levels.compact { margin: 0 0 8px; gap: 6px; }
 .levels.compact .level-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 6px 4px; font-weight: 700; font-size: var(--fs-sm);
+  min-height: 44px; padding: 6px 4px; font-weight: 700; font-size: var(--fs-sm);
 }
 
 /* ------------------------------------------------------------ game */
@@ -255,7 +261,16 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .bar.tone-goal { --tone: var(--goal); }
 .bar.tone-cold { --tone: var(--line); }  /* far: a faint fill, still visible on the track */
 .bar.tone-cold .num { color: var(--muted); }
-.bar.stair { --tone: hsl(var(--stair-hue) var(--stair-sat) calc(var(--stair-light) + var(--stair-hue) * var(--stair-lift))); }
+/* Climbed rungs: a soft fill behind the text, plus a strong bar along the
+   bottom (same length) that stays visible in both themes. */
+.bar.stair {
+  --tone: hsl(var(--stair-hue) var(--stair-sat) calc(var(--stair-light) + var(--stair-hue) * var(--stair-lift)));
+  --bar: hsl(var(--stair-hue) var(--bar-sat) calc(var(--bar-light) + var(--stair-hue) * var(--bar-lift)));
+  background:
+    linear-gradient(to right, var(--bar) var(--fill), transparent var(--fill)) bottom / 100% 4px no-repeat,
+    linear-gradient(to right, var(--tone) var(--fill), var(--track) var(--fill));
+  background-origin: border-box;
+}
 
 /* Contexto-style list of wrong guesses, ranked from the current word. */
 .tried { margin-top: 14px; }
@@ -271,7 +286,11 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .tchip {
   padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: var(--fs-sm);
   border: 1px solid var(--line);
-  background: linear-gradient(to right, var(--tried) var(--fill, 0%), var(--track) var(--fill, 0%));
+  /* The strong bar is inset so the pill's round ends never clip it. */
+  background:
+    linear-gradient(to right, hsl(0 var(--bar-sat) var(--bar-light)) var(--fill, 0%), transparent var(--fill, 0%))
+      10px calc(100% - 2px) / calc(100% - 20px) 3px no-repeat,
+    linear-gradient(to right, var(--tried) var(--fill, 0%), var(--track) var(--fill, 0%));
   background-origin: border-box;
 }
 .tchip.latest { border-color: var(--strong); }
