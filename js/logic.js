@@ -490,17 +490,12 @@ export function movesText(steps, undos = 0) {
 // `revealed`: a hint gave away a whole word during the solve. That caps the
 // medal at silver, since gold should mean you found the par route yourself.
 // The returned medal says `capped` so the result card can explain why.
-// `slack`: how many moves over par still earn gold, silver and bronze.
-// Open ladders allow [0, 1, 2]. Chain ladders (one answer per rung) allow
-// more, since every wrong guess costs a move (config "medalSlack").
-export const DEFAULT_SLACK = [0, 1, 2];
-export function medalFor(steps, par, { revealed = false, slack = DEFAULT_SLACK } = {}) {
+export function medalFor(steps, par, { revealed = false } = {}) {
   const over = steps - par;
-  const [g, s, b] = slack ?? DEFAULT_SLACK;
   const silver = { id: "silver", label: "Silver", emoji: "🥈" };
-  if (over <= g) return revealed ? { ...silver, capped: true } : { id: "gold", label: "Gold", emoji: "🥇" };
-  if (over <= s) return silver;
-  if (over <= b) return { id: "bronze", label: "Bronze", emoji: "🥉" };
+  if (over <= 0) return revealed ? { ...silver, capped: true } : { id: "gold", label: "Gold", emoji: "🥇" };
+  if (over <= 1) return silver;
+  if (over <= 2) return { id: "bronze", label: "Bronze", emoji: "🥉" };
   return { id: "finished", label: "Finished", emoji: "🏁" };
 }
 
@@ -508,10 +503,8 @@ export function medalFor(steps, par, { revealed = false, slack = DEFAULT_SLACK }
 // played, undone ones and hints included). Older results kept steps, undos and
 // reveals separately; they keep exactly the medal they were given.
 export const scoreOf = (r) => (r.moves != null ? r.moves : movesOf(r));
-// Chain results also store the par their medal is measured against (the
-// hidden words) and the slack, so the medal never changes after the fact.
 export const resultMedal = (r) => (r.moves != null
-  ? medalFor(r.moves, r.medalPar ?? r.par, { slack: r.slack })
+  ? medalFor(r.moves, r.par)
   : medalFor(movesOf(r), r.par, { revealed: r.reveals > 0 }));
 
 // In-progress saves from before the single moves counter: start it from what
@@ -588,6 +581,13 @@ export function closeness(d) {
   if (d === 2) return { tone: "mid", fill: 60 };
   const fills = { 3: 40, 4: 26, 5: 16 };
   return { tone: "far", fill: d > 0 && fills[d] ? fills[d] : 8 };
+}
+
+// A climbed rung by its height: a red sliver (hue 0, 8% filled) at the start
+// up to a full green bar (hue 130, 100%) at the goal.
+export function stairStep(rung, par) {
+  const t = par <= 0 ? 1 : Math.min(1, Math.max(0, rung / par));
+  return { hue: Math.round(130 * t), fill: Math.round(8 + 92 * t) };
 }
 
 // One square per step, colored by how the step changed the distance to the
@@ -671,7 +671,7 @@ export function computeStats(results, today) {
   const solvedByLevel = { easy: 0, medium: 0, hard: 0 };
   for (const [k] of wins) if (levelOf(k) in solvedByLevel) solvedByLevel[levelOf(k)]++;
 
-  const overPar = wins.map(([, r]) => scoreOf(r) - (r.medalPar ?? r.par)); // chains: vs the hidden words
+  const overPar = wins.map(([, r]) => scoreOf(r) - r.par);
   return {
     played: finished.length,
     winPct: finished.length ? Math.round((100 * wins.length) / finished.length) : 0,
@@ -691,7 +691,7 @@ export function computeStats(results, today) {
 // Eras that change what players see: the step limit, link direction or a
 // level's par. An era that only changes how puzzles are picked (for example
 // minLinkedSteps) isn't news, so it gets no notice and no "classic" label.
-const visibleRules = (e) => JSON.stringify([e.mode ?? "open", e.stepLimit, Boolean(e.twoWay),
+const visibleRules = (e) => JSON.stringify([e.stepLimit, Boolean(e.twoWay),
   ...["easy", "medium", "hard"].map((lv) => e.levels?.[lv]?.par ?? null)]);
 export function visibleEras(config) {
   const out = [];
@@ -717,10 +717,7 @@ export function isClassicDay(config, dateStr) {
 export function classicLabel(config, dateStr) {
   if (!isClassicDay(config, dateStr)) return "";
   const era = [...config.rules].reverse().find((e) => e.from <= dateStr) ?? config.rules[0];
-  if (era.mode === "chain") return "classic rules (chain ladder)";
-  return newestEra(config).mode === "chain"
-    ? `classic rules (open ladder, top ${era.stepLimit})`
-    : `classic rules (top ${era.stepLimit})`;
+  return `classic rules (top ${era.stepLimit})`;
 }
 
 // Dates the player played on, from saved results ("<date>:<level>" ->
@@ -752,16 +749,6 @@ export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium",
   if (!newest) return "";
   const eras = visibleEras(config);
   const old = eras[eras.length - 2];
-  if (newest.mode === "chain" && old.mode !== "chain") {
-    const par = newest.levels?.easy?.par ?? 5;
-    return `From ${dayText(newest.from)}, every ladder is ${par} steps and each hidden rung has `
-      + "exactly one answer. You see its length, and each wrong guess shows how close it is. Solve a rung to see why it links; "
-      + "a hint gives a clue, then the word.";
-  }
-  if (old.mode === "chain" && newest.mode !== "chain") {
-    return `From ${dayText(newest.from)}, ladders are open again: any word one rung closer to the goal is a step. `
-      + "Your ladder turns from red to green as you climb, and each word that isn't a step up shows how close it was.";
-  }
   const was = old.stepLimit !== newest.stepLimit ? ` (it was ${old.stepLimit})` : "";
   // Two-way eras: a step counts if EITHER word is among the other's closest.
   const parts = [newest.twoWay && !old.twoWay
@@ -887,77 +874,6 @@ export function trimToStepsUp(state, dist, index) {
   if (state.tried && state.tried.at !== state.path[k - 1]) state.tried = null;
   return true;
 }
-
-// ------------------------------------------------------------ chain ladders
-// From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): each
-// hidden rung has one answer, shown only as "?" (no length since Nov 13);
-// wrong guesses show how close they are to it. A paid hint gives the length.
-
-// A puzzle file's chain, or null if it can't be played as one: par + 1 known
-// words with the right ends, one reason per step, and clues either absent
-// (seeded) or one per step.
-export function checkedChain(puzzle, ladder) {
-  const { route, reasons, clues = [], par } = puzzle ?? {};
-  if (!Array.isArray(route) || route.length !== par + 1 || par < 2) return null;
-  if (!route.every((w) => typeof w === "string" && ladder.index.has(w))) return null;
-  if (route[0] !== puzzle.start || route[par] !== puzzle.goal) return null;
-  if (new Set(route).size !== route.length) return null;
-  const texts = (xs, n) => Array.isArray(xs) && xs.length === n && xs.every((x) => typeof x === "string");
-  if (!texts(reasons, par)) return null;
-  if (!(texts(clues, 0) || texts(clues, par))) return null;
-  return route;
-}
-
-// How a wrong guess's closeness rank (1 = the answer's closest word) reads.
-export function closenessLabel(rank) {
-  if (typeof rank !== "number") return "";
-  if (rank <= 10) return "very close";
-  if (rank <= 50) return "close";
-  if (rank <= 300) return "warm";
-  return "cold";
-}
-
-// A guess at a hidden rung. `target` is the rung's word, `prev` the word
-// below it, `shown` the words already on screen. Returns
-//   { ok: true, note? }                     the answer (or a form / typo of it)
-//   { ok: false, error, free: true }        not a fair guess: no move charged
-//   { ok: false, wrong: true, near, word }  a real word, but not it
-export function chainGuess(ladder, typed, target, prev, shown = []) {
-  const word = normalize(typed);
-  if (!word) return { ok: false, free: true, error: "Type a word first." };
-  if (!/^[a-z]+$/.test(word)) return { ok: false, free: true, error: "Letters only, please." };
-  if (word === target) return { ok: true };
-  // Inflections only (tankers for tanker, city for cities), not a shorter
-  // relative: "tank" for "tanker" is another word. Plurals count both ways.
-  if (pluralPair(word, target) || (formOf(word, target) && word.startsWith(target))) {
-    return { ok: true, note: `Counted as ${target}.` };
-  }
-  if (!ladder.index.has(word)) {
-    if (oneEdit(word, target)) return { ok: true, note: `Counted as ${target}.` };
-    const size = ladder.words.length.toLocaleString("en-US");
-    return { ok: false, free: true, error: `${word} isn't in our ${size}-word list.` };
-  }
-  if (shown.includes(word)) return { ok: false, free: true, error: `${word} is already on the ladder.` };
-  // Hidden words don't show their length, so any real word is a fair guess.
-  const p = ladder.index.get(prev);
-  return { ok: false, wrong: true, word, near: p !== undefined && ladder.neighbors[p].includes(ladder.index.get(word)) };
-}
-
-// One square per hidden rung, then the goal: 🟩 first guess, 🟨 after wrong
-// guesses, ⬜ revealed by a hint (or not reached).
-export function chainSquares(rungs, won) {
-  const sq = rungs.map((r) => (!r.solved || r.revealed ? "⬜" : r.misses ? "🟨" : "🟩")).join("");
-  return sq + (won ? "✅" : "");
-}
-
-export function chainShareText({ label, moves, par, slack, rungs, gaveUp = false, url = "" }) {
-  const badge = gaveUp ? "" : " " + medalFor(moves, par, { slack }).emoji;
-  const n = `${moves} move${moves === 1 ? "" : "s"}`;
-  const what = gaveUp ? `Gave up after ${n}` : n;
-  return [`Meaning Ladder ${label}${badge}`, `${what} · ${par} hidden words`, chainSquares(rungs, !gaveUp), url]
-    .filter(Boolean).join("\n");
-}
-
 
 // ------------------------------------------------------------ feedback
 // The site has no server, so feedback goes to a GitHub issue. This builds the

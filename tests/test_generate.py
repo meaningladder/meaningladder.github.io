@@ -11,9 +11,8 @@ from ai_suggest import Pair, Suggestions
 from generate_puzzle import make_puzzle, puzzle_filename, recent_words, write_puzzle
 from ladder_core import level_band, load_ladder, validate_pair
 
-DAY = date(2026, 11, 12)  # the last open-play day; chain days (from Nov 13) have their own tests below
+DAY = date(2026, 11, 12)  # the last day under the original top-100 rules
 LEVEL = "hard"  # par 4 under the original top-100 rules
-CHAIN_DAY = date(2026, 11, 14)  # chains ran Nov 13-14 only
 SPEC_FIELDS = {"date", "gameNumber", "level", "start", "goal", "par", "theme", "teaser",
                "source", "graphVersion", "stepLimit", "twoWay", "route", "reasons"}
 
@@ -101,17 +100,15 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
 
 
 def test_puzzles_follow_their_dates_rules(ladder):
-    """Before Nov 13 the original top-100 open rules apply; Nov 13-14 are
-    chains; from Nov 15 ladders are open again (top 10 both ways)."""
+    """Before Nov 13 the original top-100 open rules apply; from Nov 13 every
+    day is an open ladder, top 10 both ways (no chain days any more)."""
     old = make_puzzle(ladder, date(2026, 11, 12), "hard", set(), None, quiet)
-    new = make_puzzle(ladder, date(2026, 11, 13), "hard", set(), None, quiet)
     assert (old["stepLimit"], old["par"]) == (100, 4)
     assert old["twoWay"] is False and "mode" not in old
-    assert (new["mode"], new["stepLimit"], new["par"], new["twoWay"]) == ("chain", 10, 5, True)
-    assert make_puzzle(ladder, date(2026, 11, 14), "hard", set(), None, quiet)["mode"] == "chain"
-    for level, par in (("easy", 4), ("medium", 5), ("hard", 6)):
-        p = make_puzzle(ladder, date(2026, 11, 15), level, set(), None, quiet)
-        assert "mode" not in p and (p["stepLimit"], p["par"], p["twoWay"]) == (10, par, True)
+    for day in (date(2026, 11, 13), date(2026, 11, 14), date(2026, 11, 15)):
+        for level, par in (("easy", 4), ("medium", 5), ("hard", 6)):
+            p = make_puzzle(ladder, day, level, set(), None, quiet)
+            assert "mode" not in p and (p["stepLimit"], p["par"], p["twoWay"]) == (10, par, True)
 
 
 def test_write_never_overwrites(tmp_path, ladder):
@@ -125,56 +122,29 @@ def test_write_never_overwrites(tmp_path, ladder):
 
 def test_recent_words(tmp_path):
     write_puzzle(tmp_path, {"date": "2026-11-12", "level": "hard", "start": "ore", "goal": "pie"})
-    write_puzzle(tmp_path, {"date": "2026-11-17", "level": "easy", "mode": "chain",
-                            "start": "sun", "goal": "jam"})
+    write_puzzle(tmp_path, {"date": "2026-11-17", "level": "easy", "start": "sun", "goal": "jam"})
     write_puzzle(tmp_path, {"date": "2026-10-01", "start": "old", "goal": "news"})  # legacy name
     assert (tmp_path / "2026-11-12-hard.json").exists()
-    assert (tmp_path / "2026-11-17-easy.chain.json").exists()
-    # Both file kinds count, and the same day's other levels too, so a day's
+    # Legacy files count, and the same day's other levels too, so a day's
     # three puzzles don't repeat words.
     assert recent_words(tmp_path, date(2026, 11, 17), 30) == {"ore", "pie", "sun", "jam"}
 
 
-def test_chain_days_get_their_own_file_name():
+def test_puzzle_file_names():
     assert puzzle_filename("2026-11-12", "easy") == "2026-11-12-easy.json"
-    assert puzzle_filename("2026-11-13", "easy", chain=True) == "2026-11-13-easy.chain.json"
     assert puzzle_filename("2026-10-01", None) == "2026-10-01.json"  # legacy
 
 
-def test_chain_file_sits_next_to_an_open_file_for_the_same_day(tmp_path):
-    """Nov 13 and 14 had open-ladder files before the chain era moved to Nov 13.
-    The chain puzzle for that day is a new file; the open one is never touched."""
-    open_p = {"date": "2026-11-13", "level": "hard", "start": "ore", "goal": "pie"}
-    open_path = write_puzzle(tmp_path, open_p)
-    before = open_path.read_bytes()
-    chain_path = write_puzzle(tmp_path, {**open_p, "mode": "chain", "start": "sun"})
-    assert chain_path.name == "2026-11-13-hard.chain.json" and open_path.name == "2026-11-13-hard.json"
-    assert open_path.read_bytes() == before
-    with pytest.raises(FileExistsError):  # and a chain file is never overwritten either
-        write_puzzle(tmp_path, {**open_p, "mode": "chain", "start": "changed"})
-    assert json.loads(chain_path.read_text())["start"] == "sun"
-
-
-def test_cli_writes_chain_files_and_never_overwrites(tmp_path, capsys):
-    """A chain day with an old open file: main() writes the .chain.json beside
-    it, leaves the open file byte for byte, and skips the chain file next run."""
+def test_cli_never_overwrites_a_published_puzzle(tmp_path, capsys):
     from generate_puzzle import main
 
-    open_path = tmp_path / "2026-11-13-easy.json"
-    open_path.write_text('{"date": "2026-11-13", "level": "easy", "start": "ore", "goal": "pie"}\n')
-    before = open_path.read_bytes()
-    main(["--date", "2026-11-13", "--level", "easy", "--no-ai", "--out", str(tmp_path)])
-    chain_path = tmp_path / "2026-11-13-easy.chain.json"
-    made = json.loads(chain_path.read_text())
-    assert made["mode"] == "chain" and made["date"] == "2026-11-13"
-    assert open_path.read_bytes() == before
-    written = chain_path.read_bytes()
-    capsys.readouterr()
+    path = tmp_path / "2026-11-13-easy.json"
+    path.write_text('{"date": "2026-11-13", "level": "easy", "start": "ore", "goal": "pie"}\n')
+    before = path.read_bytes()
     main(["--date", "2026-11-13", "--level", "easy", "--no-ai", "--out", str(tmp_path)])
     assert "exists, skipping" in capsys.readouterr().out
-    assert chain_path.read_bytes() == written
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["2026-11-13-easy.chain.json",
-                                                          "2026-11-13-easy.json"]
+    assert path.read_bytes() == before
+    assert [p.name for p in tmp_path.iterdir()] == ["2026-11-13-easy.json"]
 
 
 def test_is_live_uses_earliest_time_zone():
@@ -289,106 +259,3 @@ def test_ai_must_explain_every_step(ladder, good_pair):
     view = ladder.at(DAY.isoformat())
     assert all(view.index[b] in view.neighbors[view.index[a]]
                for a, b in zip(puzzle["route"], puzzle["route"][1:]))
-
-
-# ---------------------------------------------------------------- chain days (from Nov 13)
-CHAIN_FIELDS = SPEC_FIELDS | {"mode", "clues", "kinds"}
-
-
-def chain_of(ladder, level, seed="fake-ai", **changes):
-    """A chain that fits the level, dressed up as an AI answer."""
-    from ai_suggest import Chain
-    from ladder_core import seeded_chain
-
-    day = ladder.at(CHAIN_DAY.isoformat())
-    words, _, _ = seeded_chain(day, seed, level_band(level, day.config))
-    lateral = {"easy": 0, "medium": 1, "hard": 2}[level]
-    fields = dict(words=words, reasons=[f"Reason {k}." for k in range(1, 6)],
-                  clues=["A hint for this rung."] * 5,
-                  kinds=["lateral"] * lateral + ["everyday"] * (5 - lateral),
-                  theme="A theme", teaser="A teaser.")
-    fields.update(changes)
-    return Chain(**fields)
-
-
-def chains(*items):
-    from ai_suggest import ChainSuggestions
-
-    return ChainSuggestions(chains=list(items))
-
-
-def test_chain_day_without_ai_is_a_seeded_chain(ladder):
-    from ladder_core import validate_chain
-
-    for level in ("easy", "medium", "hard"):
-        p = make_puzzle(ladder, CHAIN_DAY, level, set(), None, quiet)
-        assert set(p) == CHAIN_FIELDS and p["mode"] == "chain" and p["source"] == "seeded"
-        assert p["par"] == 5 and len(p["route"]) == 6 and len(p["reasons"]) == 5
-        assert (p["start"], p["goal"]) == (p["route"][0], p["route"][-1])
-        assert p["clues"] == [] and p["kinds"] == []
-        day = ladder.at(CHAIN_DAY.isoformat())
-        assert validate_chain(day, p["route"], level_band(level, day.config)).ok
-        assert p == make_puzzle(ladder, CHAIN_DAY, level, set(), None, quiet)
-
-
-def test_ai_chain_retries_with_feedback_then_succeeds(ladder):
-    good = chain_of(ladder, "medium")
-    short = chain_of(ladder, "medium", clues=["Only one clue."])
-    fake = FakeClient([chains(short), chains(good)])
-    p = make_puzzle(ladder, CHAIN_DAY, "medium", set(), lambda: fake, quiet)
-    assert p["source"] == "ai" and len(fake.calls) == 2
-    assert "1 clues for 5 steps" in fake.calls[1]["input"][-1]["content"]
-    assert p["route"] == good.words and p["clues"] == good.clues and p["kinds"] == good.kinds
-    assert set(p) == CHAIN_FIELDS
-
-
-@pytest.mark.parametrize("change, reason", [
-    (dict(kinds=["everyday"] * 5), "lateral links"),           # Medium needs 1-2
-    (dict(theme="<b>x</b>"), "plain text"),
-    (dict(reasons=["Fine."] * 4), "4 reasons"),
-])
-def test_ai_chain_checks(ladder, change, reason):
-    from ai_suggest import check_chain
-
-    day = ladder.at(CHAIN_DAY.isoformat())
-    v = check_chain(day, chain_of(ladder, "medium", **change), level_band("medium", day.config), set())
-    assert not v.ok and reason in v.reason, v.reason
-
-
-def test_ai_chain_clues_must_not_name_the_answer(ladder):
-    from ai_suggest import check_chain
-
-    day = ladder.at(CHAIN_DAY.isoformat())
-    band = level_band("easy", day.config)
-    c = chain_of(ladder, "easy")
-    c.clues = [f"Think {c.words[1]}s."] + c.clues[1:]
-    v = check_chain(day, c, band, set())
-    assert not v.ok and "names its answer" in v.reason
-    c = chain_of(ladder, "easy", teaser=f"Find the {c.words[2]} on the way.")
-    v = check_chain(day, c, band, set())
-    assert not v.ok and "teaser names" in v.reason
-
-
-def test_chain_prompt_has_examples_and_level_style(ladder):
-    from ai_suggest import build_chain_request
-
-    day = ladder.at(CHAIN_DAY.isoformat())
-    prompt = build_chain_request(day, CHAIN_DAY.isoformat(), level_band("hard", day.config), set())
-    assert "N = 5" in prompt and "Example chains:" in prompt and "lateral" in prompt
-
-
-def test_ai_chains_skip_the_closeness_checks(ladder):
-    """Associations aren't similarity: chains like these came back from the
-    real AI and must pass (rarity and GloVe rank are seeded-only checks)."""
-    from ai_suggest import check_chain
-
-    day = ladder.at(CHAIN_DAY.isoformat())
-    for level, words, lateral in [
-        ("easy", ["bee", "honey", "toast", "bread", "flour", "dough"], 0),
-        ("hard", ["cricketer", "bat", "vampire", "blood", "bank", "vault"], 2),
-    ]:
-        band = level_band(level, day.config)
-        c = chain_of(ladder, level, words=words,
-                     kinds=["lateral"] * lateral + ["everyday"] * (5 - lateral))
-        v = check_chain(day, c, band, set())
-        assert v.ok, v.reason

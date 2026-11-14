@@ -128,8 +128,8 @@ def test_levels_cover_easy_medium_hard():
     assert easy["level"] == "easy" and easy["label"] == "Easy"
     assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
     assert medium["maxRoutes"] < easy["minRoutes"]
-    # Chain ladders (from Nov 13): every level is 5 steps.
-    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [5, 5, 5]
+    # Open top-10 ladders (from Nov 13): Easy 4, Medium 5, Hard 6 steps.
+    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [4, 5, 6]
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
 
 
@@ -221,11 +221,8 @@ def test_closer_bands_refuse_wide_step_limits(ladder):
 
 
 # ---------------------------------------------------------------- real data
-# The open-ladder rules that were planned for 2026-11-13 and 14 (top 10, links
-# both ways, par 4/5/6) before the chain era moved up to Nov 13. No date uses
-# them now, but they are what the open puzzle files of those two days were
-# made under (players who started them keep playing them: same stepLimit and
-# twoWay as the chain era), and the open-ladder tests below run on them.
+# The live open-ladder rules from 2026-11-13 (top 10, links both ways, par
+# 4/5/6). The open-ladder tests below run on them.
 OPEN_TOP10 = {
     "from": "2026-11-13", "stepLimit": 10, "twoWay": True,
     "excludeCandidates": "data/candidates_exclude_2026-11-13.json", "minPar": 3, "maxPar": 7,
@@ -241,8 +238,7 @@ OPEN_TOP10 = {
 
 @pytest.fixture(scope="module")
 def ladder():
-    # Open top-10 two-way rules; the chain rules (Nov 13-14) have
-    # their own tests at the end of this file.
+    # Open top-10 two-way rules.
     from ladder_core import ladder_view
 
     base = load_ladder()
@@ -463,118 +459,16 @@ def test_guide_route_keeps_par_and_prefers_relations(ladder):
     assert linked_steps(nb, rel, ix["cafe"], ix["fuel"], 5) == 4
 
 
-# ---------------------------------------------------------------- chain mode
-def test_chain_era_starts_nov_13(ladder):
-    from ladder_core import is_chain, rules_for
-
-    cfg = ladder.base_config
-    assert [e["from"] for e in cfg["rules"]] == ["2026-11-01", "2026-11-13", "2026-11-15"]
-    assert not is_chain(rules_for(cfg, "2026-11-12"))
-    new = rules_for(cfg, "2026-11-13")
-    assert is_chain(new) and is_chain(rules_for(cfg, "2026-11-14"))
-    # Open ladders again from Nov 15, and in Unlimited.
-    assert not is_chain(rules_for(cfg, "2026-11-15")) and not is_chain(rules_for(cfg, None))
-    # Every level is 5 steps; difficulty is how loose the links may be.
-    assert [new["levels"][lv]["par"] for lv in LEVELS] == [5, 5, 5]
-    ranks = [new["levels"][lv]["maxRank"] for lv in LEVELS]
-    assert ranks == sorted(ranks) and ranks[-1] <= 40  # the browser's lists stop at 40
-    laterals = [new["levels"][lv]["lateral"] for lv in LEVELS]
-    assert laterals == sorted(laterals) and laterals[0] == [0, 0]
-
-
-def test_open_games_saved_on_chain_days_keep_their_steps(ladder):
-    """Nov 13 and 14 have open-ladder files, made under OPEN_TOP10. Players who
-    started one keep it, and the browser rebuilds its rules from the date's era
-    (now the chain era) plus the file's stepLimit/twoWay. Those must give the
-    very same legal steps and start/goal pool."""
+def test_nov_13_and_14_puzzles_play_under_the_live_rules(ladder):
+    """Nov 13 and 14's open-ladder files were made under OPEN_TOP10, which is
+    the live era from Nov 13: same legal steps and start/goal pool."""
     for d in ("2026-11-13", "2026-11-14"):
         dated = ladder.at(d)
         assert (dated.config["stepLimit"], dated.config["twoWay"]) == (10, True)
         assert dated.neighbors == ladder.neighbors
         assert dated.candidates == ladder.candidates
     for path in sorted((ROOT / "puzzles").glob("2026-11-1[34]-*.json")):
-        if path.name.endswith(".chain.json"):
-            continue
         p = json.loads(path.read_text(encoding="utf-8"))
         assert "mode" not in p and (p["stepLimit"], p["twoWay"]) == (10, True), path.name
         v = validate_pair(ladder, p["start"], p["goal"], level_band(p["level"], ladder.config))
         assert v.ok and v.par == p["par"], path.name
-
-
-@pytest.fixture(scope="module")
-def chain_day(ladder):
-    return ladder.at("2026-11-14")  # chains ran Nov 13-14 only
-
-
-def test_seeded_chains_are_fair_and_deterministic(chain_day):
-    from ladder_core import chain_rank, pattern_rivals, seeded_chain, validate_chain
-
-    for lv in LEVELS:
-        band = level_band(lv, chain_day.config)
-        words, verdict, attempt = seeded_chain(chain_day, seed_base("2026-11-20", lv), band)
-        again = seeded_chain(chain_day, seed_base("2026-11-20", lv), band)
-        assert (words, attempt) == (again[0], again[2])
-        assert verdict.ok and validate_chain(chain_day, words, band).ok
-        assert len(words) == 6 and len(set(words)) == 6
-        idx = [chain_day.index[w] for w in words]
-        assert all(chain_rank(chain_day, a, b) <= band["maxRank"] for a, b in zip(idx, idx[1:]))
-        # One answer per hidden rung: no other close word fits its pattern.
-        assert not any(pattern_rivals(chain_day, idx[k - 1], idx[k], {idx[0], idx[-1]})
-                       for k in range(1, 5))
-        assert all(chain_day.index[w] < band["maxWordIndex"] for w in words[1:-1])
-
-
-def test_validate_chain_rejects_unfair_chains(chain_day):
-    from ladder_core import seeded_chain, validate_chain
-
-    band = level_band("medium", chain_day.config)
-    words, _, _ = seeded_chain(chain_day, "test-chain", band)
-
-    def check(ws, **kw):
-        return validate_chain(chain_day, ws, band, **kw)
-
-    assert "need exactly 6" in check(words[:-1]).reason
-    assert "not in our word list" in check([words[0], "zzqx", *words[2:]]).reason
-    assert "forms of one word" in check([*words[:2], words[1], *words[3:]]).reason
-    assert "too loose" in check([words[0], "volcano", *words[2:]]).reason
-    assert "recent" in check(words, recent={words[-1]}).reason
-    assert "lateral" in check(words, kinds=["everyday"] * 5).reason  # Medium needs 1-2
-    assert check(words, kinds=["lateral"] + ["everyday"] * 4).ok
-    assert "kinds" in check(words, kinds=["odd"] * 5).reason
-
-
-def test_pattern_rivals_find_a_second_answer():
-    """A tiny map: after "sea", both "ship" and "shop" are close and both
-    have 4 letters starting with s, so that rung has two answers."""
-    from ladder_core import Ladder, pattern_rivals, same_stem
-
-    words = ["sea", "ship", "shop", "port", "boat"]
-    nb = [[1, 2, 4], [0, 3], [0], [1], [0]]
-    lad = Ladder(words=words, index={w: i for i, w in enumerate(words)}, neighbors=nb,
-                 candidates=words, candidate_set=set(words), config={}, full_neighbors=nb)
-    assert pattern_rivals(lad, 0, 1, set()) == [2]
-    assert pattern_rivals(lad, 0, 1, {2}) == []      # a word on screen is no rival
-    assert pattern_rivals(lad, 0, 4, set()) == []    # only boat starts with b
-    assert same_stem("ship", "ships") and same_stem("swim", "swimming")
-    assert not same_stem("sea", "seal") and not same_stem("ship", "shop")
-
-
-def test_seeded_chain_reasons_read_both_ways(chain_day):
-    from ladder_core import chain_reason, chain_reasons
-
-    assert chain_reason("cafe", "restaurant", "IsA") == "Cafe and restaurant: one is a kind of the other."
-    assert chain_reason("box", "corner", None) == "Box and corner: they often go together."
-    words = ["photo", "picture", "movie", "box", "corner", "edge"]
-    assert len(chain_reasons(chain_day, words)) == 5
-
-
-def test_seeded_chains_match_fixture(ladder):
-    from ladder_core import chain_reasons, seeded_chain
-
-    fx = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    for c in fx["chains"][:3]:  # the full list runs in the JS test
-        dated = ladder.at(c["date"])
-        words, verdict, attempt = seeded_chain(dated, seed_base(c["date"], c["level"]),
-                                               level_band(c["level"], dated.config))
-        assert (words, attempt, verdict.closer) == (c["route"], c["attempt"], c["linked"])
-        assert chain_reasons(dated, words) == c["reasons"]

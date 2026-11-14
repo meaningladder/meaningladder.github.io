@@ -50,7 +50,7 @@ concurrency:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 40 # three AI chains can take a few minutes each
+    timeout-minutes: 40
     permissions:
       contents: write # to commit puzzles/*.json
     steps:

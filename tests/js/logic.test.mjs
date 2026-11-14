@@ -3,8 +3,22 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, autoGoal, bottleneckRoute, buildReverse, GENTLE_RANK, worstRank, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
-  hintStep, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, STEP_COST, upgradeMoves,
+  hintStep, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, stairStep, STEP_COST, upgradeMoves,
 } from "../../js/logic.js";
+
+test("stairStep: a red sliver at the start, a full green bar at the goal", () => {
+  assert.deepEqual(stairStep(0, 5), { hue: 0, fill: 8 });
+  assert.deepEqual(stairStep(5, 5), { hue: 130, fill: 100 });
+  assert.deepEqual(stairStep(2, 4), { hue: 65, fill: 54 });
+  assert.deepEqual(stairStep(-1, 4), stairStep(0, 4));    // below the start
+  assert.deepEqual(stairStep(9, 4), stairStep(4, 4));     // never past the goal
+  assert.deepEqual(stairStep(0, 0), { hue: 130, fill: 100 });
+  for (const par of [3, 4, 5, 6, 7])  // every rung is greener and fuller than the one below
+    for (let r = 1; r <= par; r++) {
+      assert.ok(stairStep(r, par).hue > stairStep(r - 1, par).hue);
+      assert.ok(stairStep(r, par).fill > stairStep(r - 1, par).fill);
+    }
+});
 
 // ocean -> wave -> signal -> network -> computer, plus a shortcut and a dead end.
 const words = ["ocean", "wave", "signal", "network", "computer", "keyboard", "sea"];

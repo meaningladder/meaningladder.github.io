@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { chainReason, chainReasons, patternRivals, puzzleFile, sameStem, seededChain } from "../../js/seeded.js";
+import { puzzleFile } from "../../js/seeded.js";
 import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, relKey, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -46,11 +46,7 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   assert.equal(rulesFor(config, "2026-11-13").twoWay, true);
   assert.equal(rulesFor(config, "2026-11-12").twoWay, undefined); // older days stay one-way
   assert.equal(rulesFor(config, null).stepLimit, 10); // Unlimited: newest rules
-  assert.equal(rulesFor(config, "2026-11-12").mode, undefined); // open ladders
-  assert.equal(rulesFor(config, "2026-11-13").mode, "chain"); // chains from today on
-  assert.equal(rulesFor(config, "2026-11-15").mode, undefined); // open ladders again
-  assert.equal(rulesFor(config, null).mode, undefined); // Unlimited follows the newest era
-  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 5);
+  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 6);
   assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
@@ -149,66 +145,14 @@ test("closerFirstMoves counts the start's neighbors one step nearer the goal", (
 });
 
 
-test("seeded chains match Python for every chain fixture date and level", () => {
-  const config = readJson("puzzle_config.json");
-  const graph = readJson(`data/graph_v${config.graphVersion}.json`);
-  const index = new Map(graph.words.map((w, i) => [w, i]));
-  const candidates = readJson(`data/candidates_v${config.graphVersion}.json`).words;
-  // Relations with their names, read the way js/data.js reads them.
-  const relHead = readJson(`data/relations_v${config.graphVersion}.json`);
-  const relBin = readFileSync(root + `data/relations_v${config.graphVersion}.bin`);
-  const related = new Map();
-  for (let i = 0; i < relHead.count; i++) {
-    related.set(relKey(relBin.readUInt16LE(4 * i), relBin.readUInt16LE(4 * i + 2)), relHead.relations[relBin[4 * relHead.count + i]]);
-  }
-  // The browser's lists stop at 40; the chain rules never look further.
-  const head = graph.neighbors.map((row) => row.slice(0, 40));
-  const views = new Map();
-  assert.ok(fixture.chains.length >= 6); // 3 levels x Nov 13-14
-  for (const c of fixture.chains) {
-    const rules = rulesFor(config, c.date);
-    assert.equal(rules.mode, "chain", c.date);
-    if (!views.has(rules.from)) {
-      const pool = candidatePool(candidates, excludedWords(readJson(rules.excludeCandidates)));
-      views.set(rules.from, { words: graph.words, index, neighbors: head, fullNeighbors: head, candidates: pool, config: rules, related });
-    }
-    const ladder = views.get(rules.from);
-    const band = levelBand(c.level, rules);
-    const got = seededChain(ladder, seedBase(c.date, c.level), band);
-    assert.deepEqual([got.route, got.linked, got.attempt], [c.route, c.linked, c.attempt], `${c.date} ${c.level}`);
-    assert.deepEqual(chainReasons(ladder, got.route), c.reasons);
-    assert.equal(gameNumber(c.date, config.launchDate), c.gameNumber);
-  }
-});
-
-test("pattern rivals: a second close word with the same first letter and length", () => {
-  const words = ["sea", "ship", "shop", "port", "boat"];
-  const nb = [[1, 2, 4], [0, 3], [0], [1], [0]];
-  const ladder = { words, index: new Map(words.map((w, i) => [w, i])), neighbors: nb, config: {} };
-  assert.deepEqual(patternRivals(ladder, 0, 1, new Set()), [2]);
-  assert.deepEqual(patternRivals(ladder, 0, 1, new Set([2])), []);
-  assert.deepEqual(patternRivals(ladder, 0, 4, new Set()), []);
-  assert.ok(sameStem("ship", "ships") && sameStem("swim", "swimming"));
-  assert.ok(!sameStem("sea", "seal") && !sameStem("ship", "shop"));
-  assert.equal(chainReason("cafe", "restaurant", "IsA"), "Cafe and restaurant: one is a kind of the other.");
-  assert.equal(chainReason("box", "corner", undefined), "Box and corner: they often go together.");
-});
-
-test("chain days load their own file name; open days keep the old one", () => {
-  const config = readJson("puzzle_config.json");
-  const file = (d, lv) => puzzleFile(d, lv, rulesFor(config, d));
-  assert.equal(file("2026-11-12", "easy"), "puzzles/2026-11-12-easy.json");
-  assert.equal(file("2026-11-13", "hard"), "puzzles/2026-11-13-hard.chain.json");
-  assert.equal(file("2026-11-14", "medium"), "puzzles/2026-11-14-medium.chain.json");
-  assert.equal(file("2026-11-15", "easy"), "puzzles/2026-11-15-easy.json"); // open again
-  assert.equal(file("2027-01-01", "easy"), "puzzles/2027-01-01-easy.json");
-  assert.equal(puzzleFile("2026-11-13", "easy", null), "puzzles/2026-11-13-easy.json");
+test("a day's puzzle file is puzzles/<date>-<level>.json", () => {
+  assert.equal(puzzleFile("2026-11-12", "easy"), "puzzles/2026-11-12-easy.json");
+  assert.equal(puzzleFile("2026-11-13", "hard"), "puzzles/2026-11-13-hard.json");
 });
 
 test("an open game saved on Nov 13 or 14 keeps the top-10 two-way steps it was made with", async () => {
-  // Those days had open-ladder files before the chain era moved up to Nov 13.
   // A player who started one keeps it (game:<date>:<level> holds the puzzle);
-  // ladderFor rebuilds its rules from the date's era (now chain) and the file's
+  // ladderFor rebuilds its rules from the date's era and the file's
   // stepLimit/twoWay, which must give the same legal steps.
   const { ladderFor } = await import("../../js/data.js");
   const config = readJson("puzzle_config.json");

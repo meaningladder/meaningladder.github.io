@@ -64,31 +64,20 @@ test("notice text is built from the eras", () => {
   assert.equal(rulesNoticeText({ rules: [two.rules[0]] }, fixedDay), "");
 });
 
-test("the November 13 chain era announced chain ladders", () => {
-  const chainEra = { ...config, rules: config.rules.slice(0, 2) };
-  assert.equal(rulesNoticeText(chainEra, fixedDay),
-    "From November 13, every ladder is 5 steps and each hidden rung has exactly one answer."
-    + " You see its length, and each wrong guess shows how close it is. Solve a rung to see why it links; a hint gives a clue, then the word.");
-  assert.equal(classicLabel(chainEra, "2026-11-12"), "classic rules (open ladder, top 100)");
-});
-
-test("the real config announces open ladders again from November 15", () => {
+test("the real config: open top-10 ladders from November 13", () => {
   assert.equal(rulesNoticeText(config, fixedDay),
-    "From November 15, ladders are open again: any word one rung closer to the goal is a step."
-    + " Your ladder turns from red to green as you climb, and each word that isn't a step up shows how close it was.");
-  assert.equal(newestEra(config).from, "2026-11-15");
+    "From November 13, a step counts if either word is among the other's 10 closest words."
+    + " Ladders are longer: par 4 for Easy, 5 for Medium and 6 for Hard.");
+  assert.equal(newestEra(config).from, "2026-11-13");
   assert.equal(newestEra(config).mode, undefined);
   assert.equal(classicLabel(config, "2026-11-12"), "classic rules (top 100)");
   assert.equal(classicLabel(config, "2026-11-01"), "classic rules (top 100)");
-  // Nov 13 and 14 stay chain days, labelled as such in the archive.
-  assert.equal(classicLabel(config, "2026-11-13"), "classic rules (chain ladder)");
-  assert.equal(classicLabel(config, "2026-11-14"), "classic rules (chain ladder)");
-  assert.equal(classicLabel(config, "2026-11-15"), "");
-  assert.equal(isClassicDay(config, "2026-11-14"), true);
-  assert.equal(isClassicDay(config, "2026-11-15"), false);
-  // Players who played before Nov 15 see the notice from Nov 15 on.
-  assert.equal(rulesNoticeDue(config, "2026-11-15", ["2026-11-13"], false), true);
-  assert.equal(rulesNoticeDue(config, "2026-11-14", ["2026-11-13"], false), false);
+  assert.equal(classicLabel(config, "2026-11-13"), "");
+  assert.equal(classicLabel(config, "2026-11-14"), "");
+  assert.equal(isClassicDay(config, "2026-11-12"), true);
+  assert.equal(isClassicDay(config, "2026-11-13"), false);
+  assert.equal(rulesNoticeDue(config, "2026-11-13", ["2026-11-10"], false), true);
+  assert.equal(rulesNoticeDue(config, "2026-11-12", ["2026-11-10"], false), false);
 });
 
 test("notice text has no em or en dashes", () => {

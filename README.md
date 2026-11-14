@@ -10,13 +10,8 @@ ocean → wave → signal → network → computer
 
 Every day has **three ladders: Easy, Medium and Hard**. Solving any of them
 keeps your streak alive. Unlimited mode has the same three levels. Puzzle files
-are `puzzles/YYYY-MM-DD-<level>.json` for open-ladder days and
-`puzzles/YYYY-MM-DD-<level>.chain.json` for chain days (from 2026-11-13;
-`puzzle_filename` in `scripts/generate_puzzle.py`, `puzzleFile` in
-`js/seeded.js`). The separate name means a day whose rules change after its
-file was written gets a new file instead of overwriting one players may
-already be on: 2026-11-13 and 14 keep their open `.json` files for saved games,
-and everyone else gets that day's chain.
+are `puzzles/YYYY-MM-DD-<level>.json` (`puzzle_filename` in
+`scripts/generate_puzzle.py`, `puzzleFile` in `js/seeded.js`).
 
 **Rules eras.** The rules live in `puzzle_config.json` under `rules`, one entry
 per era, each with a `from` date. A date always keeps the rules it was played
@@ -25,38 +20,25 @@ under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
 | From | Legal steps | Easy | Medium | Hard |
 |---|---|---|---|---|
 | 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
-| 2026-11-13 | **chain**: one answer per rung | 5 steps, links in each other's top 10, all everyday | 5 steps, top 20, 1-2 lateral links | 5 steps, top 40, 2-3 lateral links |
+| 2026-11-13 | top 10, links both ways | par 4 | par 5 | par 6 |
 
-A top-10 two-way open era (par 4/5/6) was planned for 2026-11-13 and its
-files for Nov 13 and 14 were written, but the chain era moved up to Nov 13
-before it was played much. Its era was removed from the config; the chain era
-keeps `stepLimit` 10 and `twoWay`, so an open game saved on those days (and
-rebuilt by `ladderFor` from the date's era plus the file's own `stepLimit` and
-`twoWay`) still has exactly the same legal steps.
+**Retired: chain ladders.** On 2026-11-13 and 14 the daily ladders were briefly
+chains (one hidden answer per rung). On 2026-11-14 every day went back to open
+ladders, including those two days (their open files had been written first).
+The browser wipes saved chain games and their results once (schema 4,
+`wipeChainLadders` in `js/data.js`). The chain code is in git history before
+that change.
 
-**Chain ladders (from 2026-11-13, `"mode": "chain"`).** Every ladder is one
-fixed chain of 6 words (`route` in the puzzle file). The start and goal are
-shown; each of the 4 hidden words shows only its length (blanks), and only
-that word counts. Each wrong guess shows how close it is to the answer (its
-rank among the answer's closest words: very close, close, warm, cold). Solving a rung shows why it links (`reasons`); a hint
-gives the AI's clue (`clues`), then the word. Difficulty is how obvious the
-links are, not how long the ladder is: the AI labels each link `everyday` or
-`lateral` (a second meaning, a set phrase, a cultural link), and the code
-checks the label counts per level and that none of the previous word's 5
-closest words also fits a hidden rung's pattern (`uniqueWindow`;
-`validate_chain` in `scripts/ladder_core.py`). GloVe ranks measure similar
-meaning, not association (coffee -> cup scores as unrelated), so only
-automatic chains are held to `maxRank` and `maxWordIndex`. Medals allow wrong guesses (`medalSlack`: gold up to
-2 moves over the 4 hidden words). Without the AI, `seeded_chain` (and
-`seededChain` in the browser, for missing files and Unlimited) builds a chain
-from common start/goal-pool words with reasons from ConceptNet relations.
+**The staircase.** Climbed rungs are colored by height, not by distance: the
+start is a red sliver and each rung up is greener and fuller, up to a full
+green bar at the goal (`stairStep` in `js/logic.js`). Words that aren't a step
+up show their closeness only as a light-red fill.
 
 A "related step" is a step that ConceptNet also links with a real relation
 (cafe IS A restaurant, coal IS USED FOR fuel; `data/relations_v1.*`, built by
 `make relations`). Relations never decide whether a typed word counts on an
 open ladder: they choose the route the game shows (hints, give-up),
-always a shortest one, so par is unchanged. Chains use them for Easy (2+
-related steps) and for seeded reasons. ConceptNet alone was measured too
+always a shortest one, so par is unchanged. ConceptNet alone was measured too
 hub-heavy (everything via person, city, car) and too sparse to be the rule.
 
 A "good first move" is one of the start's legal steps that is one step closer
@@ -108,7 +90,7 @@ DAILY (GitHub Actions, .github/workflows/daily-puzzle.yml, 06:17 + 08:47 UTC)
   scripts/generate_puzzle.py --ahead 1   (tomorrow, just before it starts in UTC+14)
     OpenAI suggests start/goal + theme + teaser → BFS validates against the graph
     → retry with feedback → seeded fallback if anything fails
-  → puzzles/YYYY-MM-DD-<level>[.chain].json → commit → redeploy site
+  → puzzles/YYYY-MM-DD-<level>.json → commit → redeploy site
 
 IN THE BROWSER (index.html, style.css, js/)
   load graph + today's puzzle (or compute the identical seeded fallback)

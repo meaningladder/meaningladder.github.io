@@ -515,3 +515,20 @@ to the goal. A player saw "grandmother = son": son is close to grandmother
 as a bug. Such words now go to the Tried list as "no closer", for free.
 Tradeoff: open ladders only accept words on a shortest route now, so par is
 always the number of words played and only hints cost extra.
+
+## Back to open ladders, and a staircase
+
+On 2026-11-14 the chain ladders were retired after two days: every day, past
+and future, plays as an open ladder again. Nov 13 and 14 already had open
+files (written before the chain era moved up), so they simply use those.
+Consistency won over keeping progress: the browser wipes saved chain games
+and their results once (a storage schema bump, like the per-level move
+before it), and about 1,600 lines of chain code and tests went with them. Deleting dead
+code beats keeping a second game alive "just in case"; git keeps it.
+
+The ladder became a staircase: each climbed rung is colored by its height,
+from a red sliver at the start to a full green bar at the goal, and wrong
+guesses show closeness only as a light-red fill, no words. Lesson from the
+switch itself: the heartbeat workflow still checked for `.chain.json` files,
+a reminder that a rename touches every place that names a file, including
+the monitors.

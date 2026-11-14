@@ -34,54 +34,6 @@
     },
     {
       "from": "2026-11-13",
-      "mode": "chain",
-      "stepLimit": 10,
-      "twoWay": true,
-      "excludeCandidates": "data/candidates_exclude_2026-11-13.json",
-      "minPar": 5,
-      "maxPar": 5,
-      "uniqueWindow": 5,
-      "medalSlack": [
-        2,
-        5,
-        8
-      ],
-      "levels": {
-        "easy": {
-          "label": "Easy",
-          "par": 5,
-          "maxRank": 10,
-          "maxWordIndex": 8000,
-          "lateral": [
-            0,
-            0
-          ],
-          "minLinkedSteps": 2
-        },
-        "medium": {
-          "label": "Medium",
-          "par": 5,
-          "maxRank": 20,
-          "maxWordIndex": 10000,
-          "lateral": [
-            1,
-            2
-          ]
-        },
-        "hard": {
-          "label": "Hard",
-          "par": 5,
-          "maxRank": 40,
-          "maxWordIndex": 12000,
-          "lateral": [
-            2,
-            3
-          ]
-        }
-      }
-    },
-    {
-      "from": "2026-11-15",
       "stepLimit": 10,
       "twoWay": true,
       "excludeCandidates": "data/candidates_exclude_2026-11-13.json",

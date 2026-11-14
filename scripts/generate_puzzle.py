@@ -6,10 +6,7 @@
     python scripts/generate_puzzle.py --no-ai --dry-run   # seeded only, print, write nothing
 
 Writes puzzles/YYYY-MM-DD-<level>.json (level = easy, medium, hard) and never
-overwrites an existing file. Chain-era days ("mode": "chain") get their own
-name, puzzles/YYYY-MM-DD-<level>.chain.json, so a day whose rules changed
-after its open-ladder file was written (2026-11-13 and 14) keeps that file
-untouched for the players already on it.
+overwrites an existing file.
 """
 from __future__ import annotations
 
@@ -24,14 +21,11 @@ from ladder_core import (
     ROOT,
     Ladder,
     LEVELS,
-    chain_reasons,
     game_number,
-    is_chain,
     level_band,
     load_ladder,
     parse_date,
     seed_base,
-    seeded_chain,
     seeded_puzzle,
     wants_closer,
 )
@@ -45,7 +39,7 @@ def recent_words(puzzle_dir: Path, day: date, days: int, extra: list[dict] = ())
     words = set()
     for back in range(0, days + 1):
         d = (day - timedelta(days=back)).isoformat()
-        # d-easy.json, d-easy.chain.json, legacy d.json: every kind counts
+        # d-easy.json and legacy d.json both count
         for path in puzzle_dir.glob(f"{d}*.json"):
             p = json.loads(path.read_text(encoding="utf-8"))
             words |= {p["start"], p["goal"]}
@@ -66,8 +60,6 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
     ladder = ladder.at(date_str)  # that day's rules: step limit and level bands
     cfg = ladder.config
     band = level_band(level, cfg)
-    if is_chain(cfg):
-        return make_chain_puzzle(ladder, day, level, band, recent, client_factory, log)
     closer = (f", closer first moves {band.get('minCloserFirstMoves', 0)}-"
               f"{band.get('maxCloserFirstMoves', 'any')}" if wants_closer(band) else "")
     log(f"{date_str} {band['label']}: par {band['par']}, "
@@ -112,70 +104,18 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
     }
 
 
-def make_chain_puzzle(ladder: Ladder, day: date, level: str, band: dict, recent: set[str],
-                      client_factory, log=print) -> dict:
-    """Chain eras: one fixed chain, one answer per rung. AI first (it writes
-    the reasons, clues and link kinds), seeded chain on any failure."""
-    import openai
-
-    from ai_suggest import AIUnavailable, ai_chain
-
-    date_str, cfg = day.isoformat(), ladder.config
-    log(f"{date_str} {band['label']}: chain of {band['par']} steps, links in the top "
-        f"{band['maxRank']}, {band.get('lateral', [0, 0])[0]}-{band.get('lateral', [0, 0])[1]} lateral")
-    try:
-        if client_factory is None:
-            raise AIUnavailable("AI disabled (--no-ai)")
-        chain, _ = ai_chain(ladder, date_str, band, recent, client_factory(), log)
-        words, reasons, clues, kinds = chain.words, chain.reasons, chain.clues, chain.kinds
-        theme, teaser, source = chain.theme, chain.teaser, "ai"
-    except (AIUnavailable, openai.OpenAIError) as e:
-        log(f"  falling back to a seeded chain: {type(e).__name__}: {e}")
-        if client_factory is not None and os.environ.get("GITHUB_ACTIONS"):
-            print(f"::warning title=Seeded fallback for {date_str} {level}::{type(e).__name__}: {e}")
-        words, _, attempt = seeded_chain(ladder, seed_base(date_str, level), band)
-        log(f"  seeded attempt {attempt}: {' -> '.join(words)}")
-        # Seeded chains: reasons from ConceptNet relations; the browser makes
-        # clues from the word map; no kinds.
-        reasons, clues, kinds = chain_reasons(ladder, words), [], []
-        theme, teaser, source = SEEDED_THEME, "", "seeded"
-    return {
-        "date": date_str,
-        "gameNumber": game_number(day, parse_date(cfg["launchDate"])),
-        "level": level,
-        "mode": "chain",
-        "start": words[0],
-        "goal": words[-1],
-        "par": band["par"],
-        "theme": theme,
-        "teaser": teaser,
-        "source": source,
-        "graphVersion": cfg["graphVersion"],
-        "stepLimit": cfg["stepLimit"],
-        "twoWay": bool(cfg.get("twoWay")),
-        "route": words,
-        "reasons": reasons,
-        "clues": clues,
-        "kinds": kinds,
-    }
-
-
-def puzzle_filename(date_str: str, level: str | None, chain: bool = False) -> str:
-    """Open ladders: YYYY-MM-DD-<level>.json. Chain ladders: YYYY-MM-DD-<level>.chain.json,
-    a separate name so a chain day never collides with (or overwrites) an
-    open puzzle written for the same date under older rules.
-    JS twin: puzzleFile in js/seeded.js."""
+def puzzle_filename(date_str: str, level: str | None) -> str:
+    """YYYY-MM-DD-<level>.json. JS twin: puzzleFile in js/seeded.js."""
     if not level:
         return f"{date_str}.json"  # legacy one-puzzle-a-day files
-    return f"{date_str}-{level}{'.chain' if chain else ''}.json"
+    return f"{date_str}-{level}.json"
 
 
 def write_puzzle(puzzle_dir: Path, puzzle: dict) -> Path:
     """Mode "x" = exclusive create: the OS raises FileExistsError instead of
     overwriting, so even a race between two runs can't clobber a puzzle."""
     puzzle_dir.mkdir(exist_ok=True)
-    path = puzzle_dir / puzzle_filename(puzzle["date"], puzzle.get("level"),
-                                        puzzle.get("mode") == "chain")
+    path = puzzle_dir / puzzle_filename(puzzle["date"], puzzle.get("level"))
     with open(path, "x", encoding="utf-8") as f:
         json.dump(puzzle, f, indent=2)
         f.write("\n")
@@ -227,9 +167,8 @@ def main(argv=None) -> int:
         if day < launch:
             print(f"{day}: before launch ({launch}), skipping")
             continue
-        chain = is_chain(ladder.at(day.isoformat()).config)  # the day's rules pick the file name
         for level in levels:
-            path = args.out / puzzle_filename(day.isoformat(), level, chain)
+            path = args.out / puzzle_filename(day.isoformat(), level)
             if path.exists():
                 print(f"{day} {level}: {path.name} exists, skipping (puzzles are never overwritten)")
                 continue

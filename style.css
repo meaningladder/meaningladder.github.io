@@ -29,7 +29,10 @@
   --mid: #f2d98f;         /* 2 steps: yellow */
   --far: #f1b7b4;         /* 3+ steps: pink */
   --goal: #8fcf9a;
-  --tried: #e3cbb8;
+  --tried: #f5c2bd;       /* wrong guesses: light red, fill = closeness */
+  --stair-sat: 60%;       /* climbed rungs: hue by height (stairStep), red to green */
+  --stair-light: 76%;
+  --stair-lift: 0.03%;    /* per hue degree, so the steps also differ in grayscale */
   --rail: #d9cab6;        /* ladder rails and pegs */       /* rejected words: one neutral clay, length = closeness */
   --error: #b4473d;
   --focus: #a65f42;
@@ -69,7 +72,10 @@
     --mid: #735e26;
     --far: #84434a;
     --goal: #2e6040;
-    --tried: #5a4337;
+    --tried: #6a3a38;
+    --stair-sat: 32%;
+    --stair-light: 28%;
+    --stair-lift: 0.04%;
     --rail: #4b433c;
     --error: #f0928a;
     --focus: #e39573;
@@ -112,7 +118,8 @@ a { color: inherit; }
 
 :focus-visible { outline: 2.5px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 
-.visually-hidden {
+.visually-hidden,
+.tchip-note { /* guesses show closeness by color only; the words stay for screen readers */
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
@@ -248,6 +255,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .bar.tone-goal { --tone: var(--goal); }
 .bar.tone-cold { --tone: var(--line); }  /* far: a faint fill, still visible on the track */
 .bar.tone-cold .num { color: var(--muted); }
+.bar.stair { --tone: hsl(var(--stair-hue) var(--stair-sat) calc(var(--stair-light) + var(--stair-hue) * var(--stair-lift))); }
 
 /* Contexto-style list of wrong guesses, ranked from the current word. */
 .tried { margin-top: 14px; }
@@ -454,13 +462,3 @@ a.chip:active { transform: scale(0.95); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-
-/* Chain ladders (from 2026-11-15): one answer per hidden rung. Hidden rungs
-   show a pattern (first letter + blanks); solved rungs show why they link. */
-.ladder.chain .bar.has-why { flex-wrap: wrap; row-gap: 2px; padding-top: 8px; padding-bottom: 8px; }
-.bar .why { flex-basis: 100%; font-weight: 500; font-size: var(--fs-sm); line-height: 1.35; }
-.bar.ghost-word { border: 1.5px dashed var(--line); }
-.rung.chain-rung { min-height: 42px; }
-.pattern { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; font-size: var(--fs-base); font-weight: 700; color: var(--muted); }
-.rung.chain-rung.next .pattern { color: var(--text); }
-.tchip-note { font-weight: 600; font-size: var(--fs-xs); opacity: 0.75; margin-left: 6px; }

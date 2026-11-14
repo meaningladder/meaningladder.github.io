@@ -11,11 +11,11 @@
 import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, readyFor, store } from "./data.js";
 import {
   addDays, autoGoal, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
-  displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, triedOrder,
+  displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, stairStep, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
   betterMedal, checkedRoute, upOneRung, trimToStepsUp, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
-  bottleneckRoute, GENTLE_RANK, chainGuess, chainShareText, closenessLabel,
+  bottleneckRoute, GENTLE_RANK,
   FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
@@ -90,9 +90,6 @@ function saveResult(date, state) {
     // Lets a ladder started before midnight and solved after it still count
     // for its own day's streak (see countsForStreak in logic.js).
     startedOn: state.startedOn ?? null,
-    // Chain ladders: the medal is measured against the hidden words, with
-    // that era's slack, so it never changes later (see resultMedal).
-    ...(state.medal ? { medalPar: state.medal.par, slack: state.medal.slack } : {}),
   };
   store.set("results", results);
 }
@@ -141,22 +138,17 @@ function openDialog(title, body, actions = [["Close", null]]) {
 
 // k = the step limit to explain: a game passes its own (archive days keep
 // their era's rules); null = today's rules (home screen).
-async function showHelp(k = null, twoWay = null, mode = null) {
+async function showHelp(k = null, twoWay = null) {
   store.set("seenHelp", true);
   let eraNote = "";
   try {
     const config = await loadConfig();
     const todays = rulesFor(config, today());
-    // Chain ladders have their own rules; an archive game passes its mode.
-    if ((mode ?? (k == null ? todays.mode : null)) === "chain") return showChainHelp(todays.mode === "chain" ? todays : rulesFor(config, null));
     if (k == null) { k = todays.stepLimit ?? DEFAULT_STEP_LIMIT; twoWay ??= Boolean(todays.twoWay); }
     // A note about the other era, built from config.rules (not hard-coded).
     const newest = newestEra(config); // the newest era players can see
     const day = (s) => fmt(s, { month: "long", day: "numeric" });
-    if (newest?.mode === "chain") {
-      // An open archive day: the newest ladders are a different game.
-      eraNote = ` (Ladders from ${day(newest.from)} on have one hidden answer per rung instead.)`;
-    } else if (newest && k !== newest.stepLimit) {
+    if (newest && k !== newest.stepLimit) {
       eraNote = today() < newest.from
         ? ` From ${day(newest.from)} each step must be in the top ${newest.stepLimit} instead.`
         : ` (Ladders from ${day(newest.from)} on use the top ${newest.stepLimit}.)`;
@@ -164,8 +156,8 @@ async function showHelp(k = null, twoWay = null, mode = null) {
   } catch { k ??= DEFAULT_STEP_LIMIT; }
   const twoWayHelp = Boolean(twoWay);
   const ex = (word, d, { latest = false, isStart = false } = {}) => {
-    const { tone, fill } = closeness(d);
-    return h("li", { class: `bar tone-${tone}${latest ? " latest" : ""}`, style: `--fill:${fill}%` },
+    const { hue, fill } = stairStep(4 - d, 4); // the same staircase as a real ladder
+    return h("li", { class: `bar stair${latest ? " latest" : ""}`, style: `--stair-hue:${hue}; --fill:${fill}%` },
       h("span", {}, word, isStart ? h("span", { class: "tag" }, "start") : null),
       h("span", { class: "num" }, d === 0 ? "goal" : `${d} to go`));
   };
@@ -184,26 +176,6 @@ async function showHelp(k = null, twoWay = null, mode = null) {
   );
 }
 
-// How to play, chain ladders (from 2026-11-13): one answer per rung.
-function showChainHelp(rules) {
-  const par = rules.levels?.easy?.par ?? 5;
-  const slack = rules.medalSlack ?? [2, 5, 8];
-  const ex = (text, cls, tag) => h("li", { class: cls, style: cls.startsWith("bar") ? "--fill:100%" : null },
-    h("span", { class: cls.startsWith("rung") ? "pattern" : null }, text, tag ? h("span", { class: "tag" }, tag) : null));
-  openDialog("How to play", h("div", {},
-    h("ol", { class: "rules" },
-      h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ` in ${par} steps. The words in between are hidden.`),
-      h("li", {}, "Each hidden word has ", h("b", {}, "one answer"), ": the most natural word to follow the one below it."),
-      h("li", {}, "A wrong guess shows how close it is to the answer, from cold to very close. Solve a rung and the ladder shows why it links."),
-      h("li", {}, "Every guess and every hint is a ", h("b", {}, "move"), `. A hint gives a clue (with the word's length and first letter), then the word. Find all ${par - 1} hidden words in ${par - 1 + slack[0]} moves or fewer for gold.`)),
-    h("p", { class: "sub example-caption" }, "Example: jeep to port"),
-    h("ol", { class: "example ladder chain" },
-      ex("port", "bar tone-goal", "goal"), ex("?", "rung chain-rung"), ex("?", "rung chain-rung next"),
-      ex("truck", "bar tone-near"), ex("jeep", "bar tone-near", "start")),
-    h("p", { class: "sub example-caption" }, "Truck: jeeps and trucks are both rugged road vehicles. What comes after truck? \u201cvan\u201d? Warm. \u201ctrailer\u201d? Close, but not it\u2026"),
-    h("p", { class: "sub example-caption" }, "Three new ladders every day. Easy links are everyday facts; Medium and Hard add a second meaning or two.")));
-}
-
 // The one pop-up on load. Newcomers get How to play (it already teaches
 // today's rules, so the "New rules" notice is marked seen for them).
 // Returning players who played under an older era get a one-time notice
@@ -216,10 +188,7 @@ async function showIntro(k = null) {
   try { config = await loadConfig(); } catch { return; }
   const newest = newestEra(config);
   if (!newest) return;
-  // The mode is in the key: the open-ladder era that briefly started on
-  // 2026-11-13 used "seenRules:2026-11-13", and dismissing that notice must
-  // not hide the chain one that now starts on the same day.
-  const seenKey = `seenRules:${newest.from}${newest.mode ? `:${newest.mode}` : ""}`;
+  const seenKey = `seenRules:${newest.from}`;
   if (newcomer) {
     // Only once the era has begun: a player who starts the day before the
     // change still learns the old rules first and needs the notice later.
@@ -246,7 +215,7 @@ function showStats() {
 function feedbackContext(state) {
   const p = state.puzzle;
   const which = state.kind === "daily" ? `Game ${p.gameNumber} (${p.date})` : "Unlimited";
-  return [`${which}, ${p.level ?? "medium"}, ${p.mode === "chain" ? "chain" : "open"} ladder`,
+  return [`${which}, ${p.level ?? "medium"}`,
     `Status: ${state.status}, ${state.moves ?? 0} moves`];
 }
 
@@ -511,11 +480,7 @@ async function showArchive() {
   const before = newest && addDays(newest.from, -1);
   const classicNote = newest && t >= newest.from && isClassicDay(config, config.launchDate) && h("p", { class: "archive-note" },
     `Games before ${fmt(newest.from, { month: "long", day: "numeric" })} use classic rules: `
-    + (newest.mode === "chain" && rulesFor(config, before).mode !== "chain"
-      ? "open ladders, where any close word counts as a step."
-      : newest.mode !== "chain" && rulesFor(config, before).mode === "chain"
-        ? "chain ladders, where each hidden rung has one answer."
-        : `each step may be any of the previous word's ${rulesFor(config, before).stepLimit} closest words.`));
+    + `each step may be any of the previous word's ${rulesFor(config, before).stepLimit} closest words.`);
   render(topbar("Previous games"), classicNote, ...months);
 }
 
@@ -579,18 +544,14 @@ async function showGame(kind, n, level) {
       state = store.get(saveKey);
       if (!state) {
         const puzzle = await loadDailyPuzzle(ladder, date, level);
-        state = puzzle.mode === "chain" ? newChainState("daily", puzzle) : newState("daily", puzzle);
+        state = newState("daily", puzzle);
       }
     } else {
       saveKey = practiceKey(level);
       state = store.get(saveKey);
-      // Unlimited follows the newest rules: an open ladder saved before the
-      // chain era is replaced by a chain (and the other way round).
-      const chainNow = rulesFor(config, null).mode === "chain";
-      if (!state || state.puzzle?.level !== level || (state.puzzle?.mode === "chain") !== chainNow
+      if (!state || state.puzzle?.level !== level
           || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)) {
-        const puzzle = await makePracticePuzzle(ladder, level);
-        state = puzzle.mode === "chain" ? newChainState("practice", puzzle) : newState("practice", puzzle);
+        state = newState("practice", await makePracticePuzzle(ladder, level));
       }
     }
     await readyFor(ladder, state.puzzle); // top-100-era games wait for the rest of the word map
@@ -603,13 +564,10 @@ async function showGame(kind, n, level) {
   if (token !== routeToken) return;
   // Archive days from an older era say so, since their step limit differs.
   const classic = date ? classicLabel(config, date) : "";
-  const view = state.puzzle.mode === "chain" ? chainView : playView;
-  view(ladderFor(ladder, state.puzzle), state, saveKey, date, classic); // that puzzle's rules
+  playView(ladderFor(ladder, state.puzzle), state, saveKey, date, classic); // that puzzle's rules
 }
 
 // ------------------------------------------------------------ shared game-screen parts
-// Used by both playView (open ladders) and chainView (chain ladders), so a
-// fix to the menu, the level switcher, the countdown or sharing lands in both.
 
 // The game menu (three dots). items: [label, fn, enabled()]; `enabled` is
 // read each time the menu opens. Its document listeners end with the screen.
@@ -937,14 +895,14 @@ function playView(ladder, state, saveKey, date, classic = "") {
   }
 
   // A chip per word that was too far, closest first. The shaded part shows
-  // how close it was; the exact rank is in the tooltip, not on screen.
+  // how close it was; the exact rank is for screen readers only, not on screen.
   function triedChip(x, latest) {
     const known = typeof x.rank === "number";
     const tip = x.noCloser ? `Close to ${state.tried.at}, but no closer to ${puzzle.goal}`
       : x.family ? "Same word family" : known ? `#${x.rank.toLocaleString()} closest to ${state.tried.at}` : "";
     const enter = latest && justTried;
     return h("li", { class: `tchip${latest ? " latest" : ""}${enter ? " enter" : ""}`,
-      style: `--fill:${known ? rankFill(x.rank) : 0}%`, title: tip }, x.word,
+      style: `--fill:${known ? rankFill(x.rank) : 0}%` }, x.word,
       x.noCloser ? h("span", { class: "tchip-note" }, "no closer") : null,
       tip ? h("span", { class: "visually-hidden" }, `, ${tip}`) : null);
   }
@@ -1009,6 +967,11 @@ function playView(ladder, state, saveKey, date, classic = "") {
         isStart: row.at === 0,
         prev: row.at > 0 ? state.path[row.at - 1] : null,
       });
+      // Climbed rungs form a staircase: color and fill grow with height.
+      const step = stairStep(row.rung, puzzle.par);
+      el.classList.add("stair");
+      el.style.setProperty("--stair-hue", step.hue);
+      el.style.setProperty("--fill", `${step.fill}%`);
       if (isGoal && row.at == null) el.classList.add("goal-slot");
       if (row.at != null && !row.current && !isGoal) el.classList.add("passed");
       if (row.current) el.setAttribute("aria-current", "step");
@@ -1211,320 +1174,6 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // First visit straight to a game (a shared link): explain the rules once,
   // same as the home screen does (or announce new rules to a returning player).
   showIntro(ladder.config.stepLimit);
-}
-
-// ------------------------------------------------------------ chain ladders
-// From the 2026-11-13 era a ladder is one fixed chain (puzzle.route): the
-// start and goal are shown, and each hidden rung has exactly one answer,
-// shown as its length. Each wrong guess shows how close it is to the answer
-// (the same ranks as the open ladder's Tried list). Solving a rung shows why
-// it links.
-// state.rungs[k] is the k-th hidden word: { misses: [words], hint: 0-2,
-// solved, revealed }. Moves: every fitting wrong guess and every hint.
-function newChainState(kind, puzzle) {
-  const hidden = puzzle.route.length - 2;
-  const state = { kind, puzzle, mode: "chain", path: [puzzle.start], moves: 0, hints: 0, status: "playing",
-    rungs: Array.from({ length: hidden }, () => ({ misses: [], hint: 0, solved: false, revealed: false })) };
-  if (kind === "daily") state.startedOn = today();
-  return state;
-}
-
-function chainView(ladder, state, saveKey, date, classic = "") {
-  const { puzzle } = state;
-  const chain = puzzle.route;
-  const hidden = chain.length - 2;
-  const slack = ladder.config.medalSlack ?? [2, 5, 8];
-  state.medal = { par: hidden, slack }; // saveResult stores it with the result
-  if (state.kind === "daily") puzzle.gameNumber = gameNumber(date, ladder.config.launchDate);
-  const level = puzzle.level ?? "medium";
-  const levelLabel = LEVEL_LABEL[level];
-  const label = state.kind === "daily" ? `#${puzzle.gameNumber} ${levelLabel}` : `unlimited (${level})`;
-  document.title = `${state.kind === "daily" ? `#${puzzle.gameNumber} ${levelLabel}` : `Unlimited ${levelLabel}`} · Meaning Ladder`;
-  const levelHref = (lv) => (state.kind === "daily" ? `#/game/${puzzle.gameNumber}/${lv}` : `#/practice/${lv}`);
-  const isPractice = state.kind === "practice" || puzzle.source === "practice";
-  const clues = Array.isArray(puzzle.clues) && puzzle.clues.length === hidden + 1 ? puzzle.clues : null;
-
-  let error = null;       // a free rejection (wrong pattern, typo, unknown word)
-  let note = null;        // "Counted as tanker."
-  let justSolved = -1;    // rung index to animate once
-  let justMissed = false;
-  const countdown = makeCountdown();
-  const save = () => store.set(saveKey, state);
-  if (state.status === "playing") save();
-
-  const rungNow = () => state.rungs.findIndex((r) => !r.solved); // -1: all solved
-  const below = (k) => chain[k]; // the word under hidden rung k (chain[k + 1] is its answer)
-
-  // ---- static parts (same layout as the open ladder)
-  const status = h("p", { class: "status" });
-  const switcher = h("nav", { class: "levels compact", "aria-label": "Level" });
-  const input = h("input", { id: "guess", type: "text", autocomplete: "off", autocapitalize: "none",
-    autocorrect: "off", spellcheck: "false", enterkeyhint: "go", maxlength: "30" });
-  const form = h("form", { class: "guess", onSubmit: (e) => { e.preventDefault(); submit(); } },
-    h("label", { for: "guess", class: "visually-hidden" }, "Your guess for the next rung"), input,
-    h("button", { type: "submit", class: "btn go" }, "Go"));
-  const feedback = h("div", { class: "feedback", "aria-live": "polite" });
-  const tried = h("section", { class: "tried", hidden: true, "aria-label": "Wrong guesses for this rung" });
-  const win = h("section", { class: "card win", hidden: true, "aria-live": "polite" });
-  const ladderEl = h("ol", { class: "ladder chain", "aria-label": `Ladder from ${puzzle.start} up to ${puzzle.goal}` });
-  const hintBtn = h("button", { class: "btn btn-quiet", onClick: hint,
-    title: "A clue first, then the word. Each costs one move." }, "Hint");
-  const actions = h("div", { class: "actions" }, hintBtn);
-
-  const menuWrap = gameMenu([
-    ["Hint", hint, () => state.status === "playing"],
-    ["Give up", confirmGiveUp, () => state.status === "playing"],
-    ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
-    ["How to play", () => showHelp(null, null, "chain"), () => true],
-    ["Statistics", showStats, () => true],
-    ["Send feedback", () => showFeedback(feedbackContext(state)), () => true],
-    ["Previous games", () => { location.hash = "#/archive"; }, () => true],
-  ]);
-
-  render(topbar(state.kind === "daily" ? `Game ${puzzle.gameNumber}` : "Unlimited", menuWrap),
-    classic ? h("p", { class: "sub classic-note" }, classic) : null,
-    switcher, status, win, ladderEl, feedback, tried, form, actions);
-
-
-  // ---- actions
-  function solve(k, revealed) {
-    const r = state.rungs[k];
-    r.solved = true;
-    r.revealed = revealed;
-    state.path.push(chain[k + 1]);
-    justSolved = k;
-    if (rungNow() < 0) {
-      state.path.push(puzzle.goal); // the last hidden word links to the goal on screen
-      finish("won");
-    }
-  }
-
-  function submit() {
-    if (state.status !== "playing") return;
-    const k = rungNow();
-    const shown = [puzzle.start, puzzle.goal, ...state.path];
-    const res = chainGuess(ladder, input.value, chain[k + 1], below(k), shown);
-    note = null;
-    if (res.ok) {
-      state.moves++; // the right word is a move too, so a perfect ladder is `hidden` moves
-      error = null;
-      note = res.note ?? null;
-      input.value = "";
-      solve(k, false);
-    } else if (res.wrong) {
-      state.moves++;
-      error = null;
-      const r = state.rungs[k];
-      r.misses = r.misses.filter((m) => m.word !== res.word).concat([{ word: res.word, rank: null, family: false }]);
-      justMissed = true;
-      input.select();
-      resolveRanks(k);
-    } else {
-      error = res.error; // free: no move
-      input.select();
-    }
-    save();
-    update();
-  }
-
-  function hint() {
-    if (state.status !== "playing") return;
-    const k = rungNow();
-    const r = state.rungs[k];
-    if (r.hint >= 2) return;
-    r.hint++;
-    state.hints++;
-    state.moves++;
-    error = note = null;
-    if (r.hint === 2) solve(k, true); // the second hint reveals the word and climbs
-    save();
-    update();
-    input.focus();
-  }
-
-  function clueLine(k) {
-    if (clues) return clues[k];
-    const target = ladder.index.get(chain[k + 1]);
-    return clueText(clueFor(ladder, [puzzle.start, ...state.path], target, puzzle.goal));
-  }
-
-  function confirmGiveUp() {
-    openDialog("Give up?", h("p", {}, `We'll show you the whole ladder and why each step links. This ends this ${levelLabel.toLowerCase()} ladder.`),
-      [["Keep playing", () => input.focus()], ["Give up", () => { finish("gaveUp"); save(); update(); }, true]]);
-  }
-
-  function finish(result) {
-    state.status = result;
-    if (state.kind === "daily") saveResult(date, state);
-  }
-
-  function newPractice() {
-    const fresh = () => { store.remove(saveKey); route(); };
-    if (state.status !== "playing" || state.moves === 0) return fresh();
-    openDialog("Start a new ladder?", h("p", {}, "This one will be lost."),
-      [["Keep playing", () => input.focus()], ["New ladder", fresh, true]]);
-  }
-
-  // ---- rendering
-  const srOnly = (text) => h("span", { class: "visually-hidden" }, text);
-  const why = (k) => h("span", { class: "why" }, puzzle.reasons[k]);
-
-  // Rows top (goal) to bottom (start). Hidden rung k sits on ladder rung k + 1.
-  function rows() {
-    const playing = state.status === "playing";
-    const cur = rungNow();
-    const won = state.status === "won";
-    const out = [];
-    const goal = h("li", { class: `bar tone-goal has-why${won ? " latest" : ""}`, style: "--fill:100%" },
-      srOnly(`Rung ${hidden + 1}, the goal: `),
-      h("span", {}, puzzle.goal, h("span", { class: "tag" }, "goal")),
-      state.status !== "playing" ? why(hidden) : null);
-    out.push(goal);
-    for (let k = hidden - 1; k >= 0; k--) {
-      const r = state.rungs[k];
-      const word = chain[k + 1];
-      if (r.solved || !playing) {
-        const ghost = !r.solved;
-        out.push(h("li", { class: `bar ${ghost ? "tone-cold ghost-word" : "tone-near"} has-why${justSolved === k ? " enter" : ""}`,
-          style: `--fill:${ghost ? 0 : 100}%` },
-          srOnly(`Rung ${k + 1}${ghost ? ", not found" : ""}: `),
-          h("span", {}, word, r.revealed ? h("span", { class: "tag" }, "revealed") : ghost ? h("span", { class: "tag" }, "answer") : null),
-          why(k)));
-        continue;
-      }
-      const next = k === cur;
-      out.push(h("li", { class: `rung chain-rung${next ? " next" : ""}`, "aria-current": next ? "step" : null },
-        srOnly(`Rung ${k + 1}${next ? ", your next word" : ", hidden"}: `),
-        // No length or letters: only a hint gives those away.
-        h("span", { class: "pattern", "aria-hidden": "true" }, "?"),
-        srOnly("hidden word")));
-    }
-    out.push(h("li", { class: "bar tone-near passed", style: "--fill:100%" }, srOnly("Rung 0, the start: "),
-      h("span", {}, puzzle.start, h("span", { class: "tag" }, "start"))));
-    justSolved = -1;
-    return out;
-  }
-
-  // How close each wrong guess is to the rung's answer: its rank among the
-  // answer's closest words (exact up to #100 from the map, estimated from the
-  // word vectors beyond that). Loaded on the first wrong guess.
-  let scoreCache = { at: -1, scores: null };
-  async function resolveRanks(k) {
-    const r = state.rungs[k];
-    if (!r?.misses.some((m) => m.rank == null && !m.family)) return;
-    let vectors;
-    try {
-      [vectors] = await Promise.all([loadVectors(), ladder.loadFull?.()]);
-    } catch (err) {
-      console.warn("Couldn't load word vectors for ranks.", err);
-      r.misses.forEach((m) => { if (m.rank == null && !m.family) m.rank = "?"; });
-      update();
-      return;
-    }
-    const to = ladder.index.get(chain[k + 1]);
-    if (scoreCache.at !== to) scoreCache = { at: to, scores: scoresFrom(vectors, to) };
-    for (const m of r.misses) {
-      if (m.rank != null || m.family) continue;
-      const from = ladder.index.get(m.word);
-      Object.assign(m, displayRank(ladder, to, from, rankOf(scoreCache.scores, to, from)));
-    }
-    save();
-    update();
-  }
-
-  function renderTried(k, playing) {
-    const r = k >= 0 ? state.rungs[k] : null;
-    tried.hidden = !playing || !r || !r.misses.length;
-    if (tried.hidden) return;
-    const latest = r.misses[r.misses.length - 1];
-    tried.replaceChildren(
-      h("span", { class: "tried-head" }, "Not it:"),
-      h("ol", { class: "tchips" }, triedOrder(r.misses).map((m) => {
-        const known = typeof m.rank === "number";
-        const label = m.family ? "same word family" : closenessLabel(m.rank);
-        const tip = m.family ? "A form of the answer's word family" : known ? `#${m.rank.toLocaleString()} closest to the answer` : "";
-        return h("li", {
-          class: `tchip${m === latest ? " latest" : ""}${m === latest && justMissed ? " enter" : ""}`,
-          style: `--fill:${known ? rankFill(m.rank) : 0}%`, title: tip },
-          m.word, label ? h("span", { class: "tchip-note" }, label) : null,
-          tip ? srOnly(`, ${tip}`) : null);
-      })));
-    justMissed = false;
-  }
-
-  function update() {
-    const playing = state.status === "playing";
-    const k = rungNow();
-    status.textContent = playing
-      ? `Word ${k + 1} of ${hidden} · Moves ${state.moves}`
-      : `${hidden} hidden words · Moves ${state.moves}`;
-    form.hidden = feedback.hidden = actions.hidden = !playing;
-    renderSwitcher();
-    ladderEl.replaceChildren(...rows());
-    renderTried(k, playing);
-    if (playing) {
-      const r = state.rungs[k];
-      input.placeholder = `Word after ${below(k)}`;
-      hintBtn.textContent = r.hint === 1 ? "Reveal word" : "Hint";
-      const lastSolved = k > 0 ? k - 1 : -1;
-      if (error) feedback.replaceChildren(h("p", { class: "error" }, error));
-      else if (r.hint === 1) feedback.replaceChildren(h("p", { class: "hintline" }, icon("lightbulb", "inline-icon"), clueLine(k)));
-      else if (note) feedback.replaceChildren(h("p", { class: "muted" }, note));
-      else if (lastSolved >= 0 && state.rungs[lastSolved].solved && !r.misses.length) {
-        feedback.replaceChildren(h("p", { class: "muted" }, `Yes! Now the word after ${below(k)}.`));
-      } else {
-        feedback.replaceChildren(h("p", { class: "muted" }, `Which word comes after ${below(k)}?`));
-      }
-    }
-    renderWin();
-  }
-
-  const renderSwitcher = () => renderLevelSwitcher(switcher, { daily: state.kind === "daily", date, level, href: levelHref });
-
-  function renderWin() {
-    win.hidden = state.status === "playing";
-    if (win.hidden) return;
-    const won = state.status === "won";
-    const moves = state.moves;
-    const medal = won ? medalFor(moves, hidden, { slack }) : null;
-    const n = (x, word = "move") => `${x} ${word}${x === 1 ? "" : "s"}`;
-    const toast = h("p", { class: "toast", role: "status" });
-    const shareBtn = h("button", { class: "btn", onClick: () => share(toast) }, icon("share-network", "btn-icon"), "Share result");
-    const nxt = state.kind === "practice" ? null : nextLevel(date, getResults(), level);
-    win.replaceChildren(...[
-      medalBadge(won ? medal.id : "gaveUp", "lg"),
-      h("h2", {}, won ? (medal.id === "finished" ? "You made it!" : `${medal.label}!`) : "Here's the ladder"),
-      h("p", { class: "result" }, won
-        ? `${n(moves)} for ${hidden} hidden words. Gold is ${hidden + slack[0]} or fewer.`
-        : `It had ${hidden} hidden words.`),
-      note && won ? h("p", { class: "muted" }, note) : null,
-      h("div", { class: "route" }, h("p", {}, "Why each step links:"),
-        h("ol", { class: "reasons" }, puzzle.reasons.map((text, k) =>
-          h("li", {}, h("b", {}, `${chain[k]} → ${chain[k + 1]}`), " ", text)))),
-      !isPractice && puzzle.theme ? h("p", { class: "muted" }, `Today's theme: ${puzzle.theme}`) : null,
-      h("div", { class: "btn-row" }, shareBtn,
-        state.kind === "practice"
-          ? h("button", { class: "btn btn-quiet", onClick: newPractice }, icon("arrow-clockwise", "btn-icon"), "Play another")
-          : nxt ? h("a", { class: "btn btn-quiet", href: levelHref(nxt) }, `Play ${LEVEL_LABEL[nxt]}`)
-            : h("a", { class: "btn btn-quiet", href: "#/" }, "Home")),
-      toast,
-      state.kind === "daily" ? countdown() : null,
-    ].filter(Boolean));
-  }
-
-  async function share(toast) {
-    const text = chainShareText({
-      label, moves: state.moves, par: hidden, slack, gaveUp: state.status === "gaveUp",
-      rungs: state.rungs.map((r) => ({ solved: r.solved, revealed: r.revealed, misses: r.misses.length })),
-      url: location.origin + location.pathname,
-    });
-    await copyShare(text, toast);
-  }
-
-  update();
-  if (state.status === "playing") resolveRanks(rungNow()); // ranks still pending from before a refresh
-  if (state.status === "playing") input.focus();
-  showIntro();
 }
 
 // ------------------------------------------------------------ start
