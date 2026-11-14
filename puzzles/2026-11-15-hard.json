@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-15",
+  "gameNumber": 15,
+  "level": "hard",
+  "start": "freight",
+  "goal": "celebrity",
+  "par": 6,
+  "theme": "Cargo to red carpets",
+  "teaser": "Your delivery takes a legendary ocean detour before landing in the spotlight.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "freight",
+    "cargo",
+    "ship",
+    "titanic",
+    "movie",
+    "star",
+    "celebrity"
+  ],
+  "reasons": [
+    "Freight is cargo transported from place to place.",
+    "Cargo can travel aboard a ship.",
+    "The Titanic was a famous passenger ship.",
+    "Titanic is also the title of a movie about that ship.",
+    "A leading performer in a movie is called a star.",
+    "A star is a celebrity."
+  ]
+}

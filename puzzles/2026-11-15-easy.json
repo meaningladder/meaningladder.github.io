@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-15",
+  "gameNumber": 15,
+  "level": "easy",
+  "start": "machinery",
+  "goal": "rubber",
+  "par": 4,
+  "theme": "Where wheels meet ground",
+  "teaser": "Follow the moving parts until you reach something with a little bounce.",
+  "source": "ai",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "machinery",
+    "automobiles",
+    "cars",
+    "tires",
+    "rubber"
+  ],
+  "reasons": [
+    "Automobiles are complex examples of machinery.",
+    "Automobiles are also called cars.",
+    "Cars roll on tires.",
+    "Tires are commonly made of rubber."
+  ]
+}
