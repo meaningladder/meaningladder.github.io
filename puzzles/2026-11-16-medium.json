@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-16",
+  "gameNumber": 16,
+  "level": "medium",
+  "start": "tail",
+  "goal": "sculptor",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "tail",
+    "fuselage",
+    "plywood",
+    "wood",
+    "carver",
+    "sculptor"
+  ],
+  "reasons": []
+}

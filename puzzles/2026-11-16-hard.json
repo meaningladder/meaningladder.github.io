@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-16",
+  "gameNumber": 16,
+  "level": "hard",
+  "start": "airliner",
+  "goal": "pasta",
+  "par": 6,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "airliner",
+    "airplane",
+    "cockpit",
+    "pod",
+    "bean",
+    "soup",
+    "pasta"
+  ],
+  "reasons": []
+}
