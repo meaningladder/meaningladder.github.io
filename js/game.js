@@ -164,14 +164,17 @@ async function showHelp(k = null, twoWay = null) {
   // Four rules, nothing else: players who read a long list still got lost.
   openDialog("How to play", h("div", {},
     h("ol", { class: "rules" },
-      h("li", {}, "Climb from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time. Reach the rung just below the goal and the ladder finishes itself."),
-      h("li", {}, `Each word must be close in meaning to the one before it (${twoWayHelp ? `either word among the other's ${k} closest` : `one of its ${k} closest words`}).${eraNote}`),
-      h("li", {}, "Each word must take you one rung closer to the goal. A close word that isn't closer goes in your Tried list, for free."),
-      h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it. A hint costs one move: first a clue, then the word if you ask again. Reach the goal in ",
+      h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), " word, one word at a time."),
+      h("li", {}, `Each word must be close in meaning to your last word (${twoWayHelp ? `one of its ${k} closest words, or the other way round` : `one of its ${k} closest words`}).${eraNote}`),
+      h("li", {}, "Each word must also take you one step closer to the goal. Words that don't are saved in your Tried list, at no cost."),
+      h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it. A hint costs one move. Finish in ",
         h("b", {}, "par"), " moves for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
     h("ol", { class: "example ladder" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
       ex("ocean", 4, { isStart: true })),
+    h("p", { class: "sub" }, "Read it from the bottom up. ", h("b", {}, "ocean"), " → ", h("b", {}, "wave"), " → ",
+      h("b", {}, "signal"), " → ", h("b", {}, "network"), " → ", h("b", {}, "computer"),
+      ": each word is close to the one before it, and each one gets a step closer, so the bar fills and turns from red to green. That's 4 moves. If par is 4, that's gold."),
     h("p", { class: "sub example-caption" }, "Three new ladders every day: Easy, Medium and Hard."))
   );
 }
