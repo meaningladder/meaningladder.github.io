@@ -4,9 +4,19 @@
   "level": "hard",
   "start": "fish",
   "goal": "fax",
-  "par": 4,
+  "par": 5,
   "theme": "Underwater to office",
   "teaser": "An underwater beginning ends with a very old-fashioned way to say hello.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "fish",
+    "shrimp",
+    "mussels",
+    "zebra",
+    "finch",
+    "fax"
+  ]
 }

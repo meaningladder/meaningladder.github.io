@@ -8,5 +8,14 @@
   "theme": "Dressed for strategy",
   "teaser": "Your opening look could lead to a winning move.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "garment",
+    "clothing",
+    "jewelry",
+    "pawn",
+    "chess"
+  ]
 }

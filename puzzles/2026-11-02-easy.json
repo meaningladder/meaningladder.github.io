@@ -4,9 +4,18 @@
   "level": "easy",
   "start": "leaf",
   "goal": "whale",
-  "par": 3,
+  "par": 4,
   "theme": "From treetops to ocean",
   "teaser": "How does something so small and fluttery end up making such an enormous splash?",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "leaf",
+    "purple",
+    "aqua",
+    "dolphin",
+    "whale"
+  ]
 }

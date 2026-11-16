@@ -14,13 +14,18 @@ are `puzzles/YYYY-MM-DD-<level>.json` (`puzzle_filename` in
 `scripts/generate_puzzle.py`, `puzzleFile` in `js/seeded.js`).
 
 **Rules eras.** The rules live in `puzzle_config.json` under `rules`, one entry
-per era, each with a `from` date. A date always keeps the rules it was played
-under (`rules_for` in `scripts/ladder_core.py`, `rulesFor` in `js/seeded.js`):
+per era, each with a `from` date (`rules_for` in `scripts/ladder_core.py`,
+`rulesFor` in `js/seeded.js`). Since 2026-11-16 there is ONE era for every day:
 
 | From | Legal steps | Easy | Medium | Hard |
 |---|---|---|---|---|
-| 2026-11-01 | top 100 neighbors | par 3, 19+ routes | par 3, 1-18 routes | par 4 |
-| 2026-11-13 | top 10, links both ways | par 4 | par 5 | par 6 |
+| 2026-11-01 | top 10, links both ways | par 4 | par 5 | par 6 |
+
+Nov 1-12 were first played on top-100 one-way rules (par 3/3/4). On
+2026-11-16 they were moved to these rules: their files got the new par
+(+1 to +3), `stepLimit`/`twoWay`, and a fresh shortest `route`; saves and
+results for those days were wiped (storage schema 6). With one era there is
+no "New rules" notice and no "classic rules" label.
 
 **Retired: chain ladders.** On 2026-11-13 and 14 the daily ladders were briefly
 chains (one hidden answer per rung). On 2026-11-14 every day went back to open

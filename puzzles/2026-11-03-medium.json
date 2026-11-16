@@ -4,9 +4,18 @@
   "level": "medium",
   "start": "hat",
   "goal": "speedway",
-  "par": 3,
+  "par": 4,
   "theme": "Dressed for a dash",
   "teaser": "Hold on to your hat: this journey is about to pick up speed!",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "hat",
+    "trick",
+    "win",
+    "race",
+    "speedway"
+  ]
 }

@@ -604,7 +604,8 @@ test("the real exclusion file covers the reported words and only drops real cand
   const root = new URL("../../", import.meta.url);
   const read = (p) => JSON.parse(readFileSync(new URL(p, root), "utf8"));
   const config = read("puzzle_config.json");
-  assert.equal(rulesFor(config, "2026-11-12").excludeCandidates, undefined); // past dates untouched
+  // One set of rules for every day since 2026-11-16, Nov 1-12 included.
+  assert.equal(rulesFor(config, "2026-11-12").excludeCandidates, rulesFor(config, "2026-11-13").excludeCandidates);
   const path = rulesFor(config, "2026-11-13").excludeCandidates;
   const excluded = excludedWords(read(path));
   const cands = new Set(read(`data/candidates_v${config.graphVersion}.json`).words);

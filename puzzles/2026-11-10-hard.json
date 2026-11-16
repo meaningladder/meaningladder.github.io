@@ -4,9 +4,19 @@
   "level": "hard",
   "start": "stronghold",
   "goal": "piano",
-  "par": 4,
+  "par": 5,
   "theme": "From defenses to duets",
   "teaser": "Sneak inside somewhere grand, and you may find a reason to dance instead of fight.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "stronghold",
+    "insurgent",
+    "attacks",
+    "bombings",
+    "string",
+    "piano"
+  ]
 }

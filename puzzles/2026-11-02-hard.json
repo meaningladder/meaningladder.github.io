@@ -4,9 +4,19 @@
   "level": "hard",
   "start": "elephant",
   "goal": "videotape",
-  "par": 4,
+  "par": 5,
   "theme": "Memory on rewind",
   "teaser": "One never forgets; the other lets you rewind.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "elephant",
+    "rhino",
+    "reissue",
+    "cassette",
+    "tape",
+    "videotape"
+  ]
 }

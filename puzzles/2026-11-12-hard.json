@@ -8,5 +8,14 @@
   "theme": "Fortresses to fabrics",
   "teaser": "Trade towering defenses for something you could unravel, one change of material at a time.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "castle",
+    "built",
+    "structure",
+    "backbone",
+    "fiber"
+  ]
 }

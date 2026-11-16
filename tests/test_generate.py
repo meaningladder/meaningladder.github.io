@@ -96,16 +96,13 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
     assert p1["par"] == level_band(LEVEL, ladder.config)["par"]
     assert p1["level"] == LEVEL
     assert p1["gameNumber"] == 12  # launch 2026-11-01 is game 1
-    assert p1["stepLimit"] == 100 and p1["par"] == 4 and p1["twoWay"] is False  # Nov 12
+    assert p1["stepLimit"] == 10 and p1["twoWay"] is True  # Nov 12: same rules as every day
 
 
 def test_puzzles_follow_their_dates_rules(ladder):
-    """Before Nov 13 the original top-100 open rules apply; from Nov 13 every
-    day is an open ladder, top 10 both ways (no chain days any more)."""
-    old = make_puzzle(ladder, date(2026, 11, 12), "hard", set(), None, quiet)
-    assert (old["stepLimit"], old["par"]) == (100, 4)
-    assert old["twoWay"] is False and "mode" not in old
-    for day in (date(2026, 11, 13), date(2026, 11, 14), date(2026, 11, 15)):
+    """Every day is an open ladder, top 10 both ways, par 4/5/6 (Nov 1-12
+    moved off the top-100 rules on 2026-11-16)."""
+    for day in (date(2026, 11, 1), date(2026, 11, 12), date(2026, 11, 13), date(2026, 11, 15)):
         for level, par in (("easy", 4), ("medium", 5), ("hard", 6)):
             p = make_puzzle(ladder, day, level, set(), None, quiet)
             assert "mode" not in p and (p["stepLimit"], p["par"], p["twoWay"]) == (10, par, True)

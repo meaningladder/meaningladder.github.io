@@ -4,9 +4,19 @@
   "level": "easy",
   "start": "guitarist",
   "goal": "tomato",
-  "par": 3,
+  "par": 5,
   "theme": "From strums to splats",
   "teaser": "Start with a strum and see whether your performance ends with a splat!",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "guitarist",
+    "bassist",
+    "guitarists",
+    "flamenco",
+    "salsa",
+    "tomato"
+  ]
 }

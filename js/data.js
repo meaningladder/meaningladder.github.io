@@ -270,10 +270,20 @@ export const store = {
 // under stricter rules, so all of them go; preferences (seenHelp etc.) stay.
 // (Steps 2-4 used to reshape those same keys; the wipe made them moot.)
 export function migrateStorage() {
-  if (store.get("schema", 1) >= 5) return;
-  for (const key of [...store.keys("game:"), ...store.keys("practice")]) store.remove(key);
-  store.remove("results");
-  store.set("schema", 5);
+  const schema = store.get("schema", 1);
+  if (schema < 5) {
+    for (const key of [...store.keys("game:"), ...store.keys("practice")]) store.remove(key);
+    store.remove("results");
+  } else if (schema < 6) {
+    // Schema 6 (2026-11-16): Nov 1-12 moved from top-100 to the top-10 two-way
+    // rules, and their par went up. Only those days' saves and results go.
+    const old = (date) => date >= "2026-11-01" && date < "2026-11-13";
+    for (const key of store.keys("game:")) if (old(key.slice(5, 15))) store.remove(key);
+    const results = store.get("results", {});
+    for (const key of Object.keys(results)) if (old(key.slice(0, 10))) delete results[key];
+    store.set("results", results);
+  }
+  store.set("schema", 6);
 }
 
 export { LEVELS };

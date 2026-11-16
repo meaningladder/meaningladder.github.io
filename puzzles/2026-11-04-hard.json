@@ -8,5 +8,14 @@
   "theme": "An astronomical achievement",
   "teaser": "Finish first, then set your sights much, much higher.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "medalist",
+    "worlds",
+    "planet",
+    "orbiting",
+    "observatory"
+  ]
 }

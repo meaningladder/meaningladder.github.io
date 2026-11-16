@@ -4,9 +4,18 @@
   "level": "medium",
   "start": "cocktail",
   "goal": "pearl",
-  "par": 3,
+  "par": 4,
   "theme": "From clink to shimmer",
   "teaser": "An evening out takes a surprisingly deep dive before coming back with something precious.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "cocktail",
+    "champagne",
+    "cork",
+    "harbour",
+    "pearl"
+  ]
 }

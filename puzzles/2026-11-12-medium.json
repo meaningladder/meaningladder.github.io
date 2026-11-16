@@ -4,9 +4,18 @@
   "level": "medium",
   "start": "grandmother",
   "goal": "rocket",
-  "par": 3,
+  "par": 4,
   "theme": "Family countdown",
   "teaser": "Buckle up: this family outing is about to leave Earth behind!",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "grandmother",
+    "grandfather",
+    "teddy",
+    "atlas",
+    "rocket"
+  ]
 }

@@ -4,9 +4,18 @@
   "level": "easy",
   "start": "desk",
   "goal": "cowboy",
-  "par": 3,
+  "par": 4,
   "theme": "From nine-to-five to yeehaw",
   "teaser": "Your nine-to-five is about to get a whole lot wilder.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "desk",
+    "chairs",
+    "umbrellas",
+    "hats",
+    "cowboy"
+  ]
 }

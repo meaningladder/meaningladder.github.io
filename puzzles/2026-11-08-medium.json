@@ -4,9 +4,20 @@
   "level": "medium",
   "start": "candy",
   "goal": "cruiser",
-  "par": 3,
+  "par": 6,
   "theme": "Sweet escape",
   "teaser": "Unwrap a little adventure and see how far your sweet tooth can travel.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "candy",
+    "chocolate",
+    "cakes",
+    "steamed",
+    "sailed",
+    "sighted",
+    "cruiser"
+  ]
 }

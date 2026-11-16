@@ -4,9 +4,19 @@
   "level": "easy",
   "start": "empress",
   "goal": "plane",
-  "par": 3,
+  "par": 5,
   "theme": "Royal takeoff",
   "teaser": "A royal beginning takes an unexpectedly fluttery turn before soaring to the finish.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "empress",
+    "imperial",
+    "palace",
+    "residence",
+    "downing",
+    "plane"
+  ]
 }

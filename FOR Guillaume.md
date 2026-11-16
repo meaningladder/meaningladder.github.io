@@ -543,3 +543,11 @@ the graph didn't. Every saved game and result was wiped once (schema 5), and
 the old migration steps went with them, since the wipe made them moot.
 Lesson: measure "how many answers does each rung accept?" before shipping a
 rule. The counts told the story faster than the feedback did.
+
+Later the same day, Nov 1-12 were moved onto the same rules as every other
+day (top 10, links both ways), so the config now has a single era. Their par
+went up by 1 to 3 (guitarist to tomato: 3 became 5), so the files were
+rewritten with the new par and route. That's the one exception to "published
+puzzles are never overwritten", made on purpose. Only those days' saves and
+results were cleared (schema 6). Before shipping I checked that all 51
+published puzzles can still be finished in par under the new accept rule.

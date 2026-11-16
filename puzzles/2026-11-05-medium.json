@@ -4,9 +4,19 @@
   "level": "medium",
   "start": "grass",
   "goal": "piano",
-  "par": 3,
+  "par": 5,
   "theme": "Green to grand",
   "teaser": "Can something underfoot lead you to something played by hand?",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "grass",
+    "dirt",
+    "track",
+    "song",
+    "melody",
+    "piano"
+  ]
 }

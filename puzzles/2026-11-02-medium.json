@@ -4,9 +4,18 @@
   "level": "medium",
   "start": "ambulance",
   "goal": "beetle",
-  "par": 3,
+  "par": 4,
   "theme": "Sirens to shells",
   "teaser": "This urgent journey takes a surprisingly tiny turn.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "ambulance",
+    "helicopter",
+    "cobra",
+    "viper",
+    "beetle"
+  ]
 }

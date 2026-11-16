@@ -4,9 +4,19 @@
   "level": "medium",
   "start": "browser",
   "goal": "curator",
-  "par": 3,
+  "par": 5,
   "theme": "Clicks to collections",
   "teaser": "Begin with a little online exploring and end by deciding what deserves an exhibition.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "browser",
+    "server",
+    "database",
+    "archive",
+    "museum",
+    "curator"
+  ]
 }

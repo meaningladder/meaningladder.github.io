@@ -4,9 +4,19 @@
   "level": "easy",
   "start": "hitter",
   "goal": "vessel",
-  "par": 3,
+  "par": 5,
   "theme": "A sporting voyage",
   "teaser": "A sporting double meaning could carry you into unexpected waters.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "hitter",
+    "inning",
+    "grounded",
+    "shuttles",
+    "docked",
+    "vessel"
+  ]
 }

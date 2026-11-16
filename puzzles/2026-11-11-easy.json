@@ -4,9 +4,19 @@
   "level": "easy",
   "start": "pen",
   "goal": "shrine",
-  "par": 3,
+  "par": 5,
   "theme": "Ink to awe",
   "teaser": "Can a little scribbling lead somewhere worth bowing to?",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "pen",
+    "hand",
+    "lay",
+    "buried",
+    "tomb",
+    "shrine"
+  ]
 }

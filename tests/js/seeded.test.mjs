@@ -40,14 +40,12 @@ test("mulberry32 equals the canonical published version", () => {
 
 test("rulesFor picks each date's era, like Python's rules_for", () => {
   const config = readJson("puzzle_config.json");
-  assert.equal(rulesFor(config, "2026-11-01").stepLimit, 100);
-  assert.equal(rulesFor(config, "2026-11-12").stepLimit, 100);
-  assert.equal(rulesFor(config, "2026-11-13").stepLimit, 10);
-  assert.equal(rulesFor(config, "2026-11-13").twoWay, true);
-  assert.equal(rulesFor(config, "2026-11-12").twoWay, undefined); // older days stay one-way
-  assert.equal(rulesFor(config, null).stepLimit, 10); // Unlimited: newest rules
-  assert.deepEqual(rulesFor(config, "2026-11-13").levels.hard.par, 6);
-  assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
+  // One set of rules for every day since 2026-11-16 (Nov 1-12 were top 100).
+  for (const d of ["2026-11-01", "2026-11-12", "2026-11-13", null]) {
+    assert.equal(rulesFor(config, d).stepLimit, 10);
+    assert.equal(rulesFor(config, d).twoWay, true);
+    assert.equal(rulesFor(config, d).levels.hard.par, 6);
+  }
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
   // removedSteps: no step to or from the word; other lists keep their order.

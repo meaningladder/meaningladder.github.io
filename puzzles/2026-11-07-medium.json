@@ -4,9 +4,19 @@
   "level": "medium",
   "start": "livestock",
   "goal": "yacht",
-  "par": 3,
+  "par": 5,
   "theme": "Pastures to port",
   "teaser": "Start with a moo and end with a view worth splashing out on.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "livestock",
+    "sheep",
+    "shepherd",
+    "whaling",
+    "vessel",
+    "yacht"
+  ]
 }

@@ -122,14 +122,13 @@ def test_levels_cover_easy_medium_hard():
 
     cfg = load_config()
     assert LEVELS == ("easy", "medium", "hard")
-    # Original rules (Nov 1-12): Easy and Medium are both 3 steps; Easy just has
-    # many more routes.
-    easy, medium, hard = (level_band(lv, rules_for(cfg, "2026-11-12")) for lv in LEVELS)
+    # One set of rules for every day since 2026-11-16 (Nov 1-12 used to be
+    # top 100 with par 3/3/4): open top-10 ladders, Easy 4, Medium 5, Hard 6.
+    assert len(cfg["rules"]) == 1
+    for day in ("2026-11-01", "2026-11-12", "2026-11-13", None):
+        assert [level_band(lv, rules_for(cfg, day))["par"] for lv in LEVELS] == [4, 5, 6]
+    easy = level_band("easy", rules_for(cfg, "2026-11-12"))
     assert easy["level"] == "easy" and easy["label"] == "Easy"
-    assert easy["par"] == medium["par"] == 3 and hard["par"] == 4
-    assert medium["maxRoutes"] < easy["minRoutes"]
-    # Open top-10 ladders (from Nov 13): Easy 4, Medium 5, Hard 6 steps.
-    assert [level_band(lv, rules_for(cfg, "2026-11-13"))["par"] for lv in LEVELS] == [4, 5, 6]
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
 
 
@@ -139,14 +138,14 @@ def test_rules_eras_pick_by_date():
     cfg = load_config()
     assert cfg["rules"][0]["from"] == cfg["launchDate"]  # every date has rules
     assert [e["from"] for e in cfg["rules"]] == sorted(e["from"] for e in cfg["rules"])
-    assert rules_for(cfg, "2026-11-01")["stepLimit"] == 100
-    assert rules_for(cfg, "2026-11-12")["stepLimit"] == 100
+    # Since 2026-11-16 every day plays top 10 both ways (Nov 1-12 were top 100).
+    assert rules_for(cfg, "2026-11-01")["stepLimit"] == 10
+    assert rules_for(cfg, "2026-11-12")["stepLimit"] == 10
     assert rules_for(cfg, "2026-11-13")["stepLimit"] == 10
     assert rules_for(cfg, "2030-01-01")["stepLimit"] == 10
     assert rules_for(cfg, None)["stepLimit"] == 10  # Unlimited: newest rules
-    # Links work both ways from Nov 13; older dates stay one-way.
     assert rules_for(cfg, "2026-11-13")["twoWay"] is True
-    assert "twoWay" not in rules_for(cfg, "2026-11-12")
+    assert rules_for(cfg, "2026-11-12")["twoWay"] is True
     # Every word now has 10+ links in both ways, so the thin-goal rule is gone.
     assert "minGoalInDegree" not in rules_for(cfg, "2026-11-13")
     merged = rules_for(cfg, "2026-11-13")
@@ -214,7 +213,8 @@ def test_validator_checks_closer_first_moves():
 
 def test_closer_bands_refuse_wide_step_limits(ladder):
     """JS tracks first moves in 32-bit masks; Python must refuse what JS can't count."""
-    old = ladder.at("2026-11-12")  # top 100
+    from ladder_core import ladder_view
+    old = ladder_view(ladder, {**ladder.at("2026-11-12").config, "stepLimit": 100, "twoWay": False})
     with pytest.raises(ValueError):
         validate_pair(old, "door", "kidney", {**level_band("hard", old.config),
                                               "minCloserFirstMoves": 1})
@@ -248,7 +248,8 @@ def ladder():
 def test_ladder_view_cuts_neighbor_lists(ladder):
     from ladder_core import ladder_view
 
-    old, new = ladder.at("2026-11-12"), ladder  # top 100 one-way; top 10 both ways
+    old = ladder_view(ladder, {**ladder.config, "stepLimit": 100, "twoWay": False})  # the retired top 100
+    new = ladder  # top 10 both ways
     top20 = ladder_view(ladder, {**new.config, "stepLimit": 20, "twoWay": False})
     i = ladder.index["door"]
     assert len(old.neighbors[i]) == 100 and len(top20.neighbors[i]) == 20
@@ -265,28 +266,22 @@ def test_ladder_view_cuts_neighbor_lists(ladder):
     assert bfs_routes(new.neighbors, i, k)[0] == 5
 
 
-def test_new_era_drops_excluded_start_goal_words(ladder):
-    """Names and abstract words leave the start/goal pool from 2026-11-13 on;
-    older dates keep the frozen v1 list minus only the removed (obscure) words,
-    which leave every era (past days all have published files, so none move)."""
+def test_excluded_and_removed_words_leave_the_start_goal_pool(ladder):
+    """Names and abstract words (the exclusion file) and removed obscure words
+    are never a start or goal, on any day; they stay on the map otherwise."""
     from ladder_core import excluded_words
 
-    old, new = ladder.at("2026-11-12"), ladder.at("2026-11-13")
-    path = new.config["excludeCandidates"]
+    view = ladder.at("2026-11-12")
+    path = view.config["excludeCandidates"]
     excluded = excluded_words(json.loads((ROOT / path).read_text(encoding="utf-8")))
-    assert "excludeCandidates" not in old.config
-    assert old.candidates == [w for w in ladder.all_candidates if w not in ladder.removed]
-    assert new.candidates == [w for w in old.candidates if w not in excluded]  # order kept
-    examples = [w for w in ("billy", "batman", "ayatollah", "behind", "wing", "jam", "afghan")
-                if w not in ladder.removed]  # removed words already left the old pool too
-    assert len(examples) >= 3
-    for w in examples:
-        assert w in excluded and w in old.candidate_set and w not in new.candidate_set
-        assert w in new.index  # still a legal step on the map
-    v = validate_pair(new, "billy", "volcano")
+    assert view.candidates == [w for w in ladder.all_candidates
+                               if w not in excluded and w not in ladder.removed]  # order kept
+    for w in ("billy", "batman", "ayatollah", "behind", "wing", "jam", "afghan"):
+        assert w not in view.candidate_set
+    assert "wing" in view.index and view.neighbors[view.index["wing"]]  # still a legal step
+    v = validate_pair(view, "billy", "volcano")
     assert not v.ok and "not an allowed start/goal" in v.reason
-    assert ladder.at(None).candidates == new.candidates  # Unlimited: newest rules
-    assert new.at("2026-11-12").candidates == old.candidates  # a view re-views cleanly
+    assert ladder.at(None).candidates == view.candidates == ladder.at("2026-11-20").candidates
 
 
 def test_era_exclusion_file_is_up_to_date():

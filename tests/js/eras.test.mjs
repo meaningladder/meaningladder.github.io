@@ -64,21 +64,17 @@ test("notice text is built from the eras", () => {
   assert.equal(rulesNoticeText({ rules: [two.rules[0]] }, fixedDay), "");
 });
 
-test("the real config: open top-10 ladders from November 13", () => {
-  assert.equal(rulesNoticeText(config, fixedDay),
-    "From November 13, a step counts if either word is among the other's 10 closest words."
-    + " Ladders are longer: par 4 for Easy, 5 for Medium and 6 for Hard.");
-  assert.equal(newestEra(config).from, "2026-11-13");
-  assert.equal(newestEra(config).mode, undefined);
-  assert.equal(classicLabel(config, "2026-11-12"), "classic rules (top 100)");
-  assert.equal(classicLabel(config, "2026-11-01"), "classic rules (top 100)");
-  assert.equal(classicLabel(config, "2026-11-13"), "");
-  assert.equal(classicLabel(config, "2026-11-14"), "");
-  assert.equal(isClassicDay(config, "2026-11-12"), true);
-  assert.equal(isClassicDay(config, "2026-11-13"), false);
-  assert.equal(rulesNoticeDue(config, "2026-11-13", ["2026-11-10"], false), true);
-  assert.equal(rulesNoticeDue(config, "2026-11-12", ["2026-11-10"], false), false);
+test("the real config: one set of rules for every day, so no notice and no classic labels", () => {
+  // Nov 1-12 used top-100 rules until 2026-11-16; now every day matches.
+  assert.equal(newestEra(config), null);
+  assert.equal(rulesNoticeText(config, fixedDay), "");
+  for (const d of ["2026-11-01", "2026-11-12", "2026-11-13", "2026-11-20"]) {
+    assert.equal(classicLabel(config, d), "");
+    assert.equal(isClassicDay(config, d), false);
+  }
+  assert.equal(rulesNoticeDue(config, "2026-11-16", ["2026-11-10"], false), false);
 });
+
 
 test("notice text has no em or en dashes", () => {
   assert.doesNotMatch(rulesNoticeText(config, fixedDay) + classicLabel(config, "2026-11-01"), /[–—]/);

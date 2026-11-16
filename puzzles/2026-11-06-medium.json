@@ -4,9 +4,19 @@
   "level": "medium",
   "start": "punk",
   "goal": "nurse",
-  "par": 3,
+  "par": 5,
   "theme": "Rebellion meets care",
   "teaser": "From a raised fist to a helping hand, this trip might reveal a softer side.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "punk",
+    "rock",
+    "singer",
+    "actress",
+    "mother",
+    "nurse"
+  ]
 }

@@ -4,9 +4,19 @@
   "level": "medium",
   "start": "soundtrack",
   "goal": "corn",
-  "par": 3,
+  "par": 5,
   "theme": "From scores to stalks",
   "teaser": "Follow what you hear toward a finale that's fresh off the cob.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "soundtrack",
+    "album",
+    "jam",
+    "jelly",
+    "beans",
+    "corn"
+  ]
 }

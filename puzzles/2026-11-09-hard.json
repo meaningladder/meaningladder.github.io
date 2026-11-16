@@ -4,9 +4,20 @@
   "level": "hard",
   "start": "torpedo",
   "goal": "mayo",
-  "par": 4,
+  "par": 6,
   "theme": "From depths to dollops",
   "teaser": "This underwater mission takes a surprisingly tasty turn.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "torpedo",
+    "submarine",
+    "ship",
+    "cruise",
+    "carnival",
+    "fiesta",
+    "mayo"
+  ]
 }

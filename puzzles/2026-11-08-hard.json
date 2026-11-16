@@ -4,9 +4,20 @@
   "level": "hard",
   "start": "mentor",
   "goal": "cheese",
-  "par": 4,
+  "par": 6,
   "theme": "Wisdom ripens",
   "teaser": "Some journeys get tastier as they grow older.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "mentor",
+    "friend",
+    "teddy",
+    "stuffed",
+    "skins",
+    "goat",
+    "cheese"
+  ]
 }

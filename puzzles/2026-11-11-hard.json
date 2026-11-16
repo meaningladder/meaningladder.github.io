@@ -4,9 +4,19 @@
   "level": "hard",
   "start": "door",
   "goal": "kidney",
-  "par": 4,
+  "par": 5,
   "theme": "Picky about passage",
   "teaser": "One lets you through; the other is much pickier about what gets to stay.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "door",
+    "locking",
+    "mechanism",
+    "functioning",
+    "organs",
+    "kidney"
+  ]
 }

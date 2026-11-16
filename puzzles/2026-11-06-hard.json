@@ -4,9 +4,19 @@
   "level": "hard",
   "start": "fertilizer",
   "goal": "eye",
-  "par": 4,
+  "par": 5,
   "theme": "From growth to sight",
   "teaser": "Help something bloom, then see where it takes you.",
   "source": "ai",
-  "graphVersion": 1
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "fertilizer",
+    "nitrogen",
+    "nutrients",
+    "tissues",
+    "skin",
+    "eye"
+  ]
 }
