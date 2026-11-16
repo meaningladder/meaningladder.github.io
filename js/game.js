@@ -19,7 +19,7 @@ import {
   FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, gameNumber, rulesFor } from "./seeded.js";
+import { LEVELS, gameNumber, rulesFor } from "./seeded.js";
 
 const app = document.getElementById("app");
 
@@ -136,25 +136,9 @@ function openDialog(title, body, actions = [["Close", null]]) {
   return dlg;
 }
 
-// k = the step limit to explain: a game passes its own (archive days keep
-// their era's rules); null = today's rules (home screen).
-async function showHelp(k = null, twoWay = null) {
+// Same text for every day and era: the closeness limit isn't spelled out.
+function showHelp() {
   store.set("seenHelp", true);
-  let eraNote = "";
-  try {
-    const config = await loadConfig();
-    const todays = rulesFor(config, today());
-    if (k == null) { k = todays.stepLimit ?? DEFAULT_STEP_LIMIT; twoWay ??= Boolean(todays.twoWay); }
-    // A note about the other era, built from config.rules (not hard-coded).
-    const newest = newestEra(config); // the newest era players can see
-    const day = (s) => fmt(s, { month: "long", day: "numeric" });
-    if (newest && k !== newest.stepLimit) {
-      eraNote = today() < newest.from
-        ? ` From ${day(newest.from)} each step must be in the top ${newest.stepLimit} instead.`
-        : ` (Ladders from ${day(newest.from)} on use the top ${newest.stepLimit}.)`;
-    } // Today's rules need no history lesson: the note only explains a different era.
-  } catch { k ??= DEFAULT_STEP_LIMIT; }
-  const twoWayHelp = Boolean(twoWay);
   const ex = (word, d, { latest = false, isStart = false } = {}) => {
     const { hue, fill } = stairStep(4 - d, 4); // the same staircase as a real ladder
     return h("li", { class: `bar stair${latest ? " latest" : ""}`, style: `--stair-hue:${hue}; --fill:${fill}%` },
@@ -164,17 +148,15 @@ async function showHelp(k = null, twoWay = null) {
   // Four rules, nothing else: players who read a long list still got lost.
   openDialog("How to play", h("div", {},
     h("ol", { class: "rules" },
-      h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), " word, one word at a time."),
-      h("li", {}, `Each word must be close in meaning to your last word (${twoWayHelp ? `one of its ${k} closest words, or the other way round` : `one of its ${k} closest words`}).${eraNote}`),
-      h("li", {}, "Each word must also take you one step closer to the goal. Words that don't are saved in your Tried list, at no cost."),
-      h("li", {}, "Every word you play is a ", h("b", {}, "move"), ", even if you undo it. A hint costs one move. Finish in ",
-        h("b", {}, "par"), " moves for gold.")),
+      h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
+      h("li", {}, "Each word must be close in meaning to the last one."),
+      h("li", {}, "Each word must also bring you one step closer. Other words go to your Tried list, free."),
+      h("li", {}, "Every word is a ", h("b", {}, "move"), ", even if undone. A hint costs one. Finish in ",
+        h("b", {}, "par"), " for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
     h("ol", { class: "example ladder" }, ex("computer", 0), ex("network", 1), ex("signal", 2), ex("wave", 3),
       ex("ocean", 4, { isStart: true })),
-    h("p", { class: "sub" }, "Read it from the bottom up. ", h("b", {}, "ocean"), " → ", h("b", {}, "wave"), " → ",
-      h("b", {}, "signal"), " → ", h("b", {}, "network"), " → ", h("b", {}, "computer"),
-      ": each word is close to the one before it, and each one gets a step closer, so the bar fills and turns from red to green. That's 4 moves. If par is 4, that's gold."),
+    h("p", { class: "sub" }, "ocean → wave → signal → network → computer: 4 moves, gold when par is 4."),
     h("p", { class: "sub example-caption" }, "Three new ladders every day: Easy, Medium and Hard."))
   );
 }
@@ -183,10 +165,9 @@ async function showHelp(k = null, twoWay = null) {
 // today's rules, so the "New rules" notice is marked seen for them).
 // Returning players who played under an older era get a one-time notice
 // when a new era starts. Never both: two stacked dialogs on load is noise.
-// k = the step limit How to play should explain (see showHelp).
-async function showIntro(k = null) {
+async function showIntro() {
   const newcomer = !store.get("seenHelp");
-  if (newcomer) showHelp(k);
+  if (newcomer) showHelp();
   let config;
   try { config = await loadConfig(); } catch { return; }
   const newest = newestEra(config);
@@ -731,7 +712,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     ["Hint", hint, () => state.status === "playing"],
     ["Give up", confirmGiveUp, () => state.status === "playing"],
     ...(state.kind === "practice" ? [["New unlimited ladder", newPractice, () => true]] : []),
-    ["How to play", () => showHelp(ladder.config.stepLimit, ladder.config.twoWay), () => true],
+    ["How to play", () => showHelp(), () => true],
     ["Statistics", showStats, () => true],
     ["Send feedback", () => showFeedback(feedbackContext(state)), () => true],
     ["Previous games", () => { location.hash = "#/archive"; }, () => true],
@@ -1176,7 +1157,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
   if (state.status === "playing") input.focus();
   // First visit straight to a game (a shared link): explain the rules once,
   // same as the home screen does (or announce new rules to a returning player).
-  showIntro(ladder.config.stepLimit);
+  showIntro();
 }
 
 // ------------------------------------------------------------ start
