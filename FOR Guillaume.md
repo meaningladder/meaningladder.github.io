@@ -532,3 +532,14 @@ guesses show closeness only as a light-red fill, no words. Lesson from the
 switch itself: the heartbeat workflow still checked for `.chain.json` files,
 a reminder that a rename touches every place that names a file, including
 the monitors.
+
+On 2026-11-16 two playtesters said the game felt like reading the designer's
+mind ("tail" to "fuselage"). The numbers backed them up: under "only one rung
+closer", most rungs accepted exactly one word. Now each rung accepts up to
+5 words, then 4, 3, 2, and finally only the goal. That's the current word's
+legal steps that are no farther from the goal, closer ones first. A word at
+the same distance costs a move but doesn't climb. Par didn't change, because
+the graph didn't. Every saved game and result was wiped once (schema 5), and
+the old migration steps went with them, since the wipe made them moot.
+Lesson: measure "how many answers does each rung accept?" before shipping a
+rule. The counts told the story faster than the feedback did.

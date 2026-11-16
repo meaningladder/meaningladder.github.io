@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { puzzleFile } from "../../js/seeded.js";
-import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, relKey, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, dropSteps, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, relKey, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -50,6 +50,8 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   assert.equal(rulesFor(config, "2026-11-12").levels.hard.minCloserFirstMoves, undefined);
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
+  // removedSteps: no step to or from the word; other lists keep their order.
+  assert.deepEqual(dropSteps([[1, 2], [0, 2], [1, 0]], new Set([1])), [[2], [], [0]]);
 });
 
 test("bfsRoutes on the tiny directed graph", () => {
@@ -82,6 +84,7 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
   const index = new Map(graph.words.map((w, i) => [w, i]));
   const candidates = readJson(`data/candidates_v${config.graphVersion}.json`).words;
   const cut = new Map(); // one cut graph per step limit
+  const removed = config.removedSteps ? excludedWords(readJson(config.removedSteps)) : new Set();
   // ConceptNet pairs, read the way js/data.js reads them (newer eras need them).
   const relHead = readJson(`data/relations_v${config.graphVersion}.json`);
   const relBin = readFileSync(root + `data/relations_v${config.graphVersion}.bin`);
@@ -91,12 +94,12 @@ test("seeded puzzles and game numbers match Python for every fixture date and le
     const rules = rulesFor(config, p.date);
     assert.equal(rules.stepLimit, p.stepLimit, `${p.date} step limit`);
     const key = `${rules.stepLimit}|${Boolean(rules.twoWay)}`;
-    if (!cut.has(key)) cut.set(key, rules.twoWay ? twoWayNeighbors(graph.neighbors, rules.stepLimit)
-      : cutNeighbors(graph.neighbors, rules.stepLimit));
+    const gone = new Set([...removed].map((w) => index.get(w)));
+    if (!cut.has(key)) cut.set(key, dropSteps(rules.twoWay ? twoWayNeighbors(graph.neighbors, rules.stepLimit)
+      : cutNeighbors(graph.neighbors, rules.stepLimit), gone));
     // Same pool rule as js/data.js viewOf and Python's ladder_view.
-    const pool = rules.excludeCandidates
-      ? candidatePool(candidates, excludedWords(readJson(rules.excludeCandidates)))
-      : candidates;
+    const excluded = new Set([...(rules.excludeCandidates ? excludedWords(readJson(rules.excludeCandidates)) : []), ...removed]);
+    const pool = excluded.size ? candidatePool(candidates, excluded) : candidates;
     const ladder = { index, neighbors: cut.get(key), candidates: pool, config: rules, related };
     const band = levelBand(p.level, rules);
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
@@ -162,8 +165,10 @@ test("an open game saved on Nov 13 or 14 keeps the top-10 two-way steps it was m
     words: graph.words, index: new Map(graph.words.map((w, i) => [w, i])), neighbors: graph.neighbors,
     complete: true, candidates: readJson(`data/candidates_v${config.graphVersion}.json`).words,
     exclusions: new Map([[path, excludedWords(readJson(path))]]), config, views: new Map(),
+    removed: config.removedSteps ? excludedWords(readJson(config.removedSteps)) : new Set(),
   };
-  const openTop10 = twoWayNeighbors(graph.neighbors, 10);
+  const openTop10 = dropSteps(twoWayNeighbors(graph.neighbors, 10),
+    new Set([...base.removed].map((w) => base.index.get(w))));
   let checked = 0;
   for (const date of ["2026-11-13", "2026-11-14"]) {
     for (const level of ["easy", "medium", "hard"]) {

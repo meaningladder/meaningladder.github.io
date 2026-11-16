@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, puzzleFile, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, dropSteps, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, puzzleFile, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -59,9 +59,10 @@ export function loadLadder() {
     // not per era, so views stay synchronous; a missing file must fail
     // loudly, since the seeded puzzles depend on the exact pool.
     const excludePaths = [...new Set((config.rules ?? []).map((e) => e.excludeCandidates).filter(Boolean))];
-    const [meta, cands, ...excludeFiles] = await Promise.all([
+    const [meta, cands, removedFile, ...excludeFiles] = await Promise.all([
       getJson(`data/graph_v${v}_wide.json`),
       getJson(`data/candidates_v${v}.json`),
+      config.removedSteps ? getJson(config.removedSteps) : null,
       ...excludePaths.map((p) => getJson(p)),
     ]);
     const [head, related] = await Promise.all([
@@ -75,6 +76,8 @@ export function loadLadder() {
       complete: false, // true once the tail is in
       candidates: cands.words, // the whole frozen list; a view may drop some
       exclusions: new Map(excludePaths.map((p, i) => [p, excludedWords(excludeFiles[i])])),
+      // Words no ladder may use (config "removedSteps"): junk and obscure words.
+      removed: removedFile ? excludedWords(removedFile) : new Set(),
       config,
       related, // ConceptNet pairs (relKey): choose and show routes, never judge steps
       views: new Map(),
@@ -139,11 +142,13 @@ function viewOf(base, rules) {
   let view = base.views.get(key);
   if (!view) {
     // Two-way eras: a link counts if either word is in the other's top k.
-    const neighbors = twoWay ? twoWayNeighbors(base.neighbors, k)
-      : k >= base.neighbors[0].length ? base.neighbors : cutNeighbors(base.neighbors, k);
-    const candidates = rules.excludeCandidates
-      ? candidatePool(base.candidates, base.exclusions.get(rules.excludeCandidates))
-      : base.candidates;
+    const removed = base.removed ?? new Set();
+    const gone = new Set([...removed].map((w) => base.index.get(w)).filter((i) => i !== undefined));
+    const neighbors = dropSteps(twoWay ? twoWayNeighbors(base.neighbors, k)
+      : k >= base.neighbors[0].length ? base.neighbors : cutNeighbors(base.neighbors, k), gone);
+    // Same pool rule as Python's ladder_view: the era's exclusions plus removed words.
+    const excluded = new Set([...(rules.excludeCandidates ? base.exclusions.get(rules.excludeCandidates) : []), ...removed]);
+    const candidates = excluded.size ? candidatePool(base.candidates, excluded) : base.candidates;
     view = { ...base, neighbors, fullNeighbors: base.neighbors, reverse: buildReverse(neighbors),
              inDegree: inDegrees(neighbors), candidates, config: { ...rules, stepLimit: k, twoWay } };
     base.views.set(key, view);
@@ -260,77 +265,15 @@ export const store = {
 };
 
 // ------------------------------------------------------------ migration
-// Before levels existed, a day had ONE puzzle, saved as "game:<date>" with a
-// result under "results[<date>]". Move them to "game:<date>:<level>" and
-// "results[<date>:<level>]", picking the level from the saved puzzle.
-const OLD_DIFFICULTY_TO_LEVEL = {
-  easy: "easy", medium: "medium", tricky: "medium",
-  hard: "hard", "very hard": "hard", expert: "hard",
-};
-
-export function levelOfOldPuzzle(puzzle) {
-  return OLD_DIFFICULTY_TO_LEVEL[puzzle?.difficulty] ?? (puzzle?.par >= 4 ? "hard" : "medium");
-}
-
+// Schema 5 (2026-11-16): a rung now accepts up to 5 words, including level
+// ones, for every day. Saves and results from any older schema were played
+// under stricter rules, so all of them go; preferences (seenHelp etc.) stay.
+// (Steps 2-4 used to reshape those same keys; the wipe made them moot.)
 export function migrateStorage() {
-  const schema = store.get("schema", 1);
-  if (schema < 2) migrateToLevels();
-  if (schema < 3) migratePracticePerLevel();
-  if (schema < 4) {
-    wipeChainLadders();
-    store.set("schema", 4);
-  }
-}
-
-// Schema 4: chain ladders (Nov 13-14) were retired; every day is an open
-// ladder. Chain saves go, and so do chain results (only those carry `slack`).
-function wipeChainLadders() {
-  for (const key of [...store.keys("game:"), ...store.keys("practice:")]) {
-    if (store.get(key)?.puzzle?.mode === "chain") store.remove(key);
-  }
-  const results = store.get("results", {});
-  const chain = Object.keys(results).filter((k) => results[k] && "slack" in results[k]);
-  if (!chain.length) return;
-  for (const key of chain) delete results[key];
-  store.set("results", results);
-}
-
-// Schema 3: Unlimited used one "practice" key for every level, so picking
-// another level threw the game in progress away. Each level now has its own
-// "practice:<level>"; the old save moves to the level it was played at.
-function migratePracticePerLevel() {
-  const practice = store.get("practice");
-  if (practice?.puzzle) {
-    const level = LEVELS.includes(practice.puzzle.level) ? practice.puzzle.level : levelOfOldPuzzle(practice.puzzle);
-    if (store.get(`practice:${level}`) === null) {
-      store.set(`practice:${level}`, { ...practice, puzzle: { ...practice.puzzle, level } });
-    }
-  }
-  store.remove("practice");
-}
-
-function migrateToLevels() {
-  const results = store.get("results", {});
-  const levelOfDate = {};
-  for (const key of store.keys("game:")) {
-    const date = key.slice("game:".length);
-    if (date.includes(":")) continue; // already per-level
-    const state = store.get(key);
-    if (state?.puzzle) {
-      const level = levelOfOldPuzzle(state.puzzle);
-      levelOfDate[date] = level;
-      store.set(`game:${date}:${level}`, { ...state, puzzle: { ...state.puzzle, level } });
-    }
-    store.remove(key);
-  }
-  for (const [key, r] of Object.entries(results)) {
-    if (key.includes(":")) continue;
-    delete results[key];
-    results[`${key}:${levelOfDate[key] ?? (r.par >= 4 ? "hard" : "medium")}`] = r;
-  }
-  store.set("results", results);
-  // (A level-less "practice" save gets its level in migratePracticePerLevel.)
-  store.set("schema", 2);
+  if (store.get("schema", 1) >= 5) return;
+  for (const key of [...store.keys("game:"), ...store.keys("practice")]) store.remove(key);
+  store.remove("results");
+  store.set("schema", 5);
 }
 
 export { LEVELS };

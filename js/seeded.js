@@ -141,6 +141,14 @@ export const cutNeighbors = (neighbors, k) => neighbors.map((row) => row.slice(0
 // Legal steps when links work both ways: a word's own top k, then every word
 // that has it in ITS top k, ordered by the rank that word gives it, then by
 // index. Python twin: two_way_neighbors (same order, so seeded picks match).
+// Legal lists without the config's "removedSteps" words (corpus junk such as
+// "disambiguation"), taken out after the cut so no other list changes.
+// Python twin: drop_steps in scripts/ladder_core.py.
+export function dropSteps(legal, gone) {
+  if (!gone.size) return legal;
+  return legal.map((row, u) => (gone.has(u) ? [] : row.filter((v) => !gone.has(v))));
+}
+
 export function twoWayNeighbors(full, k) {
   const extra = full.map(() => []);
   full.forEach((row, u) => {

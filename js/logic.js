@@ -777,14 +777,16 @@ export function rulesNoticeText(config, dayText, levelOrder = ["easy", "medium",
 //
 // dists: steps-to-goal of every word played, start first (-1 = no route).
 // Returns rows top (goal) to bottom (start). Each row: its rung, the distance
-// it stands for, `at` = index of the most recent word played at that
-// distance (or null: an empty rung), and whether it's the current word.
+// it stands for, `at` = index of the first word played at that distance
+// (or null: an empty rung), and whether it's the current word.
 // The current word can also be off the ladder: `below` (farther than the
 // start) or `off` (no route to the goal), each the path index, else null.
 export function ladderRows(dists, par) {
   par = Math.max(1, par);
   const lastAt = new Map();
-  dists.forEach((d, i) => lastAt.set(d, i));
+  // The FIRST word played at each distance: a flat step (same distance) never
+  // changes the ladder; it only shows in the path and the move count.
+  dists.forEach((d, i) => { if (!lastAt.has(d)) lastAt.set(d, i); });
   const cur = dists[dists.length - 1];
   const rows = [];
   for (let rung = par; rung >= 0; rung--) {
@@ -851,28 +853,21 @@ export function guideRoute(neighbors, dist, related, from) {
   return route;
 }
 
-// ------------------------------------------------------------ step up only
-// Open ladders accept a word only if it takes you one rung up: one step
-// closer to the goal (dist = steps to the goal, -1 = no route). "grandmother
-// = son" (a close word that kept you level) confused players, so a word that
-// isn't closer goes to the Tried list instead, for free.
-export function upOneRung(dist, curIdx, wordIdx) {
-  const a = dist[curIdx], b = dist[wordIdx];
-  return a > 0 && b >= 0 && b === a - 1;
-}
-
-// In-progress saves from before that rule can still hold a level or downward
-// word, which moved the ladder. Cut the path back to just before the first
-// such word, as if Undo had been pressed (moves already counted stay counted).
-// Cutting at the first bad step, not skipping it, keeps every later step legal.
-export function trimToStepsUp(state, dist, index) {
-  const p = state.path;
-  let k = 1;
-  while (k < p.length && upOneRung(dist, index.get(p[k - 1]), index.get(p[k]))) k++;
-  if (k === p.length) return false;
-  state.path = p.slice(0, k);
-  if (state.tried && state.tried.at !== state.path[k - 1]) state.tried = null;
-  return true;
+// ------------------------------------------------------------ accepted steps
+// The words a rung accepts: the current word's legal steps that are no farther
+// from the goal, closer ones first (then by closeness to the current word),
+// cut to min(cap, steps left): 5, 4, 3, 2, then just the goal. "Only one rung
+// closer" left 1 answer on most rungs (tail -> fuselage felt like mind
+// reading). A same-distance word is a level step: it costs a move, no climb.
+// dist = steps to the goal, -1 = no route. Word indexes, best first.
+export function acceptedSteps(neighbors, dist, cur, cap = 5) {
+  const d = dist[cur];
+  if (!(d > 0)) return [];
+  const order = new Map(neighbors[cur].map((v, i) => [v, i]));
+  return neighbors[cur]
+    .filter((v) => dist[v] >= 0 && dist[v] <= d)
+    .sort((a, b) => dist[a] - dist[b] || order.get(a) - order.get(b))
+    .slice(0, Math.min(cap, d));
 }
 
 // ------------------------------------------------------------ feedback

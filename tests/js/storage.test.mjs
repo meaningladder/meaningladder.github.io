@@ -15,74 +15,37 @@ const { migrateStorage, store } = await import("../../js/data.js");
 
 beforeEach(() => mem.clear());
 
-const practiceGame = (level, path = ["ocean", "wave"]) => ({
-  kind: "practice", puzzle: { start: "ocean", goal: "computer", par: 4, level, source: "practice" },
-  path, hints: 0, hint: null, status: "playing",
+const game = (level) => ({
+  kind: "daily", puzzle: { start: "ocean", goal: "computer", par: 4, level, source: "seeded" },
+  path: ["ocean", "wave"], moves: 1, status: "playing",
 });
 
-test("schema 2: the single practice save moves to its level's own key", () => {
-  store.set("schema", 2);
-  store.set("practice", practiceGame("hard"));
-  migrateStorage();
-  assert.equal(store.get("practice"), null);
-  assert.deepEqual(store.get("practice:hard"), practiceGame("hard"));
-  assert.equal(store.get("practice:easy"), null);
-  assert.equal(store.get("schema"), 4);
-});
-
-test("schema 1: a level-less practice save gets a level, then its own key", () => {
-  const old = practiceGame(undefined);
-  delete old.puzzle.level;
-  old.puzzle.difficulty = "easy";
-  store.set("practice", old);
-  store.set("results", { "2026-11-20": { status: "won", steps: 3, par: 3, playedOn: "2026-11-20" } });
-  migrateStorage();
-  assert.equal(store.get("practice"), null);
-  assert.equal(store.get("practice:easy").puzzle.level, "easy");
-  assert.deepEqual(store.get("practice:easy").path, ["ocean", "wave"]);
-  assert.ok(store.get("results")["2026-11-20:medium"]); // the v2 step still ran
-  assert.equal(store.get("schema"), 4);
-});
-
-test("migration runs once and never overwrites a per-level save", () => {
-  store.set("schema", 2);
-  store.set("practice:medium", practiceGame("medium", ["ocean", "sea", "salt"]));
-  store.set("practice", practiceGame("medium"));
-  migrateStorage();
-  assert.deepEqual(store.get("practice:medium").path, ["ocean", "sea", "salt"]);
-  assert.equal(store.get("practice"), null);
-  // A stray "practice" key written later (an old tab) isn't touched again.
-  store.set("practice", practiceGame("easy"));
-  migrateStorage();
-  assert.equal(store.get("practice:easy"), null);
-});
-
-test("schema 4: chain ladders are wiped, saves and results; open ones stay", () => {
-  store.set("schema", 3);
-  const chain = { ...practiceGame("easy"), puzzle: { ...practiceGame("easy").puzzle, mode: "chain" } };
-  const open = { ...practiceGame("hard"), kind: "daily" };
-  store.set("game:2026-11-13:easy", chain);
-  store.set("game:2026-11-13:hard", open); // an open game saved on a chain day
-  store.set("practice:easy", chain);
-  store.set("practice:hard", practiceGame("hard"));
-  const won = { status: "won", steps: 5, par: 5, playedOn: "2026-11-14" };
-  store.set("results", {
-    "2026-11-13:easy": { ...won, medalPar: 5, slack: [2, 5, 8] },
-    "2026-11-14:medium": { ...won, medalPar: 5, slack: [2, 5, 8] }, // its save is long gone
-    "2026-11-13:hard": won,
-    "2026-11-12:easy": won,
+for (const schema of [undefined, 2, 3, 4]) {
+  test(`schema ${schema ?? 1} -> 5: every save and result goes, preferences stay`, () => {
+    if (schema) store.set("schema", schema);
+    store.set("game:2026-11-15:easy", game("easy"));
+    store.set("game:2026-11-10", game("hard"));          // pre-level key
+    store.set("practice", game("medium"));               // pre-schema-3 key
+    store.set("practice:hard", game("hard"));
+    store.set("results", { "2026-11-15:easy": { status: "won", steps: 4, par: 4 } });
+    store.set("seenHelp", true);
+    store.set("rulesSeen", "2026-11-13");
+    migrateStorage();
+    assert.deepEqual(store.keys().sort(), ["rulesSeen", "schema", "seenHelp"]);
+    assert.equal(store.get("schema"), 5);
   });
+}
+
+test("migration runs once: saves made under schema 5 are kept", () => {
+  store.set("schema", 5);
+  store.set("game:2026-11-16:easy", game("easy"));
+  store.set("results", { "2026-11-16:easy": { status: "won", steps: 4, par: 4 } });
   migrateStorage();
-  assert.equal(store.get("game:2026-11-13:easy"), null);
-  assert.equal(store.get("practice:easy"), null);
-  assert.deepEqual(store.get("game:2026-11-13:hard"), open);
-  assert.deepEqual(store.get("practice:hard"), practiceGame("hard"));
-  assert.deepEqual(Object.keys(store.get("results")).sort(), ["2026-11-12:easy", "2026-11-13:hard"]);
-  assert.equal(store.get("schema"), 4);
+  assert.deepEqual(store.get("game:2026-11-16:easy"), game("easy"));
+  assert.ok(store.get("results")["2026-11-16:easy"]);
 });
 
-test("no practice save: migration is a no-op apart from the schema", () => {
-  store.set("schema", 2);
+test("nothing stored: migration only sets the schema", () => {
   migrateStorage();
-  assert.deepEqual(store.keys().sort(), ["schema"]);
+  assert.deepEqual(store.keys(), ["schema"]);
 });

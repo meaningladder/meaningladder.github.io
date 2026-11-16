@@ -14,7 +14,7 @@ import {
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, stairStep, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, checkedRoute, upOneRung, trimToStepsUp, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, checkedRoute, acceptedSteps, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK,
   FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl,
 } from "./logic.js";
@@ -150,7 +150,7 @@ function showHelp() {
     h("ol", { class: "rules" },
       h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
       h("li", {}, "Each word must be close in meaning to the last one."),
-      h("li", {}, "Each word must also bring you one step closer. Other words go to your Tried list, free."),
+      h("li", {}, "Each rung accepts up to 5 words, fewer near the goal. A word that is just as far from the goal still counts, but you don't climb. Other words go to your Tried list, free."),
       h("li", {}, "Every word is a ", h("b", {}, "move"), ", even if undone. A hint costs one. Finish in ",
         h("b", {}, "par"), " for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
@@ -639,9 +639,6 @@ function playView(ladder, state, saveKey, date, classic = "") {
   const goalIdx = ladder.index.get(puzzle.goal);
   const dist = distancesToGoal(ladder.reverse, ladder.words.length, goalIdx);
   const stepsTo = (word) => dist[ladder.index.get(word)];
-  // A same-rung (or downward) word never changes the ladder: old saves that
-  // still have one are wound back to the last step up. Saved just below.
-  if (state.status === "playing") trimToStepsUp(state, dist, ladder.index);
   // Gentlest-route costs (Dijkstra), only computed when a hint or the result
   // screen first needs them, so opening a puzzle stays instant.
   let cost = null;
@@ -742,9 +739,9 @@ function playView(ladder, state, saveKey, date, classic = "") {
       return;
     }
     const current = state.path[state.path.length - 1];
-    if (!upOneRung(dist, ladder.index.get(current), ladder.index.get(res.word))) {
-      // Close, but no closer to the goal: not played, no move. It goes into
-      // the Tried list marked "no closer", so the reason is visible.
+    if (!acceptedSteps(ladder.neighbors, dist, ladder.index.get(current)).includes(ladder.index.get(res.word))) {
+      // Close, but not one of this rung's accepted words: not played, no
+      // move. It goes into the Tried list marked "not top N".
       error = null;
       rejected = { word: res.word, at: current, noCloser: true };
       justTried = true;
@@ -882,12 +879,12 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // how close it was; the exact rank is for screen readers only, not on screen.
   function triedChip(x, latest) {
     const known = typeof x.rank === "number";
-    const tip = x.noCloser ? `Close to ${state.tried.at}, but no closer to ${puzzle.goal}`
+    const tip = x.noCloser ? `Close to ${state.tried.at}, but not one of its best steps toward ${puzzle.goal}`
       : x.family ? "Same word family" : known ? `#${x.rank.toLocaleString()} closest to ${state.tried.at}` : "";
     const enter = latest && justTried;
     return h("li", { class: `tchip${latest ? " latest" : ""}${enter ? " enter" : ""}`,
       style: `--fill:${known ? rankFill(x.rank) : 0}%` }, x.word,
-      x.noCloser ? h("span", { class: "tchip-note" }, "no closer") : null,
+      x.noCloser ? h("span", { class: "tchip-note" }, `not top ${Math.min(5, stepsTo(state.tried.at))}`) : null,
       tip ? h("span", { class: "visually-hidden" }, `, ${tip}`) : null);
   }
 
@@ -897,7 +894,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     if (tried.hidden) return;
     const latest = t.items[t.items.length - 1];
     tried.replaceChildren(
-      h("span", { class: "tried-head" }, "Not a step up:"),
+      h("span", { class: "tried-head" }, "Not accepted:"),
       h("ol", { class: "tchips" }, triedOrder(t.items).map((x) => triedChip(x, x === latest))));
   }
 
@@ -928,7 +925,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
   function progressLine(current, steps) {
     const a = stepsTo(state.path[steps - 1]), b = stepsTo(current);
     if (b < 0) return { text: `There's no way to ${puzzle.goal} from ${current}. Undo to go back.` };
-    if (b === a) return { text: "Same rung. Try another word, or Undo." };
+    if (b === a) return { text: `Same distance: no climb, still ${b} to go.` };
     if (b > a) {
       if (b > puzzle.par) return { text: "Below the start now. Undo to go back." };
       const n = b - a;

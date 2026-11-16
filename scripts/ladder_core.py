@@ -42,6 +42,10 @@ class Ladder:
     # rel_key(u, v) -> relation name. Used to choose and show routes whose
     # steps are real relations; never to accept or reject a step.
     related: dict[int, str] | None = None
+    # Words no ladder may use, as a step, start or goal (config "removedSteps",
+    # a file like the exclusion ones): corpus junk and words an average player
+    # would never think of. Taken out at view time, so the frozen graph stays.
+    removed: frozenset[str] = frozenset()
 
     def at(self, date_str: str | None) -> "Ladder":
         """This ladder under the rules for `date_str` (None = the newest rules)."""
@@ -90,14 +94,24 @@ def ladder_view(ladder: Ladder, rules: dict) -> Ladder:
     full = ladder.full_neighbors or ladder.neighbors
     k = rules.get("stepLimit", DEFAULT_STEP_LIMIT)
     legal = two_way_neighbors(full, k) if rules.get("twoWay") else [row[:k] for row in full]
+    legal = drop_steps(legal, {ladder.index[w] for w in ladder.removed if w in ladder.index})
     view = replace(ladder, neighbors=legal, full_neighbors=full,
                    config=rules, in_degree=None)  # new lists, so recount on demand
     if ladder.all_candidates is None:  # hand-made test ladders: pool as given
         return view
     path = rules.get("excludeCandidates")
-    pool = candidate_pool(ladder.all_candidates, ladder.exclusions[path]) if path \
-        else ladder.all_candidates
+    excluded = (ladder.exclusions[path] if path else frozenset()) | ladder.removed
+    pool = candidate_pool(ladder.all_candidates, excluded) if excluded else ladder.all_candidates
     return replace(view, candidates=pool, candidate_set=set(pool))
+
+
+def drop_steps(legal: list[list[int]], gone: set[int]) -> list[list[int]]:
+    """Legal lists with the "removedSteps" words (corpus junk such as
+    "disambiguation", obscure words) taken out, after the cut, so no other list changes:
+    no step to them, none from them. JS twin: dropSteps in js/seeded.js."""
+    if not gone:
+        return legal
+    return [[] if u in gone else [v for v in row if v not in gone] for u, row in enumerate(legal)]
 
 
 def two_way_neighbors(full: list[list[int]], k: int) -> list[list[int]]:
@@ -185,7 +199,14 @@ def load_ladder(root: Path = ROOT, config: dict | None = None,
         all_candidates=cands["words"],
         exclusions=load_exclusions(root, config),
         related=load_relations(root, v),
+        removed=load_removed(root, config),
     ).at(date_str)
+
+
+def load_removed(root: Path, config: dict) -> frozenset[str]:
+    """The words of the config's "removedSteps" file, if any."""
+    path = config.get("removedSteps")
+    return frozenset(excluded_words(json.loads((root / path).read_text(encoding="utf-8")))) if path else frozenset()
 
 
 # ---------------------------------------------------------------- ConceptNet relations

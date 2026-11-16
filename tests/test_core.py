@@ -267,17 +267,20 @@ def test_ladder_view_cuts_neighbor_lists(ladder):
 
 def test_new_era_drops_excluded_start_goal_words(ladder):
     """Names and abstract words leave the start/goal pool from 2026-11-13 on;
-    older dates keep the whole frozen v1 list (their seeded puzzles must not move)."""
+    older dates keep the frozen v1 list minus only the removed (obscure) words,
+    which leave every era (past days all have published files, so none move)."""
     from ladder_core import excluded_words
 
     old, new = ladder.at("2026-11-12"), ladder.at("2026-11-13")
     path = new.config["excludeCandidates"]
     excluded = excluded_words(json.loads((ROOT / path).read_text(encoding="utf-8")))
     assert "excludeCandidates" not in old.config
-    assert old.candidates == ladder.all_candidates  # untouched before the era
+    assert old.candidates == [w for w in ladder.all_candidates if w not in ladder.removed]
     assert new.candidates == [w for w in old.candidates if w not in excluded]  # order kept
-    assert len(new.candidates) == len(old.candidates) - len(excluded)
-    for w in ("billy", "batman", "ayatollah", "behind", "wing", "jam", "afghan"):
+    examples = [w for w in ("billy", "batman", "ayatollah", "behind", "wing", "jam", "afghan")
+                if w not in ladder.removed]  # removed words already left the old pool too
+    assert len(examples) >= 3
+    for w in examples:
         assert w in excluded and w in old.candidate_set and w not in new.candidate_set
         assert w in new.index  # still a legal step on the map
     v = validate_pair(new, "billy", "volcano")

@@ -613,33 +613,23 @@ test("the real exclusion file covers the reported words and only drops real cand
   for (const w of excluded) assert.ok(cands.has(w), `${w} is not a candidate`);
 });
 
-test("open ladders: only a word one rung closer counts (grandmother = son)", async () => {
-  const { upOneRung } = await import("../../js/logic.js");
-  // dist: steps to the goal for words 0..4 (-1 = no route); the goal is 3.
-  const dist = [2, 1, 2, 0, -1];
-  assert.equal(upOneRung(dist, 0, 1), true);   // one rung up
-  assert.equal(upOneRung(dist, 1, 3), true);   // the goal
-  assert.equal(upOneRung(dist, 0, 2), false);  // same rung: "grandmother = son"
-  assert.equal(upOneRung(dist, 1, 0), false);  // farther
-  assert.equal(upOneRung(dist, 0, 4), false);  // no route from there
-  assert.equal(upOneRung(dist, 4, 1), false);  // from a dead end (old saves): undo instead
-  assert.equal(upOneRung(dist, 3, 1), false);  // already at the goal
-});
-
-
-test("old saves: a same-rung word is wound back off the ladder", async () => {
-  const { trimToStepsUp } = await import("../../js/logic.js");
-  const words = ["a", "b", "c", "d", "e"];
-  const index = new Map(words.map((w, i) => [w, i]));
-  const dist = [3, 2, 2, 1, 0]; // b and c share a rung
-  const s = { path: ["a", "b", "c", "d"], moves: 3, tried: { at: "d", items: [] } };
-  assert.equal(trimToStepsUp(s, dist, index), true);
-  assert.deepEqual(s.path, ["a", "b"]);   // cut before "c", not skipped past it
-  assert.equal(s.moves, 3);               // moves already played stay counted
-  assert.equal(s.tried, null);            // that Tried list was for another word
-  const ok = { path: ["a", "b", "d", "e"], moves: 3 };
-  assert.equal(trimToStepsUp(ok, dist, index), false);
-  assert.deepEqual(ok.path, ["a", "b", "d", "e"]);
+test("accepted steps: no farther, closer first, up to min(5, steps left)", async () => {
+  const { acceptedSteps } = await import("../../js/logic.js");
+  // Word 0 is 3 steps out; its list (most similar first) mixes distances.
+  // dist: 0:3  1:3  2:2  3:4  4:2  5:-1  6:3  7:2  8:1  9:0 (goal)
+  const dist = [3, 3, 2, 4, 2, -1, 3, 2, 1, 0];
+  const nb = [[1, 2, 3, 4, 5, 6, 7], [], [], [], [], [], [], [], [9, 2], []];
+  // Closer (2, 4, 7) before level (1, 6); farther (3) and no-route (5) out; cap 3.
+  assert.deepEqual(acceptedSteps(nb, dist, 0), [2, 4, 7]);
+  // Room to spare (5 steps out): level words fill in after the closer one.
+  assert.deepEqual(acceptedSteps([[1, 2, 3]], [5, 5, 4, 6], 0), [2, 1]);
+  // One step out: only the goal, even with other words in the list.
+  assert.deepEqual(acceptedSteps(nb, dist, 8), [9]);
+  // Fewer candidates than the cap: what exists.
+  assert.deepEqual(acceptedSteps([[1], [0]], [5, 5], 0), [1]);
+  // At the goal or off route: nothing.
+  assert.deepEqual(acceptedSteps(nb, dist, 9), []);
+  assert.deepEqual(acceptedSteps(nb, dist, 5), []);
 });
 
 test("a singular counts as its plural when the plural is the legal step", () => {

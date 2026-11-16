@@ -15,15 +15,17 @@ test("a straight climb: one rung per good word", () => {
   assert.equal(lad.off, null);
 });
 
-test("a word that's no closer takes over the same rung", () => {
+test("a flat step (same distance) doesn't change the ladder: the rung keeps its first word", () => {
   const lad = ladderRows([4, 3, 3], 4);
-  assert.deepEqual(shape(lad), ["4:-", "3:-", "2:-", "1:2*", "0:0"]);
+  assert.deepEqual(shape(lad), ["4:-", "3:-", "2:-", "1:1*", "0:0"]);
   assert.equal(lad.climber, 1);
+  // tail -> fins (flat) -> elongated: tail stays on the bottom rung.
+  assert.deepEqual(shape(ladderRows([4, 4, 3], 4)), ["4:-", "3:-", "2:-", "1:2*", "0:0"]);
 });
 
-test("a farther word drops you; the higher rung keeps its word", () => {
+test("a farther word (old saves only) leaves every rung's word in place", () => {
   const lad = ladderRows([4, 3, 4], 4);
-  assert.deepEqual(shape(lad), ["4:-", "3:-", "2:-", "1:1", "0:2*"]);
+  assert.deepEqual(shape(lad), ["4:-", "3:-", "2:-", "1:1", "0:0*"]);
   assert.equal(lad.climber, 0);
 });
 

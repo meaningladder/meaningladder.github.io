@@ -5,6 +5,7 @@
   "recentDays": 30,
   "promptSampleSize": 150,
   "aiRounds": 5,
+  "removedSteps": "data/removed_steps.json",
   "rules": [
     {
       "from": "2026-11-01",

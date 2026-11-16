@@ -62,8 +62,18 @@ presenters), so the generator and the seeded fallback skip them. The AI prompt
 also shows each shortlisted pair's shortest route and the goal's incoming
 words, so the theme and teaser describe the sense the graph actually uses.
 
-On open ladders a word must take you one rung closer to the goal; a close word
-that isn't closer joins the Tried list marked "no closer" (no move charged).
+Each rung accepts up to `min(5, steps left)` of the current word's legal
+steps: never farther from the goal, closer ones first (`acceptedSteps` in
+js/logic.js). A same-distance word is a level step: it costs a move but doesn't
+climb. Any other close word joins the Tried list marked "not top N" (no move
+charged). Since storage schema 5 (2026-11-16) every day plays by this rule, and
+older saves and results were wiped.
+
+`data/removed_steps.json` (config `removedSteps`) lists 3,318 words no ladder
+may use, as a step, start or goal: corpus junk ("disambiguation") and words an
+average player would never think of ("fuselage", "kph"). They are dropped from
+the legal lists at view time (`drop_steps` / `dropSteps`), so the frozen graph
+files stay as they are. Published starts and goals are never listed.
 
 If a step is rejected, it joins a Contexto-style **Tried** list with its rank
 from the current word (under the top-10 rules, #11 was very close). Ranks up
