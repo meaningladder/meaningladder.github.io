@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-18",
+  "gameNumber": 18,
+  "level": "hard",
+  "start": "sheet",
+  "goal": "brother",
+  "par": 6,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "sheet",
+    "paper",
+    "cardboard",
+    "stuffed",
+    "teddy",
+    "friend",
+    "brother"
+  ],
+  "reasons": []
+}
