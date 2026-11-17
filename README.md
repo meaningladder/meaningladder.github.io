@@ -186,5 +186,5 @@ has been played its file is frozen too; later fixes need a new era.
 - Word relations: [ConceptNet 5.7](https://conceptnet.io), CC BY-SA 4.0. `data/relations_v1.*` is
   derived from it and shared under the same license; the game credits it on the home screen.
 - Icons: [Phosphor](https://phosphoricons.com/) (bold), MIT, copied into `js/icons.js`.
-- Font: [Nunito](https://github.com/googlefonts/nunito), SIL OFL 1.1, self-hosted from Fontsource.
+- Font: [Outfit](https://github.com/Outfitio/Outfit-Fonts), SIL OFL 1.1, self-hosted from Fontsource.
 - Blocklist: [LDNOOBW](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words) (CC BY 4.0).

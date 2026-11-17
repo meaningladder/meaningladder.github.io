@@ -45,9 +45,9 @@ function h(tag, props = {}, ...children) {
   return el;
 }
 
-// The logo is the one custom mark (a plain geometric ladder in our palette).
-// Every UI glyph comes from the Phosphor icon library (js/icons.js).
-const LOGO = '<svg viewBox="0 0 52 52" aria-hidden="true"><rect width="52" height="52" rx="14" fill="var(--accent)"/><path d="M17 42V10M35 42V10" stroke="var(--accent-text)" stroke-width="3.5" stroke-linecap="round"/><path d="M17 34h18" stroke="var(--far)" stroke-width="4" stroke-linecap="round"/><path d="M17 26h18" stroke="var(--mid)" stroke-width="4" stroke-linecap="round"/><path d="M17 18h18" stroke="var(--near)" stroke-width="4" stroke-linecap="round"/></svg>';
+// The logo is the one custom mark: a night ladder, chalk rungs and the
+// orange goal rung on top. Every UI glyph comes from Phosphor (js/icons.js).
+const LOGO = '<svg viewBox="0 0 52 52" aria-hidden="true"><rect width="52" height="52" rx="12" fill="var(--logo-bg)"/><path d="M17 44V8M35 44V8" stroke="var(--logo-fg)" stroke-width="3.5" stroke-linecap="round"/><path d="M17 36h18" stroke="oklch(0.7 0.17 265)" stroke-width="4" stroke-linecap="round"/><path d="M17 27h18" stroke="oklch(0.7 0.19 330)" stroke-width="4" stroke-linecap="round"/><path d="M17 17h18" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/><circle cx="17" cy="36" r="4" fill="var(--accent)"/></svg>';
 function icon(name, cls) {
   const tpl = document.createElement("template");
   tpl.innerHTML = name === "logo" ? LOGO : PHOSPHOR[name]; // constant markup, never user text
@@ -141,7 +141,7 @@ function showHelp() {
   store.set("seenHelp", true);
   const ex = (word, d, { latest = false, isStart = false } = {}) => {
     const { hue, fill } = stairStep(4 - d, 4); // the same staircase as a real ladder
-    return h("li", { class: `bar stair${latest ? " latest" : ""}`, style: `--stair-hue:${hue}; --fill:${fill}%` },
+    return h("li", { class: `bar stair${latest ? " latest" : " passed"}`, style: `--stair-hue:${hue}; --fill:${fill}%` },
       h("span", {}, word, isStart ? h("span", { class: "tag" }, "start") : null),
       h("span", { class: "num" }, d === 0 ? "goal" : `${d} to go`));
   };
