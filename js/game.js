@@ -683,9 +683,11 @@ function playView(ladder, state, saveKey, date, classic = "") {
   const isPractice = state.kind === "practice" || puzzle.source === "practice";
 
   const input = h("input", { id: "guess", type: "text", autocomplete: "off", autocapitalize: "none",
-    autocorrect: "off", spellcheck: "false", enterkeyhint: "go", maxlength: "30" });
+    autocorrect: "off", spellcheck: "false", enterkeyhint: "go", maxlength: "30", "aria-describedby": "guess-count" });
+  // Stays visible while typing, unlike the placeholder.
+  const count = h("span", { class: "count", id: "guess-count" });
   const form = h("form", { class: "guess", onSubmit: (e) => { e.preventDefault(); submit(); } },
-    h("label", { for: "guess", class: "visually-hidden" }, "Next word"), input,
+    h("label", { for: "guess", class: "visually-hidden" }, "Next word"), h("span", { class: "field" }, input, count),
     h("button", { type: "submit", class: "btn go" }, "Go"));
   const feedback = h("div", { class: "feedback", "aria-live": "polite" });
   const tried = h("section", { class: "tried", hidden: true, "aria-label": "Words you tried" });
@@ -810,12 +812,16 @@ function playView(ladder, state, saveKey, date, classic = "") {
   // The hint for a word points at one word that gets one step closer (see
   // hintStep): first a clue that never names it, then the word itself.
   // Deterministic, so revisiting the word shows the same hint.
+  function hintedNext(current) {
+    const cur = ladder.index.get(current);
+    return bestRoute(cur)?.[1] ?? hintStep(ladder.neighbors, dist, costs(), cur);
+  }
+
   function hintLine(current, tier) {
     if (stepsTo(current) < 0 || !tier) return `There's no way to ${puzzle.goal} from ${current}. Undo to go back.`;
     // Hints follow the route the game shows (bestRoute), so they agree with
     // the give-up route and the result card.
-    const cur = ladder.index.get(current);
-    const next = bestRoute(cur)?.[1] ?? hintStep(ladder.neighbors, dist, costs(), cur);
+    const next = hintedNext(current);
     if (tier >= 2) return `Try “${ladder.words[next]}”.`;
     return clueText(clueFor(ladder, state.path, next, puzzle.goal));
   }
@@ -1053,7 +1059,13 @@ function playView(ladder, state, saveKey, date, classic = "") {
     const playing = state.status === "playing";
     status.textContent = `Par ${puzzle.par} · Moves ${state.moves}`;
 
+    // The letter count is the hinted word's: other accepted words may differ.
+    const next = playing && stepsTo(current) > 0 ? hintedNext(current) : undefined;
     input.placeholder = `Next step from ${current}`;
+    const countText = next !== undefined ? `${ladder.words[next].length} letters` : "";
+    count.hidden = !countText;
+    // A fresh span replays the entrance only when the number actually changes.
+    if (count.textContent !== countText) count.replaceChildren(h("span", { class: "enter" }, countText));
     form.hidden = !playing;
     feedback.hidden = !playing;
     actions.hidden = !playing;

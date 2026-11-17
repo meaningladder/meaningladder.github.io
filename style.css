@@ -237,6 +237,15 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--r-control);
   outline: none;
 }
+.guess .field { position: relative; flex: 1; min-width: 0; display: flex; }
+/* rem, not px: the reserved space grows with the badge when text is enlarged. */
+.guess .field:has(.count:not([hidden])) input { padding-right: 5.5rem; }
+.guess .count {
+  position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%);
+  font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums;
+  pointer-events: none; white-space: nowrap;
+}
+.guess .count .enter { display: inline-block; animation: slide-in var(--dur-base) cubic-bezier(0.23, 1, 0.32, 1); }
 .guess input:focus { border-color: var(--strong); }
 .guess input::placeholder { color: var(--muted); font-weight: 400; }
 .guess .go { flex: none; min-height: 54px; padding: 0 16px; }
