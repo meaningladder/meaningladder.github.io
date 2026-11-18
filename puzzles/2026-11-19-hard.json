@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-19",
+  "gameNumber": 19,
+  "level": "hard",
+  "start": "mount",
+  "goal": "regulator",
+  "par": 6,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "mount",
+    "hill",
+    "house",
+    "congress",
+    "committee",
+    "commission",
+    "regulator"
+  ],
+  "reasons": []
+}
