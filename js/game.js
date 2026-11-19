@@ -409,18 +409,6 @@ async function showHome() {
     dailyLevels,
     h("ol", { class: "week", "aria-label": "This week" }, chips));
 
-  // Our other daily word game, playable right here. Lazy, so the frame only
-  // loads when someone scrolls to it. Its origin is allowed by frame-src in
-  // index.html's Content-Security-Policy.
-  const otherGame = () => h("section", { class: "card home-side", "aria-labelledby": "other-title" },
-    h("div", { class: "card-row" },
-      h("div", {},
-        h("h2", { id: "other-title" }, "Also try LeReplacey"),
-        h("p", { class: "sub" }, "Our other daily word ladder: change one letter at a time.")),
-      h("a", { class: "btn btn-quiet", href: OTHER_GAME, target: "_blank", rel: "noopener" }, "Open")),
-    h("iframe", { class: "other-game", src: OTHER_GAME, title: "LeReplacey, a daily word ladder game",
-      loading: "lazy", referrerpolicy: "no-referrer" }));
-
   const practice = h("section", { class: "card", "aria-labelledby": "practice-title" },
     h("h2", { id: "practice-title" }, "Unlimited"),
     h("p", { class: "sub" }, "Random ladders with one hidden answer per rung, as many as you like. No streaks at stake."),
@@ -432,9 +420,7 @@ async function showHome() {
           h("b", {}, LEVEL_LABEL[level]), h("span", {}, resume ? "Resume" : "Play"));
       })));
 
-  // Wide screens: the game column with LeReplacey beside it. Phones: one
-  // column, LeReplacey after Unlimited (CSS `order` on .home-side).
-  render(h("div", { class: "home-grid" }, h("div", { class: "home-col" },
+  render(
     h("header", { class: "home-head" },
       icon("logo", "logo"),
       h("h1", {}, "meaning ladder"),
@@ -445,15 +431,16 @@ async function showHome() {
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics"),
-      h("button", { class: "link-btn", onClick: () => showFeedback() }, "Send feedback")),
+      h("button", { class: "link-btn", onClick: () => showFeedback() }, "Send feedback"),
+      // Our other daily word game.
+      h("a", { class: "link-btn", href: OTHER_GAME, target: "_blank", rel: "noopener" }, "Play LeReplacey")),
     // Plain words for people (and search engines) who don't know the game yet.
     h("p", { class: "about" }, "Meaning Ladder is a free daily word puzzle. Each day has three word ladders, ",
       "easy, medium and hard: climb from the start word to the goal one step at a time, ",
       "each word close in meaning to the last. Play past days or unlimited ladders any time."),
     // ConceptNet's license (CC BY-SA 4.0) asks for credit wherever it's used.
     h("p", { class: "credits" }, "Word links from ",
-      h("a", { href: "https://conceptnet.io", rel: "noopener" }, "ConceptNet 5.7"), ", CC BY-SA 4.0.")),
-    otherGame()));
+      h("a", { href: "https://conceptnet.io", rel: "noopener" }, "ConceptNet 5.7"), ", CC BY-SA 4.0."));
 
   showIntro();                                      // the only pop-up on load
   setTimeout(() => loadLadder().catch(() => {}), 300); // warm the 0.8 MB word map

@@ -49,7 +49,8 @@ test-js: ## JavaScript tests (game rules + Python/JS seeded parity)
 check: audit test ## Everything CI checks
 
 audit: ## Design + security audits (dashes, CSP, pinned actions, leaked keys)
-	@if grep -n -e '—' -e '–' $(UI_FILES); then \
+	@# Byte pattern for U+2013/U+2014 in UTF-8: a literal dash here never matched under make on Windows.
+	@if LC_ALL=C grep -nP '\xE2\x80[\x93\x94]' $(UI_FILES); then \
 	  echo "FAIL: dash characters in UI files (design rule)"; exit 1; \
 	else echo "ok   no em/en dashes in UI files"; fi
 	@grep -q 'Content-Security-Policy' index.html \
