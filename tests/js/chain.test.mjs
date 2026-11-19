@@ -106,3 +106,24 @@ test("a hint shows one more letter and costs a move; the last one plays the word
   assert.deepEqual([s.path, s.moves, s.hints], [["jeep", "truck"], 4, 4]);
   assert.deepEqual(chainLetters(s, 1), [2]); // the next word starts with only its shown letter
 });
+
+test("guessing the same wrong word again is free", () => {
+  const s = chainStart(puzzle);
+  assert.equal(chainSubmit(tiny, s, "ship").wrong, true);
+  const again = chainSubmit(tiny, s, " SHIP");
+  assert.deepEqual([again.ok, again.wrong, again.error], [false, undefined, "Already tried ship."]);
+  assert.equal(s.moves, 1);
+  assert.deepEqual(s.rungs[0].misses.map((m) => m.word), ["ship"]);
+});
+
+test("a typo never gets the hidden word as its suggestion; suggestions come from the current word", () => {
+  const w = ["jeep", "truck", "tanker", "port", "dart", "part", "trucks"];
+  const nb = [[1, 4], [], [], [5], [], [], []]; // jeep: truck, dart; port (the goal): part
+  const lad = { words: w, index: new Map(w.map((x, i) => [x, i])), neighbors: nb };
+  const s = chainStart(puzzle);
+  const typo = chainSubmit(lad, s, "truk"); // one letter off the answer
+  assert.equal(typo.ok, false);
+  assert.doesNotMatch(typo.error, /truck/);
+  assert.equal(chainSubmit(lad, s, "bart").error, "Did you mean dart?"); // jeep's neighbor, not port's
+  assert.equal(s.moves, 0);
+});

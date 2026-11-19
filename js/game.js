@@ -162,8 +162,9 @@ function showHelp() {
 }
 
 // How to play, Unlimited (chain ladders): one hidden answer per rung.
+// Its own flag, so a player's first daily ladder still gets the daily rules.
 function showChainHelp() {
-  store.set("seenHelp", true);
+  store.set("seenChainHelp", true);
   const ex = (text, cls, tag = null) => h("li", { class: cls },
     h("span", { class: cls.startsWith("rung") ? "pattern" : null }, text, tag ? h("span", { class: "tag" }, tag) : null));
   openDialog("How to play", h("div", {},
@@ -1258,9 +1259,7 @@ function chainView(ladder, state, saveKey, date) {
       justSolved = k;
       input.value = "";
     } else if (res.wrong) {
-      const r = state.rungs[k];
-      const rank = chainRank(ladder, ladder.index.get(chain[k + 1]), ladder.index.get(res.word)) ?? "?";
-      r.misses = r.misses.filter((m) => m.word !== res.word).concat([{ word: res.word, rank }]);
+      state.rungs[k].misses.at(-1).rank = chainRank(ladder, ladder.index.get(chain[k + 1]), ladder.index.get(res.word)) ?? "?";
       justMissed = true;
       input.select();
     } else {
@@ -1401,7 +1400,7 @@ function chainView(ladder, state, saveKey, date) {
 
   update();
   if (state.status === "playing") input.focus();
-  showIntro();
+  if (!store.get("seenChainHelp")) showChainHelp(); // first Unlimited visit: these rules, not the daily ones
 }
 
 // ------------------------------------------------------------ start

@@ -349,22 +349,24 @@ export const chainStart = (puzzle) => ({
 export const chainLetters = (state, k) =>
   [state.puzzle.shown[k].pos, ...state.puzzle.hintOrder[k].slice(0, state.rungs[k].hints)];
 
-// Only `target` counts, or its plural/singular. Typos, unknown words and words
-// already on the ladder are free and keep checkStep's messages; any other real
-// word is `wrong` (a move).
-export function chainGuess(ladder, onLadder, typed, target) {
+// Only `target` counts, or its plural/singular. Typos, unknown words, words
+// already on the ladder (path or goal) and repeat misses are free and keep
+// checkStep's messages; any other real word is `wrong` (a move). A typo is
+// never answered with the target itself: only hints give letters away.
+export function chainGuess(ladder, path, typed, target, goal, misses = []) {
   const word = normalize(typed);
   if (!word) return { ok: false, error: "Type a word first." };
   if (!/^[a-z]+$/.test(word)) return { ok: false, error: "Letters only, please." };
   if (word === target) return { ok: true, word };
   if (pluralPair(word, target)) return { ok: true, word: target, note: `Counted as ${target}.` };
   if (!ladder.index.has(word)) {
-    const suggestion = didYouMean(ladder, onLadder, word);
+    const suggestion = didYouMean(ladder, path, word, target);
     if (suggestion) return { ok: false, error: `Did you mean ${suggestion}?`, suggestion };
     const size = ladder.words.length.toLocaleString("en-US");
     return { ok: false, error: `${word} isn't in our ${size}-word list. Try a more common word.` };
   }
-  if (onLadder.includes(word)) return { ok: false, error: `${word} is already on the ladder.` };
+  if (path.includes(word) || word === goal) return { ok: false, error: `${word} is already on the ladder.` };
+  if (misses.includes(word)) return { ok: false, error: `Already tried ${word}.` };
   return { ok: false, wrong: true, word };
 }
 
@@ -382,8 +384,10 @@ function chainPlay(state) {
 
 export function chainSubmit(ladder, state, typed) {
   const k = state.path.length - 1;
-  const res = chainGuess(ladder, [...state.path, state.puzzle.goal], typed, state.puzzle.route[k + 1]);
+  const r = state.rungs[k];
+  const res = chainGuess(ladder, state.path, typed, state.puzzle.route[k + 1], state.puzzle.goal, r.misses.map((m) => m.word));
   if (res.ok || res.wrong) state.moves++;
+  if (res.wrong) r.misses.push({ word: res.word, rank: null }); // the caller fills in rank
   if (res.ok) chainPlay(state);
   return res;
 }
@@ -453,16 +457,18 @@ export function oneEdit(a, b) {
 // (that's what the player was most likely aiming at), then the most common
 // word (the list is in frequency order). Words already in the path are
 // skipped since suggesting them would only lead to another rejection.
-function didYouMean(ladder, path, word) {
+// `hidden`: a chain's answer, never suggested (nor its plural/singular).
+function didYouMean(ladder, path, word, hidden = null) {
+  const ok = (w) => !path.includes(w) && (!hidden || (w !== hidden && !pluralPair(w, hidden)));
   const cur = ladder.index.get(path[path.length - 1]);
   for (const idx of cur === undefined ? [] : ladder.neighbors[cur]) {
     const w = ladder.words[idx];
-    if (!path.includes(w) && oneEdit(word, w)) return w;
+    if (ok(w) && oneEdit(word, w)) return w;
   }
   // Anywhere else, only words with the same first letter: typos rarely change
   // it, and "kitten" -> "Did you mean bitten?" reads as a joke, not a fix.
   for (const w of ladder.words) {
-    if (w[0] === word[0] && Math.abs(w.length - word.length) <= 1 && !path.includes(w) && oneEdit(word, w)) return w;
+    if (w[0] === word[0] && Math.abs(w.length - word.length) <= 1 && ok(w) && oneEdit(word, w)) return w;
   }
   return null;
 }
