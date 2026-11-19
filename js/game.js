@@ -428,12 +428,13 @@ async function showHome() {
     daily,
     h("a", { class: "btn btn-quiet btn-wide home-archive", href: "#/archive" }, "Previous games"),
     practice,
+    // Our other daily word game, in the accent color so it stands out.
+    h("a", { class: "btn btn-wide other-game-link", href: OTHER_GAME, target: "_blank", rel: "noopener" },
+      "Play LeReplacey, our other word game"),
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics"),
-      h("button", { class: "link-btn", onClick: () => showFeedback() }, "Send feedback"),
-      // Our other daily word game.
-      h("a", { class: "link-btn other-game-link", href: OTHER_GAME, target: "_blank", rel: "noopener" }, "Play LeReplacey")),
+      h("button", { class: "link-btn", onClick: () => showFeedback() }, "Send feedback")),
     // Plain words for people (and search engines) who don't know the game yet.
     h("p", { class: "about" }, "Meaning Ladder is a free daily word puzzle. Each day has three word ladders, ",
       "easy, medium and hard: climb from the start word to the goal one step at a time, ",

@@ -159,8 +159,8 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   background: none; border: 0; padding: 6px 4px; color: var(--muted);
   text-decoration: underline; text-underline-offset: 3px; font-size: var(--fs-sm);
 }
-/* Our other game stands out a little from the plain footer links. */
-.other-game-link { font-size: var(--fs-base); font-weight: 700; color: var(--text); }
+/* Our other game: a filled accent button under Unlimited. */
+.other-game-link { min-height: 52px; font-size: var(--fs-base); margin-bottom: 4px; }
 
 .icon-btn {
   width: 44px; height: 44px; display: grid; place-items: center;
