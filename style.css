@@ -159,8 +159,12 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   background: none; border: 0; padding: 6px 4px; color: var(--muted);
   text-decoration: underline; text-underline-offset: 3px; font-size: var(--fs-sm);
 }
-/* Our other game: a filled accent button under Unlimited. */
-.other-game-link { min-height: 52px; font-size: var(--fs-base); margin-bottom: 4px; }
+/* Our other game: black and orange, under Previous games. Same in both
+   themes (orange on near-black is about 8:1). */
+.other-game-link {
+  min-height: 52px; font-size: var(--fs-base); margin-bottom: 14px;
+  background: #141210; color: #ff8a2a; border: 2px solid #ff8a2a;
+}
 
 .icon-btn {
   width: 44px; height: 44px; display: grid; place-items: center;

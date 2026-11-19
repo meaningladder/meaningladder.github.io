@@ -427,10 +427,10 @@ async function showHome() {
       h("p", { class: "tagline" }, "Climb from one word to another")),
     daily,
     h("a", { class: "btn btn-quiet btn-wide home-archive", href: "#/archive" }, "Previous games"),
-    practice,
-    // Our other daily word game, in the accent color so it stands out.
+    // Our other daily word game, black and orange so it stands out.
     h("a", { class: "btn btn-wide other-game-link", href: OTHER_GAME, target: "_blank", rel: "noopener" },
       "Play LeReplacey, our other word game"),
+    practice,
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics"),
