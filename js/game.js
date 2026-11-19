@@ -10,16 +10,16 @@
 
 import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, readyFor, store } from "./data.js";
 import {
-  addDays, autoGoal, checkStep, closeness, computeStats, distancesToGoal, localDateStr,
+  acceptCap, addDays, autoGoal, playWord, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, stairStep, triedOrder,
   medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
-  betterMedal, checkedRoute, acceptedSteps, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
+  betterMedal, checkedRoute, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK,
   FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
-import { LEVELS, gameNumber, rulesFor } from "./seeded.js";
+import { ACCEPT_DEFAULTS, LEVELS, gameNumber, rulesFor } from "./seeded.js";
 
 const app = document.getElementById("app");
 
@@ -722,11 +722,27 @@ function playView(ladder, state, saveKey, date, classic = "") {
 
 
   // ---- actions
+  // Accepted top-N at `current`: shrinks with every rung climbed.
+  const acceptCapAt = (current) => acceptCap(ladder.config.levels?.[puzzle.level] ?? ACCEPT_DEFAULTS[puzzle.level],
+    Math.max(0, stepsTo(puzzle.start) - stepsTo(current)));
+
   function submit() {
     if (state.status !== "playing") return;
-    const res = checkStep(ladder, state.path, input.value, puzzle.goal);
+    const current = state.path[state.path.length - 1];
+    const cap = acceptCapAt(current);
+    const res = playWord(ladder, dist, state.path, input.value, puzzle.goal, cap);
+    if (res.noCloser) {
+      // Close, but not one of this rung's accepted words: not played, no
+      // move. It goes into the Tried list marked "not top N".
+      error = null;
+      rejected = { word: res.word, at: current, noCloser: true };
+      justTried = true;
+      addTried(res.word, current, false, true);
+      update();
+      input.select();
+      return;
+    }
     if (!res.ok) {
-      const current = state.path[state.path.length - 1];
       // A real word that just isn't close enough goes into the Tried list,
       // which already shows it, its rank and a highlight: no red sentence.
       // Typos, unknown words and repeats keep their message.
@@ -736,18 +752,6 @@ function playView(ladder, state, saveKey, date, classic = "") {
         justTried = true;
         addTried(normalize(input.value), current, res.nearMiss.oneWay);
       }
-      update();
-      input.select();
-      return;
-    }
-    const current = state.path[state.path.length - 1];
-    if (!acceptedSteps(ladder.neighbors, dist, ladder.index.get(current)).includes(ladder.index.get(res.word))) {
-      // Close, but not one of this rung's accepted words: not played, no
-      // move. It goes into the Tried list marked "not top N".
-      error = null;
-      rejected = { word: res.word, at: current, noCloser: true };
-      justTried = true;
-      addTried(res.word, current, false, true);
       update();
       input.select();
       return;
@@ -890,7 +894,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     const enter = latest && justTried;
     return h("li", { class: `tchip${latest ? " latest" : ""}${enter ? " enter" : ""}`,
       style: `--fill:${known ? rankFill(x.rank) : 0}%` }, x.word,
-      x.noCloser ? h("span", { class: "tchip-note" }, `not top ${Math.min(5, stepsTo(state.tried.at))}`) : null,
+      x.noCloser ? h("span", { class: "tchip-note" }, `not top ${acceptCapAt(state.tried.at)}`) : null,
       tip ? h("span", { class: "visually-hidden" }, `, ${tip}`) : null);
   }
 

@@ -286,6 +286,19 @@ export function checkStep(ladder, path, typed, goal = null) {
   return { ok: true, word };
 }
 
+// checkStep, then the wide accept list: a known word that is a legal step or a
+// near miss is played when it is one of this rung's accepted steps (see
+// acceptedSteps), else it gets noCloser. Other errors (typos, repeats) pass through.
+export function playWord(ladder, dist, path, typed, goal, cap) {
+  const res = checkStep(ladder, path, typed, goal);
+  if (!res.ok && !res.nearMiss) return res;
+  const word = res.ok ? res.word : normalize(typed);
+  const idx = ladder.index.get(word);
+  const cur = ladder.index.get(path[path.length - 1]);
+  if (acceptedSteps(ladder.neighbors, ladder.wide, dist, cur, cap).includes(idx)) return res.ok ? res : { ok: true, word };
+  return { ok: false, noCloser: true, word };
+}
+
 // Would `word` be accepted as is: a known word, new to the path, and one of
 // the current word's legal steps?
 function isLegal(ladder, path, word) {

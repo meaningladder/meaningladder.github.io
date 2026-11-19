@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, autoGoal, bottleneckRoute, buildReverse, GENTLE_RANK, worstRank, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
-  hintStep, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, stairStep, STEP_COST, upgradeMoves,
+  hintStep, playWord, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, stairStep, STEP_COST, upgradeMoves,
 } from "../../js/logic.js";
 
 test("stairStep: a red sliver at the start, a full green bar at the goal", () => {
@@ -662,4 +662,29 @@ test("a singular counts as its plural when the plural is the legal step", () => 
   assert.match(checkStep(g, ["rope"], "tow").error, /isn't one of rope's/);
   // The plural must still be a fresh step.
   assert.match(checkStep(g, ["sea", "ships", "dock"], "ship").error, /isn't one of dock's/);
+});
+
+// playWord: wide top-N words. hub -> goal is 2 rungs; "near" is one rung closer but only in the wide list.
+const pw = ["start", "mid", "goal", "near", "far"];
+const P = Object.fromEntries(pw.map((w, i) => [w, i]));
+const pwLadder = {
+  words: pw, index: new Map(pw.map((w, i) => [w, i])),
+  neighbors: [[P.mid], [P.goal], [], [], []],
+  wide: [[P.mid, P.near, P.far], [P.goal], [], [], []],
+  config: { stepLimit: 1 },
+};
+const pwDist = [2, 1, 0, 1, 3];
+
+test("playWord plays a wide word that isn't a legal step", () => {
+  assert.deepEqual(playWord(pwLadder, pwDist, ["start"], "near", "goal", 40), { ok: true, word: "near" });
+});
+
+test("playWord marks a close but not accepted word noCloser", () => {
+  assert.deepEqual(playWord(pwLadder, pwDist, ["start"], "far", "goal", 40), { ok: false, noCloser: true, word: "far" });
+  // cap 1 cuts "near" (second in the wide row) too.
+  assert.equal(playWord(pwLadder, pwDist, ["start"], "near", "goal", 1).noCloser, true);
+});
+
+test("playWord keeps checkStep's typo errors", () => {
+  assert.match(playWord(pwLadder, pwDist, ["start"], "zzzz", "goal", 40).error, /isn't in our/);
 });

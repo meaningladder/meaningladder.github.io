@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse } from "./logic.js";
-import { DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, dropSteps, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, puzzleFile, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { ACCEPT_WIDTH, DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, dropSteps, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, puzzleFile, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -149,7 +149,7 @@ function viewOf(base, rules) {
     // Same pool rule as Python's ladder_view: the era's exclusions plus removed words.
     const excluded = new Set([...(rules.excludeCandidates ? base.exclusions.get(rules.excludeCandidates) : []), ...removed]);
     const candidates = excluded.size ? candidatePool(base.candidates, excluded) : base.candidates;
-    view = { ...base, neighbors, fullNeighbors: base.neighbors, reverse: buildReverse(neighbors),
+    view = { ...base, neighbors, wide: dropSteps(base.neighbors, gone), fullNeighbors: base.neighbors, reverse: buildReverse(neighbors),
              inDegree: inDegrees(neighbors), candidates, config: { ...rules, stepLimit: k, twoWay } };
     base.views.set(key, view);
   }
@@ -172,7 +172,7 @@ function puzzleRules(base, puzzle) {
 }
 
 // Await before ladderFor: loads the tail if this puzzle's rules need it.
-export const readyFor = (base, puzzle) => ensureWidth(base, puzzleRules(base, puzzle).k);
+export const readyFor = (base, puzzle) => ensureWidth(base, Math.max(puzzleRules(base, puzzle).k, ACCEPT_WIDTH));
 
 export function ladderFor(base, puzzle) {
   const { rules, k } = puzzleRules(base, puzzle);

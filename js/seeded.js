@@ -4,6 +4,14 @@
 //   python scripts/make_fixtures.py && pytest -q && node --test tests/js/
 
 export const LEVELS = ["easy", "medium", "hard"]; // every day has one puzzle per level
+// Wide accept list: how many of a word's similar words count at the start of a
+// puzzle, and how fast that shrinks per rung. Config levels override these.
+export const ACCEPT_WIDTH = 40; // the widest acceptStart: readyFor loads this many neighbors
+export const ACCEPT_DEFAULTS = {
+  easy: { acceptStart: 40, acceptStep: 5 },
+  medium: { acceptStart: 35, acceptStep: 5 },
+  hard: { acceptStart: 30, acceptStep: 4 },
+};
 const RELAX_AFTER = 5000;
 const GIVE_UP_AFTER = 20000;
 
