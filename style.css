@@ -1,53 +1,47 @@
-/* Meaning Ladder, "night climb": ink, chalk and one signal-orange accent.
-   Dark mode is the night; light mode is the same ladder at dawn. All colors
-   are tokens, so the modes only redefine tokens, never components.
-
-   Closeness on the ladder is shown by height (which rung a word sits on),
-   never by a colored fill: climbed rungs are solid chalk lines, empty ones
-   dashed, and your word wears the orange marker.
+/* Meaning Ladder: warm, soft, low-contrast. All colors are tokens, so dark
+   mode only has to redefine the tokens, never the components.
 
    Shape rule (one system, used everywhere):
-     controls (buttons, inputs, chips, menu items)  --r-control   6px
-     containers (cards, dialogs, menus)             --r-container 10px
-     word pills, markers and medal badges           fully round        */
+     controls (buttons, inputs, bars, chips, menu items)  --r-control   8px
+     containers (cards, dialogs, menus)                   --r-container 12px
+     word pills and medal badges                          fully round        */
 
-/* Self-hosted Outfit (variable weight, SIL OFL): no third-party font request. */
+/* Self-hosted Nunito (variable weight, SIL OFL): no third-party font request. */
 @font-face {
-  font-family: "Outfit";
-  src: url("assets/fonts/outfit-latin-wght.woff2") format("woff2");
-  font-weight: 100 900;
+  font-family: "Nunito";
+  src: url("assets/fonts/nunito-latin-wght.woff2") format("woff2");
+  font-weight: 200 1000;
   font-style: normal;
   font-display: swap;
 }
 
 :root {
-  --bg: #e9ecf2;          /* dawn sky */
-  --surface: #f6f7fa;     /* cards */
-  --text: #141a2b;        /* ink */
-  --muted: #4f586c;
-  --line: #ccd2de;        /* thin outlines, empty rungs */
-  --strong: #141a2b;
-  --accent: #b23a0a;      /* signal orange: 5:1 as text on the page, 5.8:1 under chalk text */
-  --accent-text: #fbfcfd;
-  --accent-soft: #f6d3c2; /* orange wash: the marker's halo, the goal glow */
-  --track: #dde1ea;
-  --near: #c4e3d4;        /* won days and levels: a cool green */
-  --mid: #e6dcb8;
-  --far: #e9c7c2;
-  --goal: #c4e3d4;
-  --rung: #141a2b;        /* climbed rungs */
-  --rail: #7a849a;        /* ladder rails and empty rungs: 3:1+ on the page */
-  --rung-l: 0.54;         /* climbed-rung lightness (oklch): 3:1+ on the page at every hue */
-  --fill-l: 0.91;         /* the soft tint a reached rung fills with: ink text stays 12:1+ */
-  --fill-c: 0.045;
-  --logo-bg: #141a2b;     /* the mark stays a night ladder in both modes */
-  --logo-fg: #eef0f4;
-  --error: #b42318;
-  --focus: #b23a0a;
-  --shadow: 0 1px 2px rgb(20 26 43 / 0.06), 0 6px 20px rgb(20 26 43 / 0.06);
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --r-control: 6px;
-  --r-container: 10px;
+  --bg: #f8f3ea;          /* cream page */
+  --surface: #fffbf4;     /* cards */
+  --text: #3b332d;        /* dark brown-gray */
+  --muted: #6f6257;      /* 5.3:1 on the page (WCAG AA) */
+  --line: #e4d9ca;        /* thin outlines */
+  --strong: #3b332d;      /* the dark outline on the latest step */
+  --accent: #a65f42;      /* terracotta, 4.7:1 behind cream button text */
+  --accent-text: #fffaf3;
+  --track: #efe7da;       /* unfilled part of a bar */
+  --near: #a9d8b0;        /* 1 step: green */
+  --mid: #f2d98f;         /* 2 steps: yellow */
+  --far: #f1b7b4;         /* 3+ steps: pink */
+  --goal: #8fcf9a;
+  --tried: #f5c2bd;       /* wrong guesses: light red, fill = closeness */
+  --stair-sat: 60%;       /* climbed rungs: hue by height (stairStep), red to green */
+  --stair-light: 76%;
+  --stair-lift: 0.03%;    /* per hue degree, so the steps also differ in grayscale */
+  --bar-sat: 65%;         /* the strong bar under rungs and guesses: 3:1+ on the track */
+  --bar-light: 36%;
+  --bar-lift: -0.05%;
+  --rail: #d9cab6;        /* ladder rails and pegs */       /* rejected words: one neutral clay, length = closeness */
+  --error: #b4473d;
+  --focus: #a65f42;
+  --shadow: 0 1px 2px rgb(80 60 40 / 0.06), 0 4px 16px rgb(80 60 40 / 0.06);
+  --r-control: 8px;
+  --r-container: 12px;
   /* Type scale: six sizes, used everywhere (no one-off font sizes). */
   --fs-xs: 0.75rem;   /* tags, tiny labels */
   --fs-sm: 0.9rem;    /* secondary text, quiet buttons */
@@ -58,43 +52,43 @@
   --dur-fast: 120ms;  /* press feedback */
   --dur-base: 220ms;  /* things entering */
   --disabled: 0.45;
-  --gold-bg: #f0d98a;  --gold-fg: #6b4e08;
-  --silver-bg: #dde0e6; --silver-fg: #4a5160;
-  --bronze-bg: #ecc9b2; --bronze-fg: #7a3f22;
+  --gold-bg: #f3dc96;  --gold-fg: #7a5a0c;
+  --silver-bg: #e2e2e6; --silver-fg: #565a63;
+  --bronze-bg: #efcdb6; --bronze-fg: #84482a;
   --col: 360px;
-  --font: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "Nunito", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #10141f;        /* night ink, not pure black */
-    --surface: #171c2a;
-    --text: #eef0f4;      /* chalk */
-    --muted: #98a1b4;
-    --line: #2b3347;
-    --strong: #eef0f4;
-    --accent: #ff7a3d;    /* signal orange */
-    --accent-text: #10141f;
-    --accent-soft: #4a2716;
-    --track: #20273a;
-    --near: #1d4537;
-    --mid: #4a4223;
-    --far: #4d2a2a;
-    --goal: #1d4537;
-    --rung: #eef0f4;
-    --rail: #5f6a87;
-    --rung-l: 0.74;
-    --fill-l: 0.29;
-    --fill-c: 0.06;
-    --logo-bg: #1e2538;
-    --logo-fg: #eef0f4;
-    --error: #ff8a7a;
-    --focus: #ff7a3d;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px rgb(0 0 0 / 0.3);
-    --gold-bg: #574414;  --gold-fg: #f4d77e;
-    --silver-bg: #3a4152; --silver-fg: #dde1ea;
-    --bronze-bg: #573522; --bronze-fg: #efb995;
+    --bg: #1d1a17;
+    --surface: #262220;
+    --text: #efe6da;
+    --muted: #a3968a;
+    --line: #3a342f;
+    --strong: #efe6da;
+    --accent: #e39573;
+    --accent-text: #1d1a17;
+    --track: #2f2a26;
+    --near: #3a6a4b;
+    --mid: #735e26;
+    --far: #84434a;
+    --goal: #2e6040;
+    --tried: #6a3a38;
+    --stair-sat: 32%;
+    --stair-light: 28%;
+    --stair-lift: 0.04%;
+    --bar-sat: 65%;
+    --bar-light: 62%;
+    --bar-lift: -0.04%;
+    --rail: #4b433c;
+    --error: #f0928a;
+    --focus: #e39573;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
+    --gold-bg: #5b4a17;  --gold-fg: #f4d77e;
+    --silver-bg: #44464c; --silver-fg: #dcdde2;
+    --bronze-bg: #5a3826; --bronze-fg: #efb995;
     color-scheme: dark;
   }
 }
@@ -262,15 +256,32 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 
 .path { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 6px; }
 
-/* A word row outside the ladder (off-route or below-start words): a plain
-   outlined row. No colored fill: closeness lives on the ladder, as height. */
 .bar {
+  --tone: var(--far);
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
   min-height: 42px; padding: 0 14px; border-radius: var(--r-control);
-  border: 1px solid var(--line); font-weight: 700; background: var(--surface);
+  border: 1px solid transparent; font-weight: 700;
+  background: linear-gradient(to right, var(--tone) var(--fill, 0%), var(--track) var(--fill, 0%));
+  background-origin: border-box; /* no repeated sliver under the transparent border */
 }
-.bar .num { color: var(--muted); font-weight: 600; }
+.bar.tone-near { --tone: var(--near); }
+.bar.tone-mid { --tone: var(--mid); }
+.bar.tone-far { --tone: var(--far); }
+.bar.tone-goal { --tone: var(--goal); }
+.bar.tone-cold { --tone: var(--line); }  /* far: a faint fill, still visible on the track */
+.bar.tone-cold .num { color: var(--muted); }
+/* Climbed rungs: a soft fill behind the text, plus a strong bar along the
+   bottom (same length) that stays visible in both themes. */
+.bar.stair {
+  --tone: hsl(var(--stair-hue) var(--stair-sat) calc(var(--stair-light) + var(--stair-hue) * var(--stair-lift)));
+  --bar: hsl(var(--stair-hue) var(--bar-sat) calc(var(--bar-light) + var(--stair-hue) * var(--bar-lift)));
+  background:
+    linear-gradient(to right, var(--bar) var(--fill), transparent var(--fill)) bottom / 100% 4px no-repeat,
+    linear-gradient(to right, var(--tone) var(--fill), var(--track) var(--fill));
+  background-origin: border-box;
+}
 
+/* Contexto-style list of wrong guesses, ranked from the current word. */
 .tried { margin-top: 14px; }
 .tried-head, .list-head { font-size: var(--fs-sm); font-weight: 700; color: var(--muted); margin: 0 2px 6px; }
 .list-head { margin-top: 18px; }
@@ -284,84 +295,55 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .tchip {
   padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: var(--fs-sm);
   border: 1px solid var(--line);
-  /* A thin orange underline shows closeness to your word; it is inset so the
-     pill's round ends never clip it. */
+  /* The strong bar is inset so the pill's round ends never clip it. */
   background:
-    linear-gradient(to right, var(--accent) var(--fill, 0%), transparent var(--fill, 0%))
-      10px calc(100% - 3px) / calc(100% - 20px) 2px no-repeat,
-    var(--surface);
+    linear-gradient(to right, hsl(0 var(--bar-sat) var(--bar-light)) var(--fill, 0%), transparent var(--fill, 0%))
+      10px calc(100% - 2px) / calc(100% - 20px) 3px no-repeat,
+    linear-gradient(to right, var(--tried) var(--fill, 0%), var(--track) var(--fill, 0%));
   background-origin: border-box;
 }
 .tchip.latest { border-color: var(--strong); }
 .tchip.enter { animation: slide-in var(--dur-base) ease-out, pulse 600ms ease-out 1; }
-/* The ladder: two rails and par + 1 rungs, goal at the top. Each word sits on
-   its rung line; the line runs rail to rail. Climbed rungs are solid,
-   empty ones dashed, and the current word wears the orange marker. */
+/* The ladder: two rails, a peg on each side of every rung, par + 1 rungs. */
 .ladder {
-  list-style: none; position: relative; display: grid; gap: 0;
-  margin: 18px 0 16px; padding: 0 9px; /* rows run from rail to rail */
+  list-style: none; position: relative; display: grid; gap: 6px;
+  margin: 14px 0 0; padding: 0 18px;
 }
 .ladder::before, .ladder::after {
-  content: ""; position: absolute; top: -8px; bottom: -8px; width: 3px;
+  content: ""; position: absolute; top: 0; bottom: 0; width: 4px;
   border-radius: 2px; background: var(--rail);
 }
-.ladder::before { left: 6px; }
-.ladder::after { right: 6px; }
+.ladder::before { left: 4px; }
+.ladder::after { right: 4px; }
 /* No route to the goal from here: the rails break. */
 .ladder.off-route::before, .ladder.off-route::after {
   background: repeating-linear-gradient(var(--rail) 0 8px, transparent 8px 14px);
 }
-.ladder > li {
-  position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px;
-  min-height: 48px; padding: 0 17px 7px; margin: 0;
-  border: 0; border-radius: 0; background: none; box-shadow: none;
-  font-weight: 700;
+.ladder > li { position: relative; }
+.ladder > li::before, .ladder > li::after {
+  content: ""; position: absolute; top: 50%; width: 10px; height: 3px;
+  margin-top: -1.5px; background: var(--rail);
 }
-/* The rung itself: from the left rail to the right rail. */
-.ladder > li::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-  border-radius: 1px; background: var(--rung);
+.ladder > li::before { left: -11px; }
+.ladder > li::after { right: -11px; }
+.rung {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  min-height: 32px; padding: 0 14px; border-radius: var(--r-control);
+  border: 1.5px dashed var(--line); color: var(--muted);
+  font-size: var(--fs-sm); font-weight: 600;
 }
-/* Climbed rungs are green: a strong green line and a soft green fill. */
-.ladder > li.stair { --rung-h: 150; }
-.ladder > li.stair::after { height: 3px; background: oklch(var(--rung-l) 0.17 var(--rung-h)); }
-/* Rungs you have gone past fill in, so the ladder fills up below you; the
-   rung you stand on doesn't (it has the marker). The goal glows until you
-   reach it, then fills too. */
-.ladder > li.passed,
-.ladder > li.stair:first-child:not(.goal-slot) { background: oklch(var(--fill-l) var(--fill-c) var(--rung-h)); }
-.ladder > li:first-child { font-size: var(--fs-md); }
-.ladder > li.goal-slot {
-  background: radial-gradient(ellipse 70% 90% at 50% 130%, var(--accent-soft), transparent 70%);
-}
-.ladder > li.goal-slot::after { background: var(--accent); } /* green only once reached */
-.ladder > li:first-child .num { color: var(--accent); font-weight: 800; }
-.ladder > li:first-child::after { height: 3px; }
-.rung { color: var(--muted); font-size: var(--fs-sm); font-weight: 600; }
-.ladder > .rung::after {
-  background: repeating-linear-gradient(to right, var(--rail) 0 7px, transparent 7px 12px);
-}
-.ladder > .rung.next::after {
-  background: repeating-linear-gradient(to right, var(--accent) 0 7px, transparent 7px 12px);
-}
-.rung.ghost { color: var(--muted); font-style: italic; }
+.rung.next { border-color: var(--muted); }
+.rung.ghost { min-height: 42px; color: var(--muted); }
+.rung .num { font-variant-numeric: tabular-nums; }
+/* Rungs you have climbed keep their color, so the ladder fills in below you. */
 /* Unlimited chain ladders: hidden words show their blanks and letters. */
 .bar.ghost-word { border: 1.5px dashed var(--line); }
 .rung.chain-rung { min-height: 42px; }
 .pattern { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; font-size: var(--fs-base); font-weight: 700; color: var(--muted); }
 .rung.chain-rung.next .pattern { color: var(--text); }
-.ladder .num { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; font-size: var(--fs-sm); }
 .ladder .bar.passed { font-weight: 600; }
-/* You are here: an orange rung and a marker on the left rail. */
-.ladder > li.latest { box-shadow: none; } /* the marker replaces the outline here */
-.ladder > li[aria-current="step"]::after { height: 3px; background: var(--accent); }
-.ladder > li[aria-current="step"]::before {
-  content: ""; position: absolute; left: -8.5px; bottom: -5.5px; width: 14px; height: 14px;
-  border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft);
-}
-.ladder > li[aria-current="step"] .num { color: var(--accent); font-weight: 800; }
-.ladder-extra { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 6px; }
-.ladder-extra .bar.off { border: 1.5px dashed var(--error); }
+.ladder-extra { list-style: none; padding: 0; margin: 6px 18px 0; display: grid; gap: 6px; }
+.ladder-extra .bar.off { border: 1.5px dashed var(--far); }
 /* Every word in the order played. */
 .trail { margin-top: 12px; text-align: center; font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 .trail p { margin: 0; }
@@ -371,7 +353,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .tried-note { font-size: var(--fs-xs); color: var(--muted); margin: 6px 2px 0; }
 .bar .num { font-variant-numeric: tabular-nums; }
 .bar .tag, .rung .tag { font-size: var(--fs-xs); color: inherit; opacity: 0.7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 8px; }
-.bar.enter { animation: slide-in var(--dur-base) var(--ease-out); }
+.bar.enter { animation: slide-in var(--dur-base) ease-out; }
 /* A newly rejected word: one short pulse so the eye finds it in the list. */
 .tried .bar.enter { animation: slide-in var(--dur-base) ease-out, pulse 600ms ease-out 1; }
 @keyframes pulse {

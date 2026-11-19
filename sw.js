@@ -5,11 +5,11 @@
 //   everything else (page, code, styles, config, puzzles)    -> network first,
 //                                                               cache only as an offline fallback
 // Only same-origin GET requests are touched.
-const CACHE = "meaning-ladder-3"; // -3: par 3/4/5, re-made puzzles (-2: night-climb theme, Outfit)
+const CACHE = "meaning-ladder-4"; // -4: night-climb theme removed, Nunito back (-3: par 3/4/5, re-made puzzles)
 // The app shell, saved at install. The page that registers the worker was
 // fetched before the worker existed, so without this the very first visit
 // could never reload offline. Still network-first: these only serve offline.
-const SHELL = ["./", "style.css", "puzzle_config.json", "assets/fonts/outfit-latin-wght.woff2",
+const SHELL = ["./", "style.css", "puzzle_config.json", "assets/fonts/nunito-latin-wght.woff2",
   "js/game.js", "js/data.js", "js/logic.js", "js/seeded.js", "js/icons.js"];
 const VERSIONED = /\/data\/[a-z_]+_v\d+[a-z_]*\.(bin|json)$/;
 
