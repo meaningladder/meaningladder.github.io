@@ -19,6 +19,7 @@
   --bg: #f8f3ea;          /* cream page */
   --surface: #fffbf4;     /* cards */
   --text: #3b332d;        /* dark brown-gray */
+  --promo-bg: #3b332d;    /* LeReplacey button: the theme's dark brown */
   --muted: #6f6257;      /* 5.3:1 on the page (WCAG AA) */
   --line: #e4d9ca;        /* thin outlines */
   --strong: #3b332d;      /* the dark outline on the latest step */
@@ -65,6 +66,7 @@
     --bg: #1d1a17;
     --surface: #262220;
     --text: #efe6da;
+    --promo-bg: #262220;
     --muted: #a3968a;
     --line: #3a342f;
     --strong: #efe6da;
@@ -159,11 +161,11 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   background: none; border: 0; padding: 6px 4px; color: var(--muted);
   text-decoration: underline; text-underline-offset: 3px; font-size: var(--fs-sm);
 }
-/* Our other game: black and orange, under Previous games. Same in both
-   themes (orange on near-black is about 8:1). */
+/* Our other game: orange on the theme's dark brown, under Previous games
+   (orange on #3b332d is about 5.4:1, on the dark card about 7:1). */
 .other-game-link {
   min-height: 52px; font-size: var(--fs-base); margin-bottom: 14px;
-  background: #141210; color: #ff8a2a; border: 2px solid #ff8a2a;
+  background: var(--promo-bg); color: #ff8a2a; border: 2px solid #ff8a2a;
 }
 
 .icon-btn {
