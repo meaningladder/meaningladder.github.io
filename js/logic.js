@@ -854,20 +854,25 @@ export function guideRoute(neighbors, dist, related, from) {
 }
 
 // ------------------------------------------------------------ accepted steps
-// The words a rung accepts: the current word's legal steps that are no farther
-// from the goal, closer ones first (then by closeness to the current word),
-// cut to min(cap, steps left): 5, 4, 3, 2, then just the goal. "Only one rung
-// closer" left 1 answer on most rungs (tail -> fuselage felt like mind
-// reading). A same-distance word is a level step: it costs a move, no climb.
-// dist = steps to the goal, -1 = no route. Word indexes, best first.
-export function acceptedSteps(neighbors, dist, cur, cap = 5) {
+// A rung accepts a wide top-N of the current word's similar words, not just
+// its legal steps. The cap starts at acceptStart (40 Easy, 35 Medium, 30 Hard)
+// and drops by acceptStep per rung climbed, never below 1. Accepted words must
+// stay on the route: never skip a rung (dist >= dist[cur] - 1), never go
+// farther (dist <= dist[cur]). A same-distance word is a level step. One rung
+// from the goal only the goal counts. Every legal step that passes the window
+// stays accepted even past the cap. dist = steps to the goal, -1 = no route.
+export function acceptCap(levelRules, rungsClimbed) {
+  return Math.max(1, levelRules.acceptStart - levelRules.acceptStep * rungsClimbed);
+}
+
+// Closer first, then legal-list order, then wide-list order (stable sort).
+export function acceptedSteps(legal, wide, dist, cur, cap) {
   const d = dist[cur];
   if (!(d > 0)) return [];
-  const order = new Map(neighbors[cur].map((v, i) => [v, i]));
-  return neighbors[cur]
-    .filter((v) => dist[v] >= 0 && dist[v] <= d)
-    .sort((a, b) => dist[a] - dist[b] || order.get(a) - order.get(b))
-    .slice(0, Math.min(cap, d));
+  const top = d === 1 ? 0 : d;
+  return [...new Set([...legal[cur], ...wide[cur].slice(0, cap)])]
+    .filter((v) => dist[v] >= d - 1 && dist[v] <= top)
+    .sort((a, b) => dist[a] - dist[b]);
 }
 
 // ------------------------------------------------------------ feedback
