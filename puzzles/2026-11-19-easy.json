@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-19",
+  "gameNumber": 19,
+  "level": "easy",
+  "start": "transportation",
+  "goal": "customer",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "transportation",
+    "aviation",
+    "industry",
+    "product",
+    "customer"
+  ],
+  "reasons": []
+}

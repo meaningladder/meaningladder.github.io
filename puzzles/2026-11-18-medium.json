@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-18",
+  "gameNumber": 18,
+  "level": "medium",
+  "start": "loop",
+  "goal": "archive",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "loop",
+    "connects",
+    "accessed",
+    "downloaded",
+    "files",
+    "archive"
+  ],
+  "reasons": []
+}

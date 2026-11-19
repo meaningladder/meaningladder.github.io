@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-19",
+  "gameNumber": 19,
+  "level": "medium",
+  "start": "heavyweight",
+  "goal": "flesh",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "heavyweight",
+    "bout",
+    "knockout",
+    "punch",
+    "bite",
+    "flesh"
+  ],
+  "reasons": []
+}

@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-20",
+  "gameNumber": 20,
+  "level": "hard",
+  "start": "wool",
+  "goal": "champ",
+  "par": 6,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "wool",
+    "cloth",
+    "leather",
+    "belt",
+    "ring",
+    "boxing",
+    "champ"
+  ],
+  "reasons": []
+}

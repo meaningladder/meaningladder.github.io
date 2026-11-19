@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-20",
+  "gameNumber": 20,
+  "level": "medium",
+  "start": "rail",
+  "goal": "transplant",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "rail",
+    "bus",
+    "ambulance",
+    "hospital",
+    "patients",
+    "transplant"
+  ],
+  "reasons": []
+}
