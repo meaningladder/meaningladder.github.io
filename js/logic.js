@@ -967,6 +967,15 @@ export function acceptedSteps(legal, wide, dist, cur, cap) {
     .sort((a, b) => dist[a] - dist[b]);
 }
 
+// Why a close word `v` was refused at `cur`: outside the top `cap`, farther from
+// the goal, or skipping a rung.
+export function rejectReason(legal, wide, dist, cur, cap, v) {
+  if (!legal[cur].includes(v) && !wide[cur].slice(0, cap).includes(v)) return "notTop";
+  const d = dist[cur];
+  if (dist[v] < 0 || dist[v] > (d === 1 ? 0 : d)) return "wrongWay";
+  return dist[v] < d - 1 ? "tooFar" : "notTop";
+}
+
 // ------------------------------------------------------------ feedback
 // The site has no server, so feedback goes to a GitHub issue. This builds the
 // "new issue" link for the repo's feedback form (.github/ISSUE_TEMPLATE/

@@ -634,6 +634,17 @@ test("accepted steps: wide top N, no farther, closer first", async () => {
   assert.deepEqual(acceptedSteps(legal, wide, dist, 5, 40), []);
 });
 
+test("rejectReason: top N, wrong way, too far ahead", async () => {
+  const { rejectReason } = await import("../../js/logic.js");
+  const dist = [3, 3, 2, 4, 2, -1, 3, 1, 1, 0];
+  const legal = [[2], [], [], [], [], [], [], [], [9], []];
+  const wide = [[1, 2, 3, 4, 5, 6, 7], [], [], [], [], [], [], [], [9, 2], []];
+  assert.equal(rejectReason(legal, wide, dist, 0, 2, 4), "notTop");    // outside top 2
+  assert.equal(rejectReason(legal, wide, dist, 0, 40, 3), "wrongWay"); // farther
+  assert.equal(rejectReason(legal, wide, dist, 0, 40, 5), "wrongWay"); // no route
+  assert.equal(rejectReason(legal, wide, dist, 0, 40, 7), "tooFar");   // skips a rung
+});
+
 test("accepted steps: never skips a rung", async () => {
   const { acceptedSteps } = await import("../../js/logic.js");
   // 0 is 3 out; 1 is 1 out (two rungs closer) and must not count.

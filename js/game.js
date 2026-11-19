@@ -10,7 +10,7 @@
 
 import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePracticePuzzle, migrateStorage, readyFor, store } from "./data.js";
 import {
-  acceptCap, addDays, autoGoal, playWord, closeness, computeStats, distancesToGoal, localDateStr,
+  acceptCap, rejectReason, addDays, autoGoal, playWord, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, stairStep, triedOrder,
   medalFor, movesOf, movesText, pointsFor, resultPoints, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
@@ -150,7 +150,7 @@ function showHelp() {
     h("ol", { class: "rules" },
       h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
       h("li", {}, "Each word must be close in meaning to the last one."),
-      h("li", {}, "Each rung accepts up to 5 words, fewer near the goal. A word that is just as far from the goal still counts, but you don't climb. Other words go to your Tried list, free."),
+      h("li", {}, "Each rung accepts many close words — the top 40 on Easy (35 Medium, 30 Hard), a few fewer each rung you climb — if they're one rung closer to the goal or level. A level word costs a move but doesn't climb. Other words go to your Tried list, free."),
       h("li", {}, "Every word is a ", h("b", {}, "move"), ", even if undone. A hint costs one. Finish in ",
         h("b", {}, "par"), " for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
@@ -172,7 +172,7 @@ function showChainHelp() {
       h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ". The words in between are hidden."),
       h("li", {}, "Each hidden word has ", h("b", {}, "one answer"), ", close in meaning to the word below it. Its plural counts too."),
       h("li", {}, "Each hidden word shows its length and one letter. A ", h("b", {}, "hint"), " shows one more letter; filling the last blank plays the word."),
-      h("li", {}, "Every wrong guess and every hint is a ", h("b", {}, "move"), ". Finish in ", h("b", {}, "par"), " for gold.")),
+      h("li", {}, "Every word you find, wrong guess and hint is a ", h("b", {}, "move"), ". Finish in ", h("b", {}, "par"), " for gold.")),
     h("p", { class: "sub example-caption" }, "Example: jeep to port"),
     h("ol", { class: "example ladder chain" },
       ex("port", "bar passed", "goal"), ex("_ a _ _ _ _", "rung chain-rung"), ex("t _ _ _ _", "rung chain-rung next"),
@@ -560,7 +560,8 @@ async function showGame(kind, n, level) {
       saveKey = practiceKey(level);
       state = store.get(saveKey);
       if (!state || state.puzzle?.level !== level || state.puzzle.mode !== "chain"
-          || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)) {
+          || !ladder.index.has(state.puzzle.start) || !ladder.index.has(state.puzzle.goal)
+          || !state.puzzle.route.every((w) => ladder.index.has(w))) {
         state = newChainState("practice", await makePracticePuzzle(ladder, level));
       }
     }
@@ -914,6 +915,12 @@ function playView(ladder, state, saveKey, date, classic = "") {
 
   // A chip per word that was too far, closest first. The shaded part shows
   // how close it was; the exact rank is for screen readers only, not on screen.
+  function noteFor(word) {
+    const at = state.tried.at, cap = acceptCapAt(at);
+    const why = rejectReason(ladder.neighbors, ladder.wide, dist, ladder.index.get(at), cap, ladder.index.get(word));
+    return why === "wrongWay" ? "wrong way" : why === "tooFar" ? "too far ahead" : `not top ${cap}`;
+  }
+
   function triedChip(x, latest) {
     const known = typeof x.rank === "number";
     const tip = x.noCloser ? `Close to ${state.tried.at}, but not one of its best steps toward ${puzzle.goal}`
@@ -921,7 +928,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     const enter = latest && justTried;
     return h("li", { class: `tchip${latest ? " latest" : ""}${enter ? " enter" : ""}`,
       style: `--fill:${known ? rankFill(x.rank) : 0}%` }, x.word,
-      x.noCloser ? h("span", { class: "tchip-note" }, `not top ${acceptCapAt(state.tried.at)}`) : null,
+      x.noCloser ? h("span", { class: "tchip-note" }, noteFor(x.word)) : null,
       tip ? h("span", { class: "visually-hidden" }, `, ${tip}`) : null);
   }
 
@@ -1345,7 +1352,7 @@ function chainView(ladder, state, saveKey, date) {
         return h("li", {
           class: `tchip${m === latest ? " latest" : ""}${m === latest && justMissed ? " enter" : ""}`,
           style: `--fill:${known ? rankFill(m.rank) : 0}%` }, m.word,
-          srOnly(known ? `, #${m.rank} closest to the answer` : ", not among the answer's 100 closest words"));
+          srOnly(known ? `, #${m.rank} closest to the answer` : ", not among the answer's 40 closest words"));
       })));
     justMissed = false;
   }
