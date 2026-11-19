@@ -1,8 +1,10 @@
 # Meaning Ladder
 
 A daily word game: climb from a **start** word to a **goal** word, one step at a
-time. Each step must be one of the previous word's 100 nearest neighbors in
-meaning (GloVe word embeddings). Par is the shortest possible path.
+time. Legal steps are a word's 10 nearest neighbors in meaning (GloVe word
+embeddings, links both ways), but each rung of a daily ladder accepts a wider
+top N from the schedule below, as long as it is one rung closer or level. Par is
+the shortest possible path over the legal steps.
 
 ```
 ocean → wave → signal → network → computer
@@ -19,20 +21,31 @@ per era, each with a `from` date (`rules_for` in `scripts/ladder_core.py`,
 
 | From | Legal steps | Easy | Medium | Hard |
 |---|---|---|---|---|
-| 2026-11-01 | top 10, links both ways | par 4 | par 5 | par 6 |
+| 2026-11-01 | top 10, links both ways | par 3 | par 4 | par 5 |
 
-Nov 1-12 were first played on top-100 one-way rules (par 3/3/4). On
-2026-11-16 they were moved to these rules: their files got the new par
-(+1 to +3), `stepLimit`/`twoWay`, and a fresh shortest `route`; saves and
-results for those days were wiped (storage schema 6). With one era there is
-no "New rules" notice and no "classic rules" label.
+Nov 1-12 were first played on top-100 one-way rules (par 3/3/4) and moved to
+top-10 two-way rules on 2026-11-16. On 2026-11-19 par became 3/4/5 for every
+day and every published puzzle from 2026-11-01 to 2026-11-20 was re-made with
+seeded picks (`--no-ai`). Saved games, Unlimited games and results were wiped
+once (storage schema 7, so streaks and stats restart); preferences stay. The
+service worker cache is `meaning-ladder-3`. With one era there is no "New
+rules" notice and no "classic rules" label.
 
-**Retired: chain ladders.** On 2026-11-13 and 14 the daily ladders were briefly
-chains (one hidden answer per rung). On 2026-11-14 every day went back to open
-ladders, including those two days (their open files had been written first).
-The browser wipes saved chain games and their results once (schema 4,
-`wipeChainLadders` in `js/data.js`). The chain code is in git history before
-that change.
+**Chain mode is Unlimited only.** On 2026-11-13 and 14 the daily ladders were
+briefly chains (one hidden answer per rung); on 2026-11-14 every day went back
+to open ladders. Unlimited now uses a chain mode again (see Strict Unlimited
+below); daily ladders stay open.
+
+**Points.** `min(100, round(100 × par / moves))`; giving up scores 0. The score
+shows on the result card, in the share text ("🥈 80 pts"), on the home level
+buttons, and as an average per level in stats.
+
+**Strict Unlimited.** Unlimited is browser-only chain mode. The chain is as long
+as the level's par, with one hidden answer per rung on a shortest route. Each
+hidden word shows as blanks with one seeded-random letter (picked to avoid
+rival words). Only the hidden word or its plural/singular counts. A wrong guess
+or a hint costs a move (repeats and typos are free); a hint reveals one more
+letter. The first Unlimited visit shows its own help.
 
 **The staircase.** Climbed rungs are colored by height, not by distance: the
 start is a red sliver and each rung up is greener and fuller, up to a full
@@ -67,12 +80,15 @@ presenters), so the generator and the seeded fallback skip them. The AI prompt
 also shows each shortlisted pair's shortest route and the goal's incoming
 words, so the theme and teaser describe the sense the graph actually uses.
 
-Each rung accepts up to `min(5, steps left)` of the current word's legal
-steps: never farther from the goal, closer ones first (`acceptedSteps` in
-js/logic.js). A same-distance word is a level step: it costs a move but doesn't
-climb. Any other close word joins the Tried list marked "not top N" (no move
-charged). Since storage schema 5 (2026-11-16) every day plays by this rule, and
-older saves and results were wiped.
+Each daily rung accepts a guess if it is in the current word's top N (from the
+full top-100 list minus removed words) and one rung closer or level, never
+skipping a rung (`acceptCap`, `acceptedSteps`, `playWord` in js/logic.js;
+`levelAcceptRules` in js/seeded.js). Every legal top-10 step still counts.
+N = max(1, `acceptStart` − `acceptStep` × rungs climbed): Easy 40/5, Medium
+35/5, Hard 30/4 (config levels). Legal steps (the graph) stay top 10 both ways,
+so par is unchanged. A same-distance word is a level step: it costs a move but
+doesn't climb. Any other close word joins the Tried list marked "not top N" (no
+move charged).
 
 `data/removed_steps.json` (config `removedSteps`) lists 3,318 words no ladder
 may use, as a step, start or goal: corpus junk ("disambiguation") and words an

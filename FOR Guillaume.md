@@ -551,3 +551,30 @@ rewritten with the new par and route. That's the one exception to "published
 puzzles are never overwritten", made on purpose. Only those days' saves and
 results were cleared (schema 6). Before shipping I checked that all 51
 published puzzles can still be finished in par under the new accept rule.
+
+## Wider rungs, points, and a stricter Unlimited
+
+On 2026-11-19 the daily game got easier to play and harder to cheat. Each
+rung used to accept only the current word's few best steps. Now it accepts
+the top 40, 35 or 30 closest words (Easy, Medium, Hard), shrinking a little
+with every rung you climb, as long as the word is one rung closer or level.
+The paths the game itself counts (and so par) still use only the top 10, so
+the shortest route didn't change. Par is now 3, 4 and 5 for every day, and
+all the published puzzles from Nov 1 to Nov 20 were re-made to match. Saves,
+Unlimited games and results were wiped once (schema 7), so streaks start
+over. Preferences stayed.
+
+Two lessons from building it. First, a wide list needs a "no skipping" floor:
+a word must be at most one rung closer than where you are. Without it, a
+top-40 word could jump two rungs at once and beat par, which would make par
+meaningless. Second, when a level in the config exists but lacks the new
+fields, you have to fill in each missing field one by one, not swap the whole
+level with a default. The shortcut I first tried turned a missing number into
+NaN (not-a-number), and review caught it before it shipped.
+
+Scoring is now points: 100 times par divided by your moves, capped at 100,
+and zero if you give up. It shows on the result card, in the share text, on
+the home buttons and as an average in stats. Unlimited also became a strict
+chain game: one hidden answer per rung, shown as blanks with a single letter,
+only that word (or its plural) counts, and a wrong guess or a hint costs a
+move.
