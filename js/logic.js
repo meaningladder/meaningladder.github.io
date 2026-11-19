@@ -520,6 +520,10 @@ export const resultMedal = (r) => (r.moves != null
   ? medalFor(r.moves, r.par)
   : medalFor(movesOf(r), r.par, { revealed: r.reveals > 0 }));
 
+// Points: 100 at or under par, less the more moves it took. Gave up scores 0.
+export const pointsFor = (moves, par) => (moves > 0 ? Math.min(100, Math.round((100 * par) / moves)) : 0);
+export const resultPoints = (r) => (r.status === "won" ? pointsFor(scoreOf(r), r.par) : 0);
+
 // In-progress saves from before the single moves counter: start it from what
 // they had (path steps plus undos), so resuming never resets the score.
 export function upgradeMoves(state) {
@@ -620,13 +624,13 @@ export function squareFor(from, to) {
 // `distances` starts with the START word's distance, so the first step's
 // change is known; there is one square per step after it. Undone words count
 // as moves (see movesOf), e.g.
-//   Meaning Ladder #13 Hard 🥈
+//   Meaning Ladder #13 Hard 🥈 86 pts
 //   7 steps · par 6
 //   🟩🟩🟨🟩🟩🟩✅
 export function shareText({ label, moves, par, distances, gaveUp = false, url = "" }) {
   const squares = distances.slice(1).map((d, i) => squareFor(distances[i], d)).join("");
   // Gave-up games get no medal: the 🏁 "finished" emoji would read as a finish.
-  const badge = gaveUp ? "" : " " + medalFor(moves, par).emoji;
+  const badge = gaveUp ? "" : ` ${medalFor(moves, par).emoji} ${pointsFor(moves, par)} pts`;
   const n = `${moves} move${moves === 1 ? "" : "s"}`;
   const what = gaveUp ? `Gave up after ${n}` : n;
   return [`Meaning Ladder ${label}${badge}`, `${what} · par ${par}`, squares, url]
@@ -684,6 +688,11 @@ export function computeStats(results, today) {
   const solvedByLevel = { easy: 0, medium: 0, hard: 0 };
   for (const [k] of wins) if (levelOf(k) in solvedByLevel) solvedByLevel[levelOf(k)]++;
 
+  const avgPointsByLevel = {};
+  for (const lv of ["easy", "medium", "hard"]) {
+    const pts = finished.filter(([k]) => levelOf(k) === lv).map(([, r]) => resultPoints(r));
+    avgPointsByLevel[lv] = pts.length ? Math.round(pts.reduce((a, b) => a + b, 0) / pts.length) : null;
+  }
   const overPar = wins.map(([, r]) => scoreOf(r) - r.par);
   return {
     played: finished.length,
@@ -692,6 +701,7 @@ export function computeStats(results, today) {
     maxStreak: Math.max(best, current),
     avgOverPar: overPar.length ? overPar.reduce((a, b) => a + b, 0) / overPar.length : null,
     solvedByLevel,
+    avgPointsByLevel,
   };
 }
 

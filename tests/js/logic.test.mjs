@@ -380,11 +380,11 @@ test("squares show the change in distance, not the distance", () => {
 
 test("share text: level, medal, moves/par, one square per step, no words", () => {
   const text = shareText({ label: "#13 Hard", moves: 7, par: 6, distances: [6, 5, 4, 4, 3, 2, 1, 0] });
-  assert.equal(text, "Meaning Ladder #13 Hard 🥈\n7 moves · par 6\n🟩🟩🟨🟩🟩🟩✅");
+  assert.equal(text, "Meaning Ladder #13 Hard 🥈 86 pts\n7 moves · par 6\n🟩🟩🟨🟩🟩🟩✅");
   assert.equal(shareText({ label: "#1 Easy", moves: 2, par: 2, distances: [2, 1, 0] }),
-    "Meaning Ladder #1 Easy 🥇\n2 moves · par 2\n🟩✅");
+    "Meaning Ladder #1 Easy 🥇 100 pts\n2 moves · par 2\n🟩✅");
   assert.equal(shareText({ label: "#2 Medium", moves: 6, par: 3, distances: [3, 4, 2, 2, 1, -1, 0] }),
-    "Meaning Ladder #2 Medium 🏁\n6 moves · par 3\n🟥🟩🟨🟩🟥✅");
+    "Meaning Ladder #2 Medium 🏁 50 pts\n6 moves · par 3\n🟥🟩🟨🟩🟥✅");
 });
 
 test("gave-up share has no medal and still reads clearly", () => {
@@ -687,4 +687,22 @@ test("playWord marks a close but not accepted word noCloser", () => {
 
 test("playWord keeps checkStep's typo errors", () => {
   assert.match(playWord(pwLadder, pwDist, ["start"], "zzzz", "goal", 40).error, /isn't in our/);
+});
+
+import { pointsFor, resultPoints } from "../../js/logic.js";
+test("pointsFor", () => {
+  for (const [m, p, want] of [[4, 4, 100], [5, 4, 80], [6, 4, 67], [8, 4, 50], [3, 4, 100], [0, 4, 0]]) {
+    assert.equal(pointsFor(m, p), want);
+  }
+});
+test("resultPoints works for old results", () => {
+  assert.equal(resultPoints({ status: "won", steps: 5, undos: 1, par: 4 }), 67);
+  assert.equal(resultPoints({ status: "gaveUp", moves: 9, par: 4 }), 0);
+});
+test("avgPointsByLevel counts give-ups as 0", () => {
+  const s = computeStats({
+    "2026-11-20:easy": { status: "won", moves: 4, par: 4, playedOn: "2026-11-20" },
+    "2026-11-19:easy": { status: "gaveUp", moves: 9, par: 4 },
+  }, "2026-11-20");
+  assert.deepEqual(s.avgPointsByLevel, { easy: 50, medium: null, hard: null });
 });

@@ -12,7 +12,7 @@ import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, loadVectors, makePr
 import {
   acceptCap, addDays, autoGoal, playWord, closeness, computeStats, distancesToGoal, localDateStr,
   displayRank, normalize, rankFill, rankOf, rankTone, scoresFrom, stairStep, triedOrder,
-  medalFor, movesOf, movesText, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
+  medalFor, movesOf, movesText, pointsFor, resultPoints, naturalRoute, costsToGoal, shareText, shortestRoute, hintStep,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText,
   betterMedal, checkedRoute, clueFor, clueText, guideRoute, hintTier, ladderRows, resultMedal, scoreOf, upgradeHintState, upgradeMoves,
   bottleneckRoute, GENTLE_RANK,
@@ -189,9 +189,12 @@ async function showIntro() {
 function showStats() {
   const s = computeStats(getResults(), today());
   const { easy, medium, hard } = s.solvedByLevel;
+  const a = s.avgPointsByLevel, av = (v) => (v == null ? "—" : v);
   openDialog("Statistics", h("div", {}, statsRow(s),
     h("p", { class: "sub stats-note" },
-      `Solved so far: ${easy} easy, ${medium} medium, ${hard} hard.`)));
+      `Solved so far: ${easy} easy, ${medium} medium, ${hard} hard.`),
+    h("p", { class: "sub stats-note" },
+      `Average points: easy ${av(a.easy)}, medium ${av(a.medium)}, hard ${av(a.hard)}`)));
 }
 
 // ------------------------------------------------------------ feedback
@@ -363,7 +366,7 @@ async function showHome() {
   const dailyLevels = n && h("div", { class: "levels", role: "group", "aria-label": "Today's ladders" },
     dayLevels(t, results).map(({ level, r, inProgress }) => {
       const medal = r?.status === "won" ? resultMedal(r) : null;
-      const status = medal ? `${scoreOf(r)} moves` : r?.status === "gaveUp" ? "Gave up" : inProgress ? "Resume" : "Play";
+      const status = medal ? `${scoreOf(r)} moves · ${resultPoints(r)} pts` : r?.status === "gaveUp" ? "Gave up" : inProgress ? "Resume" : "Play";
       return h("a", { class: `level-btn${medal ? " solved" : ""}`, href: `#/game/${n}/${level}`,
         "aria-label": `${LEVEL_LABEL[level]} ladder: ${medal ? `solved, ${medal.label}` : status}` },
         h("b", {}, LEVEL_LABEL[level]),
@@ -1115,7 +1118,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
     win.replaceChildren(...[ // .filter(Boolean): replaceChildren(null) would print "null"
       medalBadge(won ? medal.id : "gaveUp", "lg"),
       h("h2", {}, won ? (medal.id === "finished" ? "You made it!" : `${medal.label}!`) : "Here's one way up"),
-      h("p", { class: "result" }, won ? `${n(moves)}, par ${puzzle.par}.` : `Par was ${puzzle.par}.`),
+      h("p", { class: "result" }, won ? `${n(moves)}, par ${puzzle.par} · ${pointsFor(moves, puzzle.par)} pts` : `Par was ${puzzle.par}.`),
       // The game ends on that step, so the feedback line is hidden: say it here.
       won && countedNote ? h("p", { class: "muted" }, countedNote) : null,
       routeLine(won && steps === puzzle.par),
