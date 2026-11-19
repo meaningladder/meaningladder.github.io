@@ -78,6 +78,7 @@ const dateOfGame = (n, config) => addDays(config.launchDate, n - 1);
 
 // ------------------------------------------------------------ saved results
 const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
+const OTHER_GAME = "https://lereplacey.vercel.app/";
 // One Unlimited save per level, so switching levels never discards a game.
 const practiceKey = (level) => `practice:${level}`;
 const resultKey = (date, level) => `${date}:${level}`;
@@ -408,6 +409,18 @@ async function showHome() {
     dailyLevels,
     h("ol", { class: "week", "aria-label": "This week" }, chips));
 
+  // Our other daily word game, playable right here. Lazy, so the frame only
+  // loads when someone scrolls to it. Its origin is allowed by frame-src in
+  // index.html's Content-Security-Policy.
+  const otherGame = () => h("section", { class: "card", "aria-labelledby": "other-title" },
+    h("div", { class: "card-row" },
+      h("div", {},
+        h("h2", { id: "other-title" }, "Also try LeReplacey"),
+        h("p", { class: "sub" }, "Our other daily word ladder: change one letter at a time.")),
+      h("a", { class: "btn btn-quiet", href: OTHER_GAME, target: "_blank", rel: "noopener" }, "Open")),
+    h("iframe", { class: "other-game", src: OTHER_GAME, title: "LeReplacey, a daily word ladder game",
+      loading: "lazy", referrerpolicy: "no-referrer" }));
+
   const practice = h("section", { class: "card", "aria-labelledby": "practice-title" },
     h("h2", { id: "practice-title" }, "Unlimited"),
     h("p", { class: "sub" }, "Random ladders with one hidden answer per rung, as many as you like. No streaks at stake."),
@@ -427,6 +440,7 @@ async function showHome() {
     daily,
     h("a", { class: "btn btn-quiet btn-wide home-archive", href: "#/archive" }, "Previous games"),
     practice,
+    otherGame(),
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics"),
