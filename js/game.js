@@ -151,7 +151,7 @@ function showHelp() {
     h("ol", { class: "rules" },
       h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one word at a time."),
       h("li", {}, "Each word must be close in meaning to the last one."),
-      h("li", {}, "Each rung accepts many close words — the top 40 on Easy (35 Medium, 30 Hard), a few fewer each rung you climb — if they're one rung closer to the goal or level. A level word costs a move but doesn't climb. Other words go to your Tried list, free."),
+      h("li", {}, "Each rung accepts many close words if they're one rung closer to the goal or level: the top 40 on Easy (35 Medium, 30 Hard), a few fewer each rung you climb. A level word costs a move but doesn't climb. Other words go to your Tried list, free."),
       h("li", {}, "Every word is a ", h("b", {}, "move"), ", even if undone. A hint costs one. Finish in ",
         h("b", {}, "par"), " for gold.")),
     h("p", { class: "sub example-caption" }, "Example: ocean to computer"),
@@ -209,7 +209,7 @@ async function showIntro() {
 function showStats() {
   const s = computeStats(getResults(), today());
   const { easy, medium, hard } = s.solvedByLevel;
-  const a = s.avgPointsByLevel, av = (v) => (v == null ? "—" : v);
+  const a = s.avgPointsByLevel, av = (v) => (v == null ? "none yet" : v);
   openDialog("Statistics", h("div", {}, statsRow(s),
     h("p", { class: "sub stats-note" },
       `Solved so far: ${easy} easy, ${medium} medium, ${hard} hard.`),
@@ -412,7 +412,7 @@ async function showHome() {
   // Our other daily word game, playable right here. Lazy, so the frame only
   // loads when someone scrolls to it. Its origin is allowed by frame-src in
   // index.html's Content-Security-Policy.
-  const otherGame = () => h("section", { class: "card", "aria-labelledby": "other-title" },
+  const otherGame = () => h("section", { class: "card home-side", "aria-labelledby": "other-title" },
     h("div", { class: "card-row" },
       h("div", {},
         h("h2", { id: "other-title" }, "Also try LeReplacey"),
@@ -432,7 +432,9 @@ async function showHome() {
           h("b", {}, LEVEL_LABEL[level]), h("span", {}, resume ? "Resume" : "Play"));
       })));
 
-  render(
+  // Wide screens: the game column with LeReplacey beside it. Phones: one
+  // column, LeReplacey after Unlimited (CSS `order` on .home-side).
+  render(h("div", { class: "home-grid" }, h("div", { class: "home-col" },
     h("header", { class: "home-head" },
       icon("logo", "logo"),
       h("h1", {}, "meaning ladder"),
@@ -440,7 +442,6 @@ async function showHome() {
     daily,
     h("a", { class: "btn btn-quiet btn-wide home-archive", href: "#/archive" }, "Previous games"),
     practice,
-    otherGame(),
     h("footer", { class: "home-foot" },
       h("button", { class: "link-btn", onClick: () => showHelp() }, "How to play"),
       h("button", { class: "link-btn", onClick: showStats }, "Statistics"),
@@ -451,7 +452,8 @@ async function showHome() {
       "each word close in meaning to the last. Play past days or unlimited ladders any time."),
     // ConceptNet's license (CC BY-SA 4.0) asks for credit wherever it's used.
     h("p", { class: "credits" }, "Word links from ",
-      h("a", { href: "https://conceptnet.io", rel: "noopener" }, "ConceptNet 5.7"), ", CC BY-SA 4.0."));
+      h("a", { href: "https://conceptnet.io", rel: "noopener" }, "ConceptNet 5.7"), ", CC BY-SA 4.0.")),
+    otherGame()));
 
   showIntro();                                      // the only pop-up on load
   setTimeout(() => loadLadder().catch(() => {}), 300); // warm the 0.8 MB word map

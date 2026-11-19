@@ -182,6 +182,19 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   display: block; width: 100%; height: 400px; margin-top: 14px;
   border: 1px solid var(--line); border-radius: var(--r-control); background: var(--bg);
 }
+/* Home: one column on phones, with LeReplacey slotted in after Unlimited. */
+.home-grid { display: flex; flex-direction: column; }
+.home-col { display: contents; }
+.home-foot, .about, .credits { order: 2; }
+.home-side { order: 1; }
+/* Wide screens: LeReplacey sits beside the game column, taller and pinned. */
+@media (min-width: 900px) {
+  main:has(.home-grid) { max-width: calc(var(--col) + 420px + 24px + 32px); }
+  .home-grid { display: grid; grid-template-columns: var(--col) 420px; gap: 24px; align-items: start; }
+  .home-col { display: block; }
+  .home-side { position: sticky; top: 16px; margin-bottom: 0; }
+  .home-side .other-game { height: min(600px, calc(100vh - 140px)); }
+}
 .card h2 { font-size: var(--fs-md); font-weight: 800; }
 .card .sub { color: var(--muted); font-size: var(--fs-sm); }
 .card .note { margin-top: 10px; font-size: var(--fs-sm); }
