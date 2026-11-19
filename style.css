@@ -345,6 +345,11 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   background: repeating-linear-gradient(to right, var(--accent) 0 7px, transparent 7px 12px);
 }
 .rung.ghost { color: var(--muted); font-style: italic; }
+/* Unlimited chain ladders: hidden words show their blanks and letters. */
+.bar.ghost-word { border: 1.5px dashed var(--line); }
+.rung.chain-rung { min-height: 42px; }
+.pattern { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; font-size: var(--fs-base); font-weight: 700; color: var(--muted); }
+.rung.chain-rung.next .pattern { color: var(--text); }
 .ladder .num { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; font-size: var(--fs-sm); }
 .ladder .bar.passed { font-weight: 600; }
 /* You are here: an orange rung and a marker on the left rail. */

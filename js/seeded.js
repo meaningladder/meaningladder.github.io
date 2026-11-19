@@ -298,3 +298,30 @@ export function seededPuzzle(ladder, dateStr, band) {
   }
   throw new Error(`no seeded puzzle for ${dateStr}`);
 }
+
+// ------------------------------------------------------------ chain mode
+// Strict Unlimited (browser only, no Python twin): one hidden answer per rung.
+
+// The better of b's place in a's list and a's in b's, 1 = most similar
+// (null = in neither): how close a wrong guess was to the hidden word.
+export function chainRank(ladder, a, b) {
+  const full = ladder.fullNeighbors ?? ladder.neighbors;
+  const ranks = [full[a].indexOf(b), full[b].indexOf(a)].filter((r) => r >= 0).map((r) => r + 1);
+  return ranks.length ? Math.min(...ranks) : null;
+}
+
+// Every word's close words both ways (top 40), built once per ladder view:
+// the words a player could reasonably try for a rung.
+export function chainWide(ladder) {
+  const full = ladder.fullNeighbors ?? ladder.neighbors;
+  if (ladder._wide?.full !== full) ladder._wide = { full, rows: twoWayNeighbors(full, 40) };
+  return ladder._wide.rows;
+}
+
+// Close words of `prev` that fit the target's pattern too: same length and
+// the same letter at `pos`, other than the target itself.
+export function patternRivals(ladder, prev, target, pos) {
+  const w = ladder.words[target];
+  return chainWide(ladder)[prev].filter((u) => u !== target
+    && ladder.words[u].length === w.length && ladder.words[u][pos] === w[pos]);
+}

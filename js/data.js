@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
-import { buildReverse } from "./logic.js";
-import { ACCEPT_WIDTH, DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, dropSteps, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, puzzleFile, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { buildReverse, distancesToGoal, guideRoute } from "./logic.js";
+import { ACCEPT_WIDTH, DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, dropSteps, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, mulberry32, patternRivals, puzzleFile, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -206,15 +206,49 @@ export async function loadDailyPuzzle(base, dateStr, level) {
 }
 
 // Unlimited: a random seed fed through the same seeded generator, at the
-// level the player picked.
+// level the player picked, played as a chain (one hidden word per rung).
 export async function makePracticePuzzle(base, level) {
-  await ensureWidth(base, rulesFor(base.config, null).stepLimit ?? DEFAULT_STEP_LIMIT);
-  const ladder = ladderAt(base, null);
-  const seed = crypto.getRandomValues(new Uint32Array(1))[0];
+  await ensureWidth(base, Math.max(rulesFor(base.config, null).stepLimit ?? DEFAULT_STEP_LIMIT, ACCEPT_WIDTH));
+  return chainPuzzle(ladderAt(base, null), level, crypto.getRandomValues(new Uint32Array(1))[0]);
+}
+
+// A chain puzzle from a seed (deterministic). The route is guideRoute's
+// readable shortest one; each hidden word shows one letter, at a position
+// where none of the previous word's close words (patternRivals) fit. A route
+// with a word that has rivals everywhere is retried with a new seed up to 20
+// times, then the one with the fewest rivals is kept.
+export function chainPuzzle(ladder, level, seed) {
+  const rand = mulberry32(seed);
+  const pick = (xs) => xs[Math.floor(rand() * xs.length)];
   const band = levelBand(level, ladder.config);
-  const s = seededPuzzle(ladder, `practice-${seed}`, band);
+  let best = null;
+  for (let attempt = 0; attempt < 20 && !(best?.rivals === 0); attempt++) {
+    const s = seededPuzzle(ladder, `practice-${Math.floor(rand() * 2 ** 32)}`, band);
+    const goal = ladder.index.get(s.goal);
+    const dist = distancesToGoal(ladder.reverse, ladder.words.length, goal);
+    const route = guideRoute(ladder.neighbors, dist, ladder.related, ladder.index.get(s.start));
+    let rivals = 0;
+    const shown = [], hintOrder = [];
+    for (let k = 1; k < route.length - 1; k++) {
+      const word = ladder.words[route[k]];
+      const counts = [...word].map((_, p) => patternRivals(ladder, route[k - 1], route[k], p).length);
+      const fewest = Math.min(...counts);
+      rivals += fewest;
+      const pos = pick(counts.flatMap((c, p) => (c === fewest ? [p] : [])));
+      const rest = counts.map((_, p) => p).filter((p) => p !== pos);
+      for (let i = rest.length - 1; i > 0; i--) { // seeded shuffle: the order hints reveal letters
+        const j = Math.floor(rand() * (i + 1));
+        [rest[i], rest[j]] = [rest[j], rest[i]];
+      }
+      shown.push({ pos, letter: word[pos] });
+      hintOrder.push(rest);
+    }
+    if (!best || rivals < best.rivals) best = { rivals, s, route, shown, hintOrder };
+  }
+  const { s, route, shown, hintOrder } = best;
   return {
     date: null, gameNumber: null, level, start: s.start, goal: s.goal, par: s.par,
+    mode: "chain", route: route.map((i) => ladder.words[i]), shown, hintOrder,
     theme: "Unlimited ladder", teaser: `Level: ${band.label}.`, source: "practice",
     graphVersion: ladder.config.graphVersion, stepLimit: ladder.config.stepLimit, twoWay: Boolean(ladder.config.twoWay),
   };

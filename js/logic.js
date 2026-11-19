@@ -336,6 +336,69 @@ export function autoGoal(ladder, current, goal) {
   return cur !== undefined && g !== undefined && current !== goal && ladder.neighbors[cur].includes(g);
 }
 
+// ------------------------------------------------------------ chain mode
+// Strict Unlimited: puzzle.route is the one chain; route[k + 1] is hidden word
+// k, shown as blanks with puzzle.shown[k] filled in. state.rungs[k] holds its
+// wrong guesses and hints. Moves: every word played, wrong guess and hint.
+export const chainStart = (puzzle) => ({
+  puzzle, path: [puzzle.start], moves: 0, hints: 0, status: "playing",
+  rungs: puzzle.shown.map(() => ({ misses: [], hints: 0 })),
+});
+
+// Letter positions on view for hidden word k: the shown one, then one per hint.
+export const chainLetters = (state, k) =>
+  [state.puzzle.shown[k].pos, ...state.puzzle.hintOrder[k].slice(0, state.rungs[k].hints)];
+
+// Only `target` counts, or its plural/singular. Typos, unknown words and words
+// already on the ladder are free and keep checkStep's messages; any other real
+// word is `wrong` (a move).
+export function chainGuess(ladder, onLadder, typed, target) {
+  const word = normalize(typed);
+  if (!word) return { ok: false, error: "Type a word first." };
+  if (!/^[a-z]+$/.test(word)) return { ok: false, error: "Letters only, please." };
+  if (word === target) return { ok: true, word };
+  if (pluralPair(word, target)) return { ok: true, word: target, note: `Counted as ${target}.` };
+  if (!ladder.index.has(word)) {
+    const suggestion = didYouMean(ladder, onLadder, word);
+    if (suggestion) return { ok: false, error: `Did you mean ${suggestion}?`, suggestion };
+    const size = ladder.words.length.toLocaleString("en-US");
+    return { ok: false, error: `${word} isn't in our ${size}-word list. Try a more common word.` };
+  }
+  if (onLadder.includes(word)) return { ok: false, error: `${word} is already on the ladder.` };
+  return { ok: false, wrong: true, word };
+}
+
+// The next hidden word is played (its move is the caller's). After the last
+// one the goal follows and costs its move, like autoGoal on a daily ladder.
+function chainPlay(state) {
+  const { route } = state.puzzle;
+  state.path.push(route[state.path.length]);
+  if (state.path.length === route.length - 1) {
+    state.path.push(route[route.length - 1]);
+    state.moves++;
+    state.status = "won";
+  }
+}
+
+export function chainSubmit(ladder, state, typed) {
+  const k = state.path.length - 1;
+  const res = chainGuess(ladder, [...state.path, state.puzzle.goal], typed, state.puzzle.route[k + 1]);
+  if (res.ok || res.wrong) state.moves++;
+  if (res.ok) chainPlay(state);
+  return res;
+}
+
+// One more letter of the current hidden word, for one move. The hint that
+// fills the last blank plays the word (no extra move for that).
+export function chainHint(state) {
+  const k = state.path.length - 1;
+  const r = state.rungs[k];
+  r.hints++;
+  state.hints++;
+  state.moves++;
+  if (r.hints >= state.puzzle.hintOrder[k].length) chainPlay(state);
+}
+
 // Regular English inflection endings, as [ending, replacement]: a rough
 // stand-in for WordNet's morphy (which the Python side uses to drop these
 // links). Irregulars like mice/mouse are not covered.
