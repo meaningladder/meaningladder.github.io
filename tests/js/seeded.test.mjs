@@ -184,3 +184,13 @@ test("an open game saved on Nov 13 or 14 keeps the top-10 two-way steps it was m
   }
   assert.ok(checked > 0);
 });
+
+test("levelAcceptRules: config levels without accept fields get the defaults, fields override one by one", async () => {
+  const { levelAcceptRules } = await import("../../js/seeded.js");
+  assert.deepEqual(levelAcceptRules({ levels: { easy: { label: "Easy", par: 3 } } }, "easy"),
+    { acceptStart: 40, acceptStep: 5, label: "Easy", par: 3 });
+  const r = levelAcceptRules({ levels: { hard: { acceptStart: 22 } } }, "hard");
+  assert.equal(r.acceptStart, 22);
+  assert.equal(r.acceptStep, 4);
+  assert.equal(levelAcceptRules({}, "medium").acceptStart, 35);
+});

@@ -12,6 +12,8 @@ export const ACCEPT_DEFAULTS = {
   medium: { acceptStart: 35, acceptStep: 5 },
   hard: { acceptStart: 30, acceptStep: 4 },
 };
+// A level's accept rules: config values override the defaults field by field.
+export const levelAcceptRules = (config, level) => ({ ...ACCEPT_DEFAULTS[level], ...config?.levels?.[level] });
 const RELAX_AFTER = 5000;
 const GIVE_UP_AFTER = 20000;
 

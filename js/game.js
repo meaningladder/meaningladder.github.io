@@ -19,7 +19,7 @@ import {
   FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl,
 } from "./logic.js";
 import { ICONS as PHOSPHOR } from "./icons.js";
-import { ACCEPT_DEFAULTS, LEVELS, gameNumber, rulesFor } from "./seeded.js";
+import { LEVELS, levelAcceptRules, gameNumber, rulesFor } from "./seeded.js";
 
 const app = document.getElementById("app");
 
@@ -723,7 +723,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
 
   // ---- actions
   // Accepted top-N at `current`: shrinks with every rung climbed.
-  const acceptCapAt = (current) => acceptCap(ladder.config.levels?.[level] ?? ACCEPT_DEFAULTS[level],
+  const acceptCapAt = (current) => acceptCap(levelAcceptRules(ladder.config, level),
     Math.max(0, stepsTo(puzzle.start) - stepsTo(current)));
 
   function submit() {
