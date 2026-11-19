@@ -723,7 +723,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
 
   // ---- actions
   // Accepted top-N at `current`: shrinks with every rung climbed.
-  const acceptCapAt = (current) => acceptCap(ladder.config.levels?.[puzzle.level] ?? ACCEPT_DEFAULTS[puzzle.level],
+  const acceptCapAt = (current) => acceptCap(ladder.config.levels?.[level] ?? ACCEPT_DEFAULTS[level],
     Math.max(0, stepsTo(puzzle.start) - stepsTo(current)));
 
   function submit() {
