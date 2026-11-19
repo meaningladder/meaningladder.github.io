@@ -2,9 +2,9 @@
   "date": "2026-11-18",
   "gameNumber": 18,
   "level": "hard",
-  "start": "sheet",
-  "goal": "brother",
-  "par": 6,
+  "start": "livestock",
+  "goal": "bassist",
+  "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,13 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "sheet",
-    "paper",
-    "cardboard",
-    "stuffed",
-    "teddy",
-    "friend",
-    "brother"
+    "livestock",
+    "sheep",
+    "dolly",
+    "duet",
+    "vocals",
+    "bassist"
   ],
   "reasons": []
 }

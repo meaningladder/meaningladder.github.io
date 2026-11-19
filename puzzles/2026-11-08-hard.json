@@ -2,22 +2,22 @@
   "date": "2026-11-08",
   "gameNumber": 8,
   "level": "hard",
-  "start": "mentor",
-  "goal": "cheese",
-  "par": 6,
-  "theme": "Wisdom ripens",
-  "teaser": "Some journeys get tastier as they grow older.",
-  "source": "ai",
+  "start": "philosopher",
+  "goal": "vehicle",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "mentor",
-    "friend",
-    "teddy",
-    "stuffed",
-    "skins",
-    "goat",
-    "cheese"
-  ]
+    "philosopher",
+    "thinkers",
+    "ideas",
+    "concept",
+    "hybrid",
+    "vehicle"
+  ],
+  "reasons": []
 }

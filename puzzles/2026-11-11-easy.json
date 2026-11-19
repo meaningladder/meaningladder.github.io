@@ -2,21 +2,20 @@
   "date": "2026-11-11",
   "gameNumber": 11,
   "level": "easy",
-  "start": "pen",
-  "goal": "shrine",
-  "par": 5,
-  "theme": "Ink to awe",
-  "teaser": "Can a little scribbling lead somewhere worth bowing to?",
-  "source": "ai",
+  "start": "room",
+  "goal": "salesman",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "pen",
-    "hand",
-    "lay",
-    "buried",
-    "tomb",
-    "shrine"
-  ]
+    "room",
+    "parlor",
+    "shop",
+    "salesman"
+  ],
+  "reasons": []
 }

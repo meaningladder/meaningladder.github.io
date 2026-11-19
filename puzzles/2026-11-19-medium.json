@@ -2,9 +2,9 @@
   "date": "2026-11-19",
   "gameNumber": 19,
   "level": "medium",
-  "start": "heavyweight",
-  "goal": "flesh",
-  "par": 5,
+  "start": "anime",
+  "goal": "user",
+  "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,12 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "heavyweight",
-    "bout",
-    "knockout",
-    "punch",
-    "bite",
-    "flesh"
+    "anime",
+    "animation",
+    "graphics",
+    "computer",
+    "user"
   ],
   "reasons": []
 }

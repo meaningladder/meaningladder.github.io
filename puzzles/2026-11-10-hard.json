@@ -2,21 +2,22 @@
   "date": "2026-11-10",
   "gameNumber": 10,
   "level": "hard",
-  "start": "stronghold",
-  "goal": "piano",
+  "start": "activist",
+  "goal": "helm",
   "par": 5,
-  "theme": "From defenses to duets",
-  "teaser": "Sneak inside somewhere grand, and you may find a reason to dance instead of fight.",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "stronghold",
-    "insurgent",
-    "attacks",
-    "bombings",
-    "string",
-    "piano"
-  ]
+    "activist",
+    "journalist",
+    "reporter",
+    "assignment",
+    "stint",
+    "helm"
+  ],
+  "reasons": []
 }

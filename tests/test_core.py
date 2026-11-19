@@ -123,10 +123,10 @@ def test_levels_cover_easy_medium_hard():
     cfg = load_config()
     assert LEVELS == ("easy", "medium", "hard")
     # One set of rules for every day since 2026-11-16 (Nov 1-12 used to be
-    # top 100 with par 3/3/4): open top-10 ladders, Easy 4, Medium 5, Hard 6.
+    # top 100 with par 3/3/4): open top-10 ladders, Easy 3, Medium 4, Hard 5.
     assert len(cfg["rules"]) == 1
     for day in ("2026-11-01", "2026-11-12", "2026-11-13", None):
-        assert [level_band(lv, rules_for(cfg, day))["par"] for lv in LEVELS] == [4, 5, 6]
+        assert [level_band(lv, rules_for(cfg, day))["par"] for lv in LEVELS] == [3, 4, 5]
     easy = level_band("easy", rules_for(cfg, "2026-11-12"))
     assert easy["level"] == "easy" and easy["label"] == "Easy"
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
@@ -222,16 +222,16 @@ def test_closer_bands_refuse_wide_step_limits(ladder):
 
 # ---------------------------------------------------------------- real data
 # The live open-ladder rules from 2026-11-13 (top 10, links both ways, par
-# 4/5/6). The open-ladder tests below run on them.
+# 3/4/5). The open-ladder tests below run on them.
 OPEN_TOP10 = {
     "from": "2026-11-13", "stepLimit": 10, "twoWay": True,
     "excludeCandidates": "data/candidates_exclude_2026-11-13.json", "minPar": 3, "maxPar": 7,
     "levels": {
-        "easy": {"label": "Easy", "par": 4, "minRoutes": 1, "maxRoutes": 100000,
+        "easy": {"label": "Easy", "par": 3, "minRoutes": 1, "maxRoutes": 100000,
                  "minCloserFirstMoves": 3},
-        "medium": {"label": "Medium", "par": 5, "minRoutes": 1, "maxRoutes": 100000,
+        "medium": {"label": "Medium", "par": 4, "minRoutes": 1, "maxRoutes": 100000,
                    "minCloserFirstMoves": 3},
-        "hard": {"label": "Hard", "par": 6, "minRoutes": 1, "maxRoutes": 100000},
+        "hard": {"label": "Hard", "par": 5, "minRoutes": 1, "maxRoutes": 100000},
     },
 }
 
@@ -305,7 +305,7 @@ def test_seeded_puzzle_same_date_same_puzzle(ladder):
     assert first[2].ok and first[2].par == band["par"]
     # Each level of a day is an independent puzzle.
     hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert hard[:2] != first[:2] and hard[2].par == 6  # open top-10 two-way rules
+    assert hard[:2] != first[:2] and hard[2].par == 5  # open top-10 two-way rules
 
 
 def test_seeded_puzzles_match_fixture(ladder):

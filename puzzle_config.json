@@ -17,21 +17,27 @@
       "levels": {
         "easy": {
           "label": "Easy",
-          "par": 4,
+          "par": 3,
+          "acceptStart": 40,
+          "acceptStep": 5,
           "minRoutes": 1,
           "maxRoutes": 100000,
           "minCloserFirstMoves": 3
         },
         "medium": {
           "label": "Medium",
-          "par": 5,
+          "par": 4,
+          "acceptStart": 35,
+          "acceptStep": 5,
           "minRoutes": 1,
           "maxRoutes": 100000,
           "minCloserFirstMoves": 3
         },
         "hard": {
           "label": "Hard",
-          "par": 6,
+          "par": 5,
+          "acceptStart": 30,
+          "acceptStep": 4,
           "minRoutes": 1,
           "maxRoutes": 100000
         }

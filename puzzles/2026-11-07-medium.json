@@ -2,21 +2,21 @@
   "date": "2026-11-07",
   "gameNumber": 7,
   "level": "medium",
-  "start": "livestock",
-  "goal": "yacht",
-  "par": 5,
-  "theme": "Pastures to port",
-  "teaser": "Start with a moo and end with a view worth splashing out on.",
-  "source": "ai",
+  "start": "ingredient",
+  "goal": "champagne",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "livestock",
-    "sheep",
-    "shepherd",
-    "whaling",
-    "vessel",
-    "yacht"
-  ]
+    "ingredient",
+    "staple",
+    "bread",
+    "toast",
+    "champagne"
+  ],
+  "reasons": []
 }

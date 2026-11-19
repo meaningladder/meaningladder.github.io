@@ -2,21 +2,20 @@
   "date": "2026-11-10",
   "gameNumber": 10,
   "level": "easy",
-  "start": "hitter",
-  "goal": "vessel",
-  "par": 5,
-  "theme": "A sporting voyage",
-  "teaser": "A sporting double meaning could carry you into unexpected waters.",
-  "source": "ai",
+  "start": "beverage",
+  "goal": "consumer",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "hitter",
-    "inning",
-    "grounded",
-    "shuttles",
-    "docked",
-    "vessel"
-  ]
+    "beverage",
+    "packaging",
+    "product",
+    "consumer"
+  ],
+  "reasons": []
 }

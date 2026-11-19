@@ -2,9 +2,9 @@
   "date": "2026-11-17",
   "gameNumber": 17,
   "level": "medium",
-  "start": "songwriter",
-  "goal": "torpedo",
-  "par": 5,
+  "start": "feed",
+  "goal": "garbage",
+  "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,12 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "songwriter",
-    "comedian",
-    "jimmy",
-    "hayes",
-    "whitehead",
-    "torpedo"
+    "feed",
+    "eat",
+    "flesh",
+    "rotting",
+    "garbage"
   ],
   "reasons": []
 }

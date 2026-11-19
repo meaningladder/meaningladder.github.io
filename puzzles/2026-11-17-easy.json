@@ -2,9 +2,9 @@
   "date": "2026-11-17",
   "gameNumber": 17,
   "level": "easy",
-  "start": "mother",
-  "goal": "match",
-  "par": 4,
+  "start": "wheat",
+  "goal": "sauce",
+  "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,11 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "mother",
-    "sister",
-    "miss",
-    "play",
-    "match"
+    "wheat",
+    "corn",
+    "soy",
+    "sauce"
   ],
   "reasons": []
 }

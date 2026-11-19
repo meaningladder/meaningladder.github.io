@@ -2,21 +2,22 @@
   "date": "2026-11-11",
   "gameNumber": 11,
   "level": "hard",
-  "start": "door",
-  "goal": "kidney",
+  "start": "jacket",
+  "goal": "clubhouse",
   "par": 5,
-  "theme": "Picky about passage",
-  "teaser": "One lets you through; the other is much pickier about what gets to stay.",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "door",
-    "locking",
-    "mechanism",
-    "functioning",
-    "organs",
-    "kidney"
-  ]
+    "jacket",
+    "sleeve",
+    "tattoo",
+    "parlor",
+    "room",
+    "clubhouse"
+  ],
+  "reasons": []
 }

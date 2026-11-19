@@ -2,28 +2,21 @@
   "date": "2026-11-15",
   "gameNumber": 15,
   "level": "medium",
-  "start": "television",
-  "goal": "runway",
-  "par": 5,
-  "theme": "Broadcast to touchdown",
-  "teaser": "Tune in, lift off, and find a place to land!",
-  "source": "ai",
+  "start": "river",
+  "goal": "lemon",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "television",
-    "satellite",
-    "spacecraft",
-    "piloted",
-    "plane",
-    "runway"
+    "river",
+    "water",
+    "salt",
+    "pepper",
+    "lemon"
   ],
-  "reasons": [
-    "Television broadcasts can travel via satellite.",
-    "A satellite is a type of spacecraft.",
-    "Some spacecraft are piloted by astronauts.",
-    "A plane is piloted too.",
-    "A plane takes off from a runway."
-  ]
+  "reasons": []
 }

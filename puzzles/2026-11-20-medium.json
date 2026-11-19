@@ -2,9 +2,9 @@
   "date": "2026-11-20",
   "gameNumber": 20,
   "level": "medium",
-  "start": "rail",
-  "goal": "transplant",
-  "par": 5,
+  "start": "successor",
+  "goal": "limestone",
+  "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,12 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "rail",
-    "bus",
-    "ambulance",
-    "hospital",
-    "patients",
-    "transplant"
+    "successor",
+    "appoint",
+    "nominate",
+    "slate",
+    "limestone"
   ],
   "reasons": []
 }

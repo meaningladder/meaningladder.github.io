@@ -2,20 +2,21 @@
   "date": "2026-11-01",
   "gameNumber": 1,
   "level": "medium",
-  "start": "cocktail",
-  "goal": "pearl",
+  "start": "marble",
+  "goal": "dress",
   "par": 4,
-  "theme": "From clink to shimmer",
-  "teaser": "An evening out takes a surprisingly deep dive before coming back with something precious.",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "cocktail",
-    "champagne",
-    "cork",
-    "harbour",
-    "pearl"
-  ]
+    "marble",
+    "sculpted",
+    "silhouette",
+    "skirts",
+    "dress"
+  ],
+  "reasons": []
 }

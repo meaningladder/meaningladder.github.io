@@ -2,20 +2,20 @@
   "date": "2026-11-04",
   "gameNumber": 4,
   "level": "easy",
-  "start": "desk",
-  "goal": "cowboy",
-  "par": 4,
-  "theme": "From nine-to-five to yeehaw",
-  "teaser": "Your nine-to-five is about to get a whole lot wilder.",
-  "source": "ai",
+  "start": "historian",
+  "goal": "sculptor",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "desk",
-    "chairs",
-    "umbrellas",
-    "hats",
-    "cowboy"
-  ]
+    "historian",
+    "scholar",
+    "poet",
+    "sculptor"
+  ],
+  "reasons": []
 }

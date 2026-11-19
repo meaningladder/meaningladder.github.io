@@ -2,21 +2,21 @@
   "date": "2026-11-10",
   "gameNumber": 10,
   "level": "medium",
-  "start": "browser",
-  "goal": "curator",
-  "par": 5,
-  "theme": "Clicks to collections",
-  "teaser": "Begin with a little online exploring and end by deciding what deserves an exhibition.",
-  "source": "ai",
+  "start": "trash",
+  "goal": "elephant",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "browser",
-    "server",
-    "database",
-    "archive",
-    "museum",
-    "curator"
-  ]
+    "trash",
+    "waste",
+    "manure",
+    "dung",
+    "elephant"
+  ],
+  "reasons": []
 }

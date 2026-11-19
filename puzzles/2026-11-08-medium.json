@@ -2,22 +2,21 @@
   "date": "2026-11-08",
   "gameNumber": 8,
   "level": "medium",
-  "start": "candy",
-  "goal": "cruiser",
-  "par": 6,
-  "theme": "Sweet escape",
-  "teaser": "Unwrap a little adventure and see how far your sweet tooth can travel.",
-  "source": "ai",
+  "start": "glove",
+  "goal": "ear",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "candy",
-    "chocolate",
-    "cakes",
-    "steamed",
-    "sailed",
-    "sighted",
-    "cruiser"
-  ]
+    "glove",
+    "outstretched",
+    "fingers",
+    "eyes",
+    "ear"
+  ],
+  "reasons": []
 }

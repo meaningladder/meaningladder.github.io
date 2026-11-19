@@ -2,9 +2,9 @@
   "date": "2026-11-20",
   "gameNumber": 20,
   "level": "easy",
-  "start": "wife",
-  "goal": "rabbi",
-  "par": 4,
+  "start": "deer",
+  "goal": "friend",
+  "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,11 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "wife",
-    "woman",
-    "nun",
-    "priest",
-    "rabbi"
+    "deer",
+    "bear",
+    "teddy",
+    "friend"
   ],
   "reasons": []
 }

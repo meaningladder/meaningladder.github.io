@@ -2,21 +2,20 @@
   "date": "2026-11-05",
   "gameNumber": 5,
   "level": "easy",
-  "start": "bicycle",
-  "goal": "cannon",
-  "par": 5,
-  "theme": "Pedals to power",
-  "teaser": "How does a two-wheeled beginning end with a bang?",
-  "source": "ai",
+  "start": "junction",
+  "goal": "barrier",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "bicycle",
-    "bikes",
-    "tires",
-    "rubber",
-    "bullets",
-    "cannon"
-  ]
+    "junction",
+    "road",
+    "crossing",
+    "barrier"
+  ],
+  "reasons": []
 }

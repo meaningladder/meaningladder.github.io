@@ -2,20 +2,21 @@
   "date": "2026-11-02",
   "gameNumber": 2,
   "level": "medium",
-  "start": "ambulance",
-  "goal": "beetle",
+  "start": "edition",
+  "goal": "roof",
   "par": 4,
-  "theme": "Sirens to shells",
-  "teaser": "This urgent journey takes a surprisingly tiny turn.",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "ambulance",
-    "helicopter",
-    "cobra",
-    "viper",
-    "beetle"
-  ]
+    "edition",
+    "magazine",
+    "rolling",
+    "covered",
+    "roof"
+  ],
+  "reasons": []
 }

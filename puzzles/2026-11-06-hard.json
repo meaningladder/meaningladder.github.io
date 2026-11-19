@@ -2,21 +2,22 @@
   "date": "2026-11-06",
   "gameNumber": 6,
   "level": "hard",
-  "start": "fertilizer",
-  "goal": "eye",
+  "start": "fan",
+  "goal": "interpreter",
   "par": 5,
-  "theme": "From growth to sight",
-  "teaser": "Help something bloom, then see where it takes you.",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "fertilizer",
-    "nitrogen",
-    "nutrients",
-    "tissues",
-    "skin",
-    "eye"
-  ]
+    "fan",
+    "audience",
+    "listening",
+    "talking",
+    "speaking",
+    "interpreter"
+  ],
+  "reasons": []
 }

@@ -2,9 +2,9 @@
   "date": "2026-11-18",
   "gameNumber": 18,
   "level": "easy",
-  "start": "shower",
-  "goal": "edge",
-  "par": 4,
+  "start": "leg",
+  "goal": "boot",
+  "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,11 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "shower",
-    "meteor",
-    "crater",
-    "rim",
-    "edge"
+    "leg",
+    "thigh",
+    "heel",
+    "boot"
   ],
   "reasons": []
 }

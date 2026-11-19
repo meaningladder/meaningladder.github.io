@@ -2,21 +2,20 @@
   "date": "2026-11-08",
   "gameNumber": 8,
   "level": "easy",
-  "start": "empress",
-  "goal": "plane",
-  "par": 5,
-  "theme": "Royal takeoff",
-  "teaser": "A royal beginning takes an unexpectedly fluttery turn before soaring to the finish.",
-  "source": "ai",
+  "start": "spokesman",
+  "goal": "lawyer",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "empress",
-    "imperial",
-    "palace",
-    "residence",
-    "downing",
-    "plane"
-  ]
+    "spokesman",
+    "spokeswoman",
+    "publicist",
+    "lawyer"
+  ],
+  "reasons": []
 }

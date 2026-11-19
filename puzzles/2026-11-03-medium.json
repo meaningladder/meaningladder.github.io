@@ -2,20 +2,21 @@
   "date": "2026-11-03",
   "gameNumber": 3,
   "level": "medium",
-  "start": "hat",
-  "goal": "speedway",
+  "start": "tail",
+  "goal": "purse",
   "par": 4,
-  "theme": "Dressed for a dash",
-  "teaser": "Hold on to your hat: this journey is about to pick up speed!",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "hat",
-    "trick",
-    "win",
-    "race",
-    "speedway"
-  ]
+    "tail",
+    "feathers",
+    "beads",
+    "necklace",
+    "purse"
+  ],
+  "reasons": []
 }

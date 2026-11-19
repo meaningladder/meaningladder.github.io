@@ -2,21 +2,20 @@
   "date": "2026-11-09",
   "gameNumber": 9,
   "level": "easy",
-  "start": "runner",
-  "goal": "dress",
-  "par": 5,
-  "theme": "From athletics to fashion",
-  "teaser": "Start out chasing a personal best and finish looking your best.",
-  "source": "ai",
+  "start": "rabbit",
+  "goal": "crow",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "runner",
-    "winner",
-    "win",
-    "tie",
-    "matching",
-    "dress"
-  ]
+    "rabbit",
+    "squirrel",
+    "owl",
+    "crow"
+  ],
+  "reasons": []
 }

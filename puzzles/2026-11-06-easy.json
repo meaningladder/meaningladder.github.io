@@ -2,21 +2,20 @@
   "date": "2026-11-06",
   "gameNumber": 6,
   "level": "easy",
-  "start": "baton",
-  "goal": "bridge",
-  "par": 5,
-  "theme": "Wave Your Way Across",
-  "teaser": "Start with a wave of the hand and finish on the other side.",
-  "source": "ai",
+  "start": "warehouse",
+  "goal": "cottage",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "baton",
-    "wielding",
-    "knives",
-    "forks",
-    "river",
-    "bridge"
-  ]
+    "warehouse",
+    "shop",
+    "shack",
+    "cottage"
+  ],
+  "reasons": []
 }

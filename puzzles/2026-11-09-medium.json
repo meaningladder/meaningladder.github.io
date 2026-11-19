@@ -2,21 +2,21 @@
   "date": "2026-11-09",
   "gameNumber": 9,
   "level": "medium",
-  "start": "soundtrack",
-  "goal": "corn",
-  "par": 5,
-  "theme": "From scores to stalks",
-  "teaser": "Follow what you hear toward a finale that's fresh off the cob.",
-  "source": "ai",
+  "start": "chairman",
+  "goal": "student",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "soundtrack",
-    "album",
-    "jam",
-    "jelly",
-    "beans",
-    "corn"
-  ]
+    "chairman",
+    "chief",
+    "principal",
+    "teacher",
+    "student"
+  ],
+  "reasons": []
 }

@@ -2,21 +2,21 @@
   "date": "2026-11-11",
   "gameNumber": 11,
   "level": "medium",
-  "start": "mineral",
-  "goal": "throne",
-  "par": 5,
-  "theme": "Buried majesty",
-  "teaser": "Dig deep enough and you might find yourself fit for royalty.",
-  "source": "ai",
+  "start": "shelf",
+  "goal": "canyon",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "mineral",
-    "diamonds",
-    "gems",
-    "jewel",
-    "crown",
-    "throne"
-  ]
+    "shelf",
+    "ice",
+    "snow",
+    "mountain",
+    "canyon"
+  ],
+  "reasons": []
 }

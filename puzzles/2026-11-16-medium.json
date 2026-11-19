@@ -2,9 +2,9 @@
   "date": "2026-11-16",
   "gameNumber": 16,
   "level": "medium",
-  "start": "tail",
-  "goal": "sculptor",
-  "par": 5,
+  "start": "mask",
+  "goal": "cow",
+  "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,12 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "tail",
-    "fuselage",
-    "plywood",
-    "wood",
-    "carver",
-    "sculptor"
+    "mask",
+    "disguise",
+    "hides",
+    "animal",
+    "cow"
   ],
   "reasons": []
 }

@@ -2,21 +2,21 @@
   "date": "2026-11-04",
   "gameNumber": 4,
   "level": "medium",
-  "start": "paper",
-  "goal": "cricket",
-  "par": 5,
-  "theme": "rustle to chirp",
-  "teaser": "Can you turn something silent and flat into something worth chirping about?",
-  "source": "ai",
+  "start": "hotel",
+  "goal": "cinema",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "paper",
-    "newspaper",
-    "weekly",
-    "regular",
-    "fixture",
-    "cricket"
-  ]
+    "hotel",
+    "room",
+    "box",
+    "movie",
+    "cinema"
+  ],
+  "reasons": []
 }

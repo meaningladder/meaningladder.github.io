@@ -2,21 +2,22 @@
   "date": "2026-11-05",
   "gameNumber": 5,
   "level": "hard",
-  "start": "frost",
-  "goal": "nova",
+  "start": "statesman",
+  "goal": "winger",
   "par": 5,
-  "theme": "From chill to dazzle",
-  "teaser": "A chilly beginning leads to a finale you could spot from across the cosmos.",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "frost",
-    "rains",
-    "washed",
-    "ashore",
-    "coast",
-    "nova"
-  ]
+    "statesman",
+    "elder",
+    "son",
+    "boy",
+    "youngster",
+    "winger"
+  ],
+  "reasons": []
 }

@@ -2,19 +2,20 @@
   "date": "2026-11-07",
   "gameNumber": 7,
   "level": "easy",
-  "start": "chicken",
-  "goal": "tent",
+  "start": "cinema",
+  "goal": "photo",
   "par": 3,
-  "theme": "Dinner under the stars",
-  "teaser": "Take dinner outside, then see where you might stay!",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "chicken",
-    "taco",
-    "hut",
-    "tent"
-  ]
+    "cinema",
+    "film",
+    "picture",
+    "photo"
+  ],
+  "reasons": []
 }

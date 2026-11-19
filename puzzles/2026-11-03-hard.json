@@ -2,21 +2,22 @@
   "date": "2026-11-03",
   "gameNumber": 3,
   "level": "hard",
-  "start": "fish",
-  "goal": "fax",
+  "start": "suburb",
+  "goal": "oxygen",
   "par": 5,
-  "theme": "Underwater to office",
-  "teaser": "An underwater beginning ends with a very old-fashioned way to say hello.",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "fish",
-    "shrimp",
-    "mussels",
-    "zebra",
-    "finch",
-    "fax"
-  ]
+    "suburb",
+    "residential",
+    "complexes",
+    "compounds",
+    "chlorine",
+    "oxygen"
+  ],
+  "reasons": []
 }

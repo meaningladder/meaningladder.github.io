@@ -2,9 +2,9 @@
   "date": "2026-11-16",
   "gameNumber": 16,
   "level": "easy",
-  "start": "trail",
-  "goal": "plaza",
-  "par": 4,
+  "start": "field",
+  "goal": "footballer",
+  "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,11 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "trail",
-    "road",
-    "street",
-    "avenue",
-    "plaza"
+    "field",
+    "team",
+    "player",
+    "footballer"
   ],
   "reasons": []
 }

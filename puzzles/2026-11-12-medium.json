@@ -2,20 +2,21 @@
   "date": "2026-11-12",
   "gameNumber": 12,
   "level": "medium",
-  "start": "grandmother",
-  "goal": "rocket",
+  "start": "keyboard",
+  "goal": "building",
   "par": 4,
-  "theme": "Family countdown",
-  "teaser": "Buckle up: this family outing is about to leave Earth behind!",
-  "source": "ai",
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "grandmother",
-    "grandfather",
-    "teddy",
-    "atlas",
-    "rocket"
-  ]
+    "keyboard",
+    "keys",
+    "door",
+    "roof",
+    "building"
+  ],
+  "reasons": []
 }

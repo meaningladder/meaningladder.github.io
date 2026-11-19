@@ -2,21 +2,21 @@
   "date": "2026-11-05",
   "gameNumber": 5,
   "level": "medium",
-  "start": "grass",
-  "goal": "piano",
-  "par": 5,
-  "theme": "Green to grand",
-  "teaser": "Can something underfoot lead you to something played by hand?",
-  "source": "ai",
+  "start": "president",
+  "goal": "arm",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "grass",
-    "dirt",
-    "track",
-    "song",
-    "melody",
-    "piano"
-  ]
+    "president",
+    "chairman",
+    "chief",
+    "head",
+    "arm"
+  ],
+  "reasons": []
 }

@@ -2,9 +2,9 @@
   "date": "2026-11-18",
   "gameNumber": 18,
   "level": "medium",
-  "start": "loop",
-  "goal": "archive",
-  "par": 5,
+  "start": "purse",
+  "goal": "employee",
+  "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
   "source": "seeded",
@@ -12,12 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "loop",
-    "connects",
-    "accessed",
-    "downloaded",
-    "files",
-    "archive"
+    "purse",
+    "bag",
+    "baggage",
+    "attendant",
+    "employee"
   ],
   "reasons": []
 }

@@ -2,20 +2,22 @@
   "date": "2026-11-07",
   "gameNumber": 7,
   "level": "hard",
-  "start": "garment",
-  "goal": "chess",
-  "par": 4,
-  "theme": "Dressed for strategy",
-  "teaser": "Your opening look could lead to a winning move.",
-  "source": "ai",
+  "start": "crest",
+  "goal": "undergraduate",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "garment",
-    "clothing",
-    "jewelry",
-    "pawn",
-    "chess"
-  ]
+    "crest",
+    "coat",
+    "dress",
+    "prom",
+    "graduation",
+    "undergraduate"
+  ],
+  "reasons": []
 }

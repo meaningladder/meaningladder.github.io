@@ -2,20 +2,20 @@
   "date": "2026-11-12",
   "gameNumber": 12,
   "level": "easy",
-  "start": "turkey",
-  "goal": "spacecraft",
-  "par": 4,
-  "theme": "From feast to orbit",
-  "teaser": "Can a holiday favorite make it all the way to the stars?",
-  "source": "ai",
+  "start": "supervisor",
+  "goal": "pioneer",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
   "graphVersion": 1,
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "turkey",
-    "ready",
-    "preparing",
-    "launch",
-    "spacecraft"
-  ]
+    "supervisor",
+    "technician",
+    "engineer",
+    "pioneer"
+  ],
+  "reasons": []
 }
