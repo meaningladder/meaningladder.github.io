@@ -21,3 +21,14 @@ test("brief examples and RelatedTo", () => {
   assert.equal(linkClue("Synonym", null, "big"), "Means the same as big");
   assert.throws(() => linkClue("RelatedTo", null, "x"));
 });
+
+test("directions state true things", () => {
+  assert.equal(linkClue("ReceivesAction", false, "eat"), "Something you can eat");
+  assert.equal(linkClue("ReceivesAction", true, "cake"), "What you can do to cake");
+  assert.equal(linkClue("HasPrerequisite", false, "food"), "Something that needs food first");
+  assert.equal(linkClue("HasPrerequisite", true, "cook"), "What you need to cook");
+  assert.equal(linkClue("HasSubevent", false, "dance"), "Something during which dance happens");
+  assert.equal(linkClue("HasSubevent", true, "party"), "What happens during party");
+  assert.equal(linkClue("AtLocation", false, "roof"), "Something you find at roof");
+  assert.equal(linkClue("IsA", true, "historian"), "historian is a kind of this");
+});
