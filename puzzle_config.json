@@ -32,18 +32,18 @@
           "minLinkedSteps": 4,
           "acceptStart": 35,
           "acceptStep": 5,
-          "minRoutes": 1,
+          "minRoutes": 4,
           "maxRoutes": 100000,
           "minCloserFirstMoves": 3
         },
         "hard": {
           "label": "Hard",
-          "par": 5,
-          "minLinkedSteps": 5,
+          "par": 4,
+          "minLinkedSteps": 4,
           "acceptStart": 30,
           "acceptStep": 4,
           "minRoutes": 1,
-          "maxRoutes": 100000
+          "maxRoutes": 8
         }
       }
     }

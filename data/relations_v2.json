@@ -1,8 +1,9 @@
 {
   "version": 2,
   "layout": "directed",
+  "informativeFilter": "curated source, 2+ sources, or weight >= 2",
   "graphVersion": 1,
-  "count": 24289,
+  "count": 21946,
   "relations": [
     "IsA",
     "PartOf",
@@ -28,5 +29,5 @@
   "minWeight": 1.0,
   "source": "ConceptNet 5.7 assertions (https://conceptnet.io)",
   "license": "CC BY-SA 4.0",
-  "sha256": "48824645ebabf3f72bb62975029b733559a9a448b56da716859cc467bd555403"
+  "sha256": "f5757b0ecf1f0262937457c74265ac668d1c40fbdc01cd735a0da654631f4ccb"
 }

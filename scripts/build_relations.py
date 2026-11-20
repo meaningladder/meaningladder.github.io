@@ -44,6 +44,15 @@ RELATIONS = ["IsA", "PartOf", "HasA", "UsedFor", "AtLocation", "MadeOf", "Capabl
              "SimilarTo", "RelatedTo"]
 RANK = {r: i for i, r in enumerate(RELATIONS)}
 SYMMETRIC = {"Synonym", "SimilarTo", "LocatedNear", "RelatedTo"}
+CURATED = {"wordnet", "opencyc", "dbpedia"}  # dataset families trusted on their own
+FILTER = "curated source, 2+ sources, or weight >= 2"
+
+
+def keeps(rel: str, datasets: set, weight: float) -> bool:
+    """v2 only: a lone weight-1 Wiktionary/ConceptNet vote is often false
+    ("finger means toe"), so an informative relation needs a curated source,
+    two datasets agreeing, or weight >= 2. RelatedTo never becomes a clue."""
+    return rel == "RelatedTo" or bool(datasets & CURATED) or len(datasets) >= 2 or weight >= 2.0
 
 
 def main(path: str, version: int = 1) -> int:
@@ -61,8 +70,8 @@ def main(path: str, version: int = 1) -> int:
         parts = uri.split("/")  # /c/en/coffee[/n/...]
         return index.get(parts[3]) if len(parts) > 3 and parts[2] == "en" else None
 
-    best: dict[tuple[int, int], int] = {}
-    seen: dict[tuple[int, int], int] = {}  # bitmask of directions carrying best[key]
+    # (pair, relation) -> [direction bitmask, max weight, dataset families]
+    edges: dict[tuple[tuple[int, int], str], list] = {}
     with gzip.open(path, "rt", encoding="utf-8") as f:
         for line in f:
             _, rel, start, end, meta = line.rstrip("\n").split("\t")
@@ -73,12 +82,22 @@ def main(path: str, version: int = 1) -> int:
             if a is None or b is None or a == b:
                 continue
             key = (min(a, b), max(a, b))
-            if key not in near or json.loads(meta).get("weight", 1.0) < MIN_WEIGHT:
+            if key not in near:
                 continue
-            if key not in best or RANK[rel] < best[key]:
-                best[key], seen[key] = RANK[rel], 0
-            if RANK[rel] == best[key]:
-                seen[key] |= 1 << (a != key[0])  # bit0: u->v, bit1: v->u
+            m = json.loads(meta)
+            if m.get("weight", 1.0) < MIN_WEIGHT:
+                continue
+            e = edges.setdefault((key, rel), [0, 0.0, set()])
+            e[0] |= 1 << (a != key[0])  # bit0: u->v, bit1: v->u
+            e[1] = max(e[1], m.get("weight", 1.0))
+            e[2].add(m.get("dataset", "///").split("/")[2])  # "/d/wordnet/3.1" -> "wordnet"
+    best: dict[tuple[int, int], int] = {}
+    seen: dict[tuple[int, int], int] = {}  # bitmask of directions carrying best[key]
+    for (key, rel), (mask, w, ds) in edges.items():
+        if version >= 2 and not keeps(rel, ds, w):
+            continue
+        if key not in best or RANK[rel] < best[key]:
+            best[key], seen[key] = RANK[rel], mask
 
     pairs = sorted(best)
     arr = np.asarray(pairs, dtype="<u2").reshape(-1, 2)
@@ -89,7 +108,7 @@ def main(path: str, version: int = 1) -> int:
         sym = [RELATIONS[best[p]] in SYMMETRIC or seen[p] == 3 for p in pairs]
         dirs = np.asarray([2 if s else seen[p] - 1 for p, s in zip(pairs, sym)], dtype="u1")
         blob += dirs.tobytes()
-        extra = {"layout": "directed"}
+        extra = {"layout": "directed", "informativeFilter": FILTER}
         print("directions (u->v, v->u, symmetric):", np.bincount(dirs, minlength=3).tolist())
     (ROOT / "data" / f"relations_v{version}.bin").write_bytes(blob)
     header = {"version": version, **extra, "graphVersion": v, "count": len(pairs), "relations": RELATIONS,

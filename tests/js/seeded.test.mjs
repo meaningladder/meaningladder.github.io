@@ -44,7 +44,7 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   for (const d of ["2026-11-01", "2026-11-12", "2026-11-13", null]) {
     assert.equal(rulesFor(config, d).stepLimit, 10);
     assert.equal(rulesFor(config, d).twoWay, true);
-    assert.equal(rulesFor(config, d).levels.hard.par, 5);
+    assert.equal(rulesFor(config, d).levels.hard.par, 4);
   }
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);

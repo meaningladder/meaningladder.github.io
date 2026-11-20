@@ -98,10 +98,10 @@ def test_no_ai_is_seeded_and_deterministic(ladder):
 
 
 def test_puzzles_follow_their_dates_rules(ladder):
-    """Every day is an open ladder, top 10 both ways, par 3/4/5 (Nov 1-12
+    """Every day is an open ladder, top 10 both ways, par 3/4/4 (Nov 1-12
     moved off the top-100 rules on 2026-11-16)."""
     for day in (date(2026, 11, 1), date(2026, 11, 12), date(2026, 11, 13), date(2026, 11, 15)):
-        for level, par in (("easy", 3), ("medium", 4), ("hard", 5)):
+        for level, par in (("easy", 3), ("medium", 4), ("hard", 4)):
             p = make_puzzle(ladder, day, level, set(), None, quiet)
             assert "mode" not in p and (p["stepLimit"], p["par"], p["twoWay"]) == (10, par, True)
 

@@ -122,10 +122,10 @@ def test_levels_cover_easy_medium_hard():
     cfg = load_config()
     assert LEVELS == ("easy", "medium", "hard")
     # One set of rules for every day since 2026-11-16 (Nov 1-12 used to be
-    # top 100 with par 3/3/4): open top-10 ladders, Easy 3, Medium 4, Hard 5.
+    # top 100 with par 3/3/4): open top-10 ladders, Easy 3, Medium 4, Hard 4.
     assert len(cfg["rules"]) == 1
     for day in ("2026-11-01", "2026-11-12", "2026-11-13", None):
-        assert [level_band(lv, rules_for(cfg, day))["par"] for lv in LEVELS] == [3, 4, 5]
+        assert [level_band(lv, rules_for(cfg, day))["par"] for lv in LEVELS] == [3, 4, 4]
     easy = level_band("easy", rules_for(cfg, "2026-11-12"))
     assert easy["level"] == "easy" and easy["label"] == "Easy"
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
@@ -306,7 +306,7 @@ def test_seeded_linked_puzzle_same_seed_same_puzzle(ladder):
     assert first["par"] == band["par"] == band["minLinkedSteps"]
     # Each level of a day is an independent puzzle.
     hard = seeded_linked_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert (hard["start"], hard["goal"]) != (first["start"], first["goal"]) and hard["par"] == 5
+    assert (hard["start"], hard["goal"]) != (first["start"], first["goal"]) and hard["par"] == 4
     for p, lv in ((first, "medium"), (hard, "hard")):
         v = validate_pair(ladder, p["start"], p["goal"], level_band(lv, ladder.config))
         assert v.ok and (v.par, v.routes) == (p["par"], p["routes"])
@@ -457,8 +457,8 @@ def test_relations_file_is_consistent(ladder):
     import hashlib
     from ladder_core import REL_KEY
 
-    head = json.loads((ROOT / "data" / "relations_v1.json").read_text(encoding="utf-8"))
-    blob = (ROOT / "data" / "relations_v1.bin").read_bytes()
+    head = json.loads((ROOT / "data" / "relations_v2.json").read_text(encoding="utf-8"))
+    blob = (ROOT / "data" / "relations_v2.bin").read_bytes()
     assert hashlib.sha256(blob).hexdigest() == head["sha256"]
     assert head["license"] == "CC BY-SA 4.0" and len(ladder.related) == head["count"]
     full = ladder.full_neighbors
@@ -478,18 +478,34 @@ def _read_relations(n):
     return head, blob, pairs, labels, dirs
 
 
-def test_relations_v2_adds_only_direction():
+def test_relations_v2_is_a_filtered_subset_of_v1():
     import hashlib
-    import numpy as np
-    h1, _, p1, l1, _ = _read_relations(1)
+    h1, _, p1, _, _ = _read_relations(1)
     h2, blob, p2, l2, d2 = _read_relations(2)
+    assert h1.get("layout") is None and "informativeFilter" not in h1
     assert h2["layout"] == "directed" and len(blob) == 6 * h2["count"]
+    assert h2["informativeFilter"] == "curated source, 2+ sources, or weight >= 2"
     assert hashlib.sha256(blob).hexdigest() == h2["sha256"]
     assert h2["relations"] == h1["relations"]
-    assert (p1 == p2).all() and (l1 == l2).all() and set(d2.tolist()) <= {0, 1, 2}
+    assert set(map(tuple, p2.tolist())) <= set(map(tuple, p1.tolist())) and set(d2.tolist()) <= {0, 1, 2}
     rels = h2["relations"]
     sym = {"Synonym", "SimilarTo", "LocatedNear", "RelatedTo"}
     assert all(d == 2 for r, d in zip(l2, d2) if rels[r] in sym)
+
+
+def test_relations_v2_drops_weak_informative_links(ladder):
+    from ladder_core import INFORMATIVE, load_relations, rel_key
+    got = load_relations(ROOT, 2)
+
+    def rel(a, b):
+        hit = got.get(rel_key(ladder.index[a], ladder.index[b]))
+        return hit and hit[0]
+    for a, b in [("finger", "toe"), ("use", "tool"), ("mouth", "river"), ("finger", "nose"), ("road", "bridge")]:
+        assert rel(a, b) not in INFORMATIVE, (a, b)
+    assert rel("leaf", "tree") == "PartOf" and rel("golfer", "athlete") == "IsA"
+    for a, b in [("toe", "foot"), ("cargo", "ship"), ("tongue", "mouth"), ("oak", "tree"),
+                 ("auto", "car"), ("actor", "movie")]:
+        assert rel(a, b) in INFORMATIVE, (a, b)
 
 
 def test_relations_v2_ladder_roof_direction(ladder):

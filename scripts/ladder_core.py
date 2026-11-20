@@ -470,7 +470,7 @@ def incoming_words(ladder: "Ladder", goals: list[str], limit: int = 10) -> dict[
 
 
 def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = frozenset(),
-              starts: int = 12, per_start: int = 3) -> list[tuple[str, str, int]]:
+              starts: int = 40, per_start: int = 3) -> list[tuple[str, str, int]]:
     """Pairs that already satisfy today's band, for the AI to choose from.
 
     The AI can't see our graph, so on hard days (par 4 with a narrow route

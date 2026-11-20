@@ -51,30 +51,30 @@
       "level": "easy",
       "stepLimit": 10,
       "gameNumber": 13,
-      "start": "nose",
-      "goal": "foot",
+      "start": "basement",
+      "goal": "lock",
       "par": 3,
-      "routes": 9
+      "routes": 5
     },
     {
       "date": "2026-11-13",
       "level": "medium",
       "stepLimit": 10,
       "gameNumber": 13,
-      "start": "desk",
-      "goal": "surface",
+      "start": "egg",
+      "goal": "shark",
       "par": 4,
-      "routes": 13
+      "routes": 8
     },
     {
       "date": "2026-11-13",
       "level": "hard",
       "stepLimit": 10,
       "gameNumber": 13,
-      "start": "tongue",
-      "goal": "track",
-      "par": 5,
-      "routes": 17
+      "start": "head",
+      "goal": "stomach",
+      "par": 4,
+      "routes": 6
     },
     {
       "date": "2027-03-14",
@@ -91,10 +91,10 @@
       "level": "medium",
       "stepLimit": 10,
       "gameNumber": 134,
-      "start": "drill",
-      "goal": "tool",
+      "start": "air",
+      "goal": "yacht",
       "par": 4,
-      "routes": 12
+      "routes": 32
     },
     {
       "date": "2027-03-14",
@@ -102,9 +102,9 @@
       "stepLimit": 10,
       "gameNumber": 134,
       "start": "backdrop",
-      "goal": "tent",
-      "par": 5,
-      "routes": 9
+      "goal": "canvas",
+      "par": 4,
+      "routes": 5
     },
     {
       "date": "2028-02-29",
@@ -131,10 +131,10 @@
       "level": "hard",
       "stepLimit": 10,
       "gameNumber": 486,
-      "start": "golfer",
-      "goal": "auto",
-      "par": 5,
-      "routes": 18
+      "start": "patron",
+      "goal": "girlfriend",
+      "par": 4,
+      "routes": 8
     }
   ]
 }
