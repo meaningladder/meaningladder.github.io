@@ -1045,7 +1045,7 @@ function playView(ladder, state, saveKey, date, classic = "") {
   function bestRoute(from) {
     const k = fileRoute ? fileRoute.indexOf(from) : -1;
     if (k >= 0) return fileRoute.slice(k);
-    return guideRoute(ladder.neighbors, dist, ladder.related, from)
+    return guideRoute(ladder.neighbors, dist, ladder.linked, from)
       ?? bottleneckRoute(ladder.neighbors, dist, from)?.route ?? null;
   }
 

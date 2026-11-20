@@ -19,6 +19,7 @@
         "easy": {
           "label": "Easy",
           "par": 3,
+          "minLinkedSteps": 3,
           "acceptStart": 40,
           "acceptStep": 5,
           "minRoutes": 1,
@@ -28,6 +29,7 @@
         "medium": {
           "label": "Medium",
           "par": 4,
+          "minLinkedSteps": 4,
           "acceptStart": 35,
           "acceptStep": 5,
           "minRoutes": 1,
@@ -37,6 +39,7 @@
         "hard": {
           "label": "Hard",
           "par": 5,
+          "minLinkedSteps": 5,
           "acceptStart": 30,
           "acceptStep": 4,
           "minRoutes": 1,

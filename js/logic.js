@@ -911,7 +911,8 @@ export function checkedRoute(route, puzzle, ladder, dist) {
 
 // ------------------------------------------------------------ guide route
 // A shortest route (each step one closer, via `dist`) with the most steps
-// that are ConceptNet relations (`related`: a Set of relKey pairs); ties go
+// that are informative ConceptNet links (`related`: a Set of relKey pairs,
+// normally ladder.linked); ties go
 // to the more similar neighbor. Par is kept, so following it still earns
 // gold; it just reads better (cafe, restaurant, grill, stove, kerosene,
 // fuel). Word indexes including both ends, or null.

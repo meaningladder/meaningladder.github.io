@@ -25,12 +25,10 @@ def ladder():
 @pytest.fixture(scope="module")
 def good_pair(ladder):
     """Find a real pair that fits Tuesday's band, to feed the fake AI."""
-    band = level_band(LEVEL, ladder.config)
-    for s in ladder.candidates[:60]:
-        for g in ladder.candidates[-60:]:
-            if validate_pair(ladder, s, g, band).ok:
-                return s, g
-    pytest.skip("no Tuesday pair found in the sample")
+    from ladder_core import seeded_linked_puzzle
+
+    p = seeded_linked_puzzle(ladder, "good-pair", level_band(LEVEL, ladder.config))
+    return p["start"], p["goal"]
 
 
 class FakeClient:

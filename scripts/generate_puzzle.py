@@ -26,7 +26,7 @@ from ladder_core import (
     load_ladder,
     parse_date,
     seed_base,
-    seeded_puzzle,
+    seeded_linked_puzzle,
     wants_closer,
 )
 
@@ -70,8 +70,8 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         if client_factory is None:
             raise AIUnavailable("AI disabled (--no-ai)")
         pair, verdict = ai_puzzle(ladder, date_str, band, recent, client_factory(), log)
-        start, goal, theme, teaser, source = (pair.start, pair.goal, pair.theme.strip(),
-                                              pair.teaser.strip(), "ai")
+        start, goal, par, theme, teaser, source = (pair.start, pair.goal, verdict.par, pair.theme.strip(),
+                                                   pair.teaser.strip(), "ai")
         reasons = pair.reasons
     except (AIUnavailable, openai.OpenAIError) as e:
         # OpenAIError is the base class of every SDK error: network, 429, 401, 5xx...
@@ -79,10 +79,9 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         if client_factory is not None and os.environ.get("GITHUB_ACTIONS"):
             # Shows as a yellow annotation on the workflow run page.
             print(f"::warning title=Seeded fallback for {date_str} {level}::{type(e).__name__}: {e}")
-        start, goal, verdict, attempt = seeded_puzzle(ladder, seed_base(date_str, level), band)
-        log(f"  seeded attempt {attempt}: {start} -> {goal} "
-            f"(par {verdict.par}, {verdict.routes} routes"
-            f"{f', {verdict.closer} closer first moves' if closer else ''})")
+        p = seeded_linked_puzzle(ladder, seed_base(date_str, level), band)
+        start, goal, par = p["start"], p["goal"], p["par"]
+        log(f"  seeded: {start} -> {goal} (par {par}, {p['routes']} routes)")
 
     return {
         "date": date_str,
@@ -90,7 +89,7 @@ def make_puzzle(ladder: Ladder, day: date, level: str, recent: set[str], client_
         "level": level,
         "start": start,
         "goal": goal,
-        "par": verdict.par,
+        "par": par,
         "theme": theme,
         "teaser": teaser,
         "source": source,

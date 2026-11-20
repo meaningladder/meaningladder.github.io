@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chainPuzzle, ladderAt } from "../../js/data.js";
 import { buildReverse, chainHint, chainLetters, chainStart, chainSubmit, distancesToGoal } from "../../js/logic.js";
-import { excludedWords, relKey } from "../../js/seeded.js";
+import { excludedWords, informativeKeys, relKey } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -16,15 +16,15 @@ function realLadder() {
   const config = readJson("puzzle_config.json");
   const v = config.graphVersion;
   const graph = readJson(`data/graph_v${v}.json`);
-  const relHead = readJson(`data/relations_v${v}.json`);
-  const relBin = readFileSync(root + `data/relations_v${v}.bin`);
-  const related = new Set();
-  for (let i = 0; i < relHead.count; i++) related.add(relKey(relBin.readUInt16LE(4 * i), relBin.readUInt16LE(4 * i + 2)));
+  const relHead = readJson(`data/relations_v${config.relations}.json`);
+  const relBin = readFileSync(root + `data/relations_v${config.relations}.bin`);
+  const n = relHead.count, related = new Map(); // direction left out: only the relation names matter here
+  for (let i = 0; i < n; i++) related.set(relKey(relBin.readUInt16LE(4 * i), relBin.readUInt16LE(4 * i + 2)), { rel: relHead.relations[relBin[4 * n + i]] });
   const paths = [...new Set(config.rules.map((e) => e.excludeCandidates).filter(Boolean))];
   const base = {
     words: graph.words, index: new Map(graph.words.map((w, i) => [w, i])), neighbors: graph.neighbors,
     complete: true, candidates: readJson(`data/candidates_v${v}.json`).words,
-    exclusions: new Map(paths.map((p) => [p, excludedWords(readJson(p))])), config, related, views: new Map(),
+    exclusions: new Map(paths.map((p) => [p, excludedWords(readJson(p))])), config, related, linked: informativeKeys(related), views: new Map(),
     removed: config.removedSteps ? excludedWords(readJson(config.removedSteps)) : new Set(),
   };
   return ladderAt(base, null);

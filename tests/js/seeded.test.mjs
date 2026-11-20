@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { puzzleFile } from "../../js/seeded.js";
-import { bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, dropSteps, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, levelBand, mulberry32, relKey, rulesFor, seedBase, seededPuzzle } from "../../js/seeded.js";
+import { bfsAll, bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, dropSteps, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, INFORMATIVE, levelBand, linkedFrom, linkedSteps, mulberry32, relKey, rulesFor, seedBase, seededLinkedPuzzle, seededPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -76,38 +76,56 @@ test("bfsRouteStats counts first moves that begin a shortest route, like Python"
   assert.ok(closerFits({}, 0));
 });
 
-test("seeded puzzles and game numbers match Python for every fixture date and level", () => {
+// The newest rules' ladder, built the way js/data.js builds a view, with
+// the informative links (ladder.linked) read from the config's relations file.
+function liveLadder(dateStr) {
   const config = readJson("puzzle_config.json");
   const graph = readJson(`data/graph_v${config.graphVersion}.json`);
   const index = new Map(graph.words.map((w, i) => [w, i]));
   const candidates = readJson(`data/candidates_v${config.graphVersion}.json`).words;
-  const cut = new Map(); // one cut graph per step limit
   const removed = config.removedSteps ? excludedWords(readJson(config.removedSteps)) : new Set();
-  // ConceptNet pairs, read the way js/data.js reads them (newer eras need them).
-  const relHead = readJson(`data/relations_v${config.graphVersion}.json`);
-  const relBin = readFileSync(root + `data/relations_v${config.graphVersion}.bin`);
-  const related = new Set();
-  for (let i = 0; i < relHead.count; i++) related.add(relKey(relBin.readUInt16LE(4 * i), relBin.readUInt16LE(4 * i + 2)));
+  const rules = rulesFor(config, dateStr);
+  const gone = new Set([...removed].map((w) => index.get(w)));
+  const neighbors = dropSteps(twoWayNeighbors(graph.neighbors, rules.stepLimit), gone);
+  const excluded = new Set([...(rules.excludeCandidates ? excludedWords(readJson(rules.excludeCandidates)) : []), ...removed]);
+  const relHead = readJson(`data/relations_v${config.relations}.json`);
+  const relBin = readFileSync(root + `data/relations_v${config.relations}.bin`);
+  const n = relHead.count, linked = new Set();
+  for (let i = 0; i < n; i++) {
+    if (INFORMATIVE.has(relHead.relations[relBin[4 * n + i]])) linked.add(relKey(relBin.readUInt16LE(4 * i), relBin.readUInt16LE(4 * i + 2)));
+  }
+  return { config, ladder: { words: graph.words, index, neighbors, candidates: candidatePool(candidates, excluded), config: rules, linked } };
+}
+const live = liveLadder(null);
+
+test("seeded linked puzzles and game numbers match Python for every fixture seed", () => {
+  const { config } = live;
   for (const p of fixture.puzzles) {
     const rules = rulesFor(config, p.date);
     assert.equal(rules.stepLimit, p.stepLimit, `${p.date} step limit`);
-    const key = `${rules.stepLimit}|${Boolean(rules.twoWay)}`;
-    const gone = new Set([...removed].map((w) => index.get(w)));
-    if (!cut.has(key)) cut.set(key, dropSteps(rules.twoWay ? twoWayNeighbors(graph.neighbors, rules.stepLimit)
-      : cutNeighbors(graph.neighbors, rules.stepLimit), gone));
-    // Same pool rule as js/data.js viewOf and Python's ladder_view.
-    const excluded = new Set([...(rules.excludeCandidates ? excludedWords(readJson(rules.excludeCandidates)) : []), ...removed]);
-    const pool = excluded.size ? candidatePool(candidates, excluded) : candidates;
-    const ladder = { index, neighbors: cut.get(key), candidates: pool, config: rules, related };
-    const band = levelBand(p.level, rules);
+    assert.deepEqual(rules, live.ladder.config, "one era: the fixture dates share the live view");
     assert.equal(gameNumber(p.date, config.launchDate), p.gameNumber, p.date);
-    const got = seededPuzzle(ladder, seedBase(p.date, p.level), band);
-    assert.deepEqual(
-      [got.start, got.goal, got.par, got.routes, got.closer, got.attempt],
-      [p.start, p.goal, p.par, p.routes, p.closer, p.attempt],
-      `${p.date} ${p.level}`,
-    );
+    const got = seededLinkedPuzzle(live.ladder, seedBase(p.date, p.level), levelBand(p.level, rules));
+    assert.deepEqual(got, { start: p.start, goal: p.goal, par: p.par, routes: p.routes }, `${p.date} ${p.level}`);
   }
+});
+
+test("seededLinkedPuzzle: every level fully linked, Hard in under 1 s", () => {
+  const { ladder } = live;
+  for (const level of ["easy", "medium", "hard"]) {
+    const band = levelBand(level, ladder.config);
+    const t0 = performance.now();
+    const got = seededLinkedPuzzle(ladder, `speed-${level}`, band);
+    const ms = performance.now() - t0;
+    if (level === "hard") assert.ok(ms < 1000, `Hard took ${ms.toFixed(0)} ms`);
+    const [s, g] = [ladder.index.get(got.start), ladder.index.get(got.goal)];
+    assert.equal(got.par, band.par);
+    assert.equal(linkedSteps(ladder.neighbors, ladder.linked, s, g, got.par), got.par, level);
+    // linkedFrom (all goals) agrees with linkedSteps (one goal).
+    const { dist } = bfsAll(ladder.neighbors, s, got.par);
+    assert.equal(linkedFrom(ladder.neighbors, ladder.linked, s, dist)[g], got.par);
+  }
+  assert.throws(() => seededLinkedPuzzle(ladder, "x", { ...levelBand("easy", ladder.config), maxRoutes: 0 }), /no linked puzzle/);
 });
 
 test("inDegrees counts legal steps into each word, and seededPuzzle skips thin goals", () => {

@@ -18,7 +18,6 @@ from ladder_core import (
     load_config,
     load_ladder,
     mulberry32,
-    seeded_puzzle,
     seeded_sample,
     validate_pair,
 )
@@ -297,26 +296,57 @@ def test_era_exclusion_file_is_up_to_date():
     assert {"billy", "bobby", "ben", "amir"} <= set(obj["categories"]["name_neighbors"])
 
 
-def test_seeded_puzzle_same_date_same_puzzle(ladder):
+def test_seeded_linked_puzzle_same_seed_same_puzzle(ladder):
+    from ladder_core import guide_route, rel_key, seeded_linked_puzzle
+
+    ladder = ladder.at(None)  # the live rules: every step linked
     band = level_band("medium", ladder.config)
-    first = seeded_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
-    second = seeded_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
-    assert first[:2] == second[:2]
-    assert first[2].ok and first[2].par == band["par"]
+    first = seeded_linked_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
+    assert first == seeded_linked_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
+    assert first["par"] == band["par"] == band["minLinkedSteps"]
     # Each level of a day is an independent puzzle.
-    hard = seeded_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert hard[:2] != first[:2] and hard[2].par == 5  # open top-10 two-way rules
+    hard = seeded_linked_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
+    assert (hard["start"], hard["goal"]) != (first["start"], first["goal"]) and hard["par"] == 5
+    for p, lv in ((first, "medium"), (hard, "hard")):
+        v = validate_pair(ladder, p["start"], p["goal"], level_band(lv, ladder.config))
+        assert v.ok and (v.par, v.routes) == (p["par"], p["routes"])
+        # The route a puzzle file stores has an informative link on every step.
+        route = guide_route(ladder.neighbors, ladder.linked, ladder.index[p["start"]], ladder.index[p["goal"]])
+        assert len(route) == p["par"] + 1
+        assert all(ladder.related[rel_key(a, b)][0] != "RelatedTo" for a, b in zip(route, route[1:]))
+
+
+def test_seeded_linked_puzzle_fails_loudly(ladder, monkeypatch):
+    import ladder_core
+    from ladder_core import seeded_linked_puzzle
+
+    monkeypatch.setattr(ladder_core, "LINKED_GIVE_UP", 3)  # 300 full BFS runs take ~45 s
+    with pytest.raises(RuntimeError, match="no linked puzzle"):
+        seeded_linked_puzzle(ladder, "x", {**level_band("hard", ladder.config), "par": 9})
 
 
 def test_seeded_puzzles_match_fixture(ladder):
+    from ladder_core import seeded_linked_puzzle
+
     fx = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    for p in fx["puzzles"][3:6]:  # Nov 12, top 100; the full list runs in the JS test
+    for p in fx["puzzles"][:3]:  # the full list runs in the JS test
         dated = ladder.at(p["date"])
-        assert dated.config["stepLimit"] == p["stepLimit"]
-        start, goal, verdict, attempt = seeded_puzzle(
-            dated, seed_base(p["date"], p["level"]), level_band(p["level"], dated.config))
-        assert (start, goal, verdict.par, attempt) == (p["start"], p["goal"], p["par"],
-                                                       p["attempt"])
+        got = seeded_linked_puzzle(dated, seed_base(p["date"], p["level"]), level_band(p["level"], dated.config))
+        assert got == {k: p[k] for k in ("start", "goal", "par", "routes")}
+
+
+def test_validate_pair_needs_an_informative_link_on_every_step(ladder):
+    """abbey -> priest is par 3 with ConceptNet links on all 3 steps of some
+    shortest route, but one is RelatedTo, which a clue can't explain."""
+    from ladder_core import bfs_all, linked_from, linked_steps
+
+    ladder = ladder.at(None)
+    s, g = ladder.index["abbey"], ladder.index["priest"]
+    dist = bfs_all(ladder.neighbors, s)[0]
+    assert dist[g] == 3 and linked_from(ladder.neighbors, ladder.related, s, dist)[g] == 3
+    assert linked_steps(ladder.neighbors, ladder.linked, s, g, 3) == 2
+    v = validate_pair(ladder, "abbey", "priest", level_band("easy", ladder.config))
+    assert not v.ok and "2 linked steps" in v.reason
 
 
 def test_bfs_all_matches_pairwise_bfs():

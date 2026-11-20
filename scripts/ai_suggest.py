@@ -93,8 +93,8 @@ INCOMING_SHOWN = 10  # enough to reveal a sense, short enough to keep the prompt
 
 def _pair_listing(ladder: Ladder, start: str, goal: str, incoming: list[str]) -> str:
     s, g = ladder.index[start], ladder.index[goal]
-    if ladder.related and ladder.config.get("twoWay"):  # the route the game will show
-        route = guide_route(ladder.neighbors, ladder.related, s, g)
+    if ladder.linked and ladder.config.get("twoWay"):  # the route the game will show
+        route = guide_route(ladder.neighbors, ladder.linked, s, g)
         hops = [f" -[{ladder.related[rel_key(a, b)][0]}]-> " if rel_key(a, b) in ladder.related else " -> "
                 for a, b in zip(route, route[1:])]
         text = ladder.words[route[0]] + "".join(hop + ladder.words[b] for hop, b in zip(hops, route[1:]))
@@ -193,12 +193,12 @@ def check_text(field: str, text: str, max_len: int) -> str | None:
 
 def shown_route(ladder: Ladder, start: str, goal: str) -> list[str]:
     """The route the game shows for this pair: a shortest route with the most
-    ConceptNet-relation steps (guide_route), else any shortest route."""
+    informative-link steps (guide_route), else any shortest route."""
     s, g = ladder.index[start], ladder.index[goal]
     # guide_route searches from the goal, which needs links that work both
     # ways; one-way eras (before Nov 13) get a plain shortest route.
-    two_way = ladder.related and ladder.config.get("twoWay")
-    route = (guide_route(ladder.neighbors, ladder.related, s, g) if two_way
+    two_way = ladder.linked and ladder.config.get("twoWay")
+    route = (guide_route(ladder.neighbors, ladder.linked, s, g) if two_way
              else shortest_route(ladder.neighbors, s, g))
     return [ladder.words[i] for i in route]
 

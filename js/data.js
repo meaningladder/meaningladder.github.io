@@ -1,6 +1,6 @@
 // Loading data over the network, and saving progress in the browser.
 import { buildReverse, distancesToGoal, guideRoute } from "./logic.js";
-import { ACCEPT_WIDTH, DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, dropSteps, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, levelBand, mulberry32, patternRivals, puzzleFile, rulesFor, seedBase, seededPuzzle } from "./seeded.js";
+import { ACCEPT_WIDTH, DEFAULT_STEP_LIMIT, LEVELS, candidatePool, cutNeighbors, dropSteps, relKey, twoWayNeighbors, excludedWords, gameNumber, inDegrees, informativeKeys, levelBand, mulberry32, patternRivals, puzzleFile, rulesFor, seedBase, seededLinkedPuzzle } from "./seeded.js";
 
 async function getJson(url) {
   const res = await fetch(url, { cache: "no-cache" }); // revalidate; puzzles appear daily
@@ -81,7 +81,8 @@ export function loadLadder() {
       // Words no ladder may use (config "removedSteps"): junk and obscure words.
       removed: removedFile ? excludedWords(removedFile) : new Set(),
       config,
-      related, // ConceptNet pairs (relKey): choose and show routes, never judge steps
+      related, // ConceptNet pairs (relKey -> {rel, from}): clue text, never judge steps
+      linked: informativeKeys(related), // the pairs a clue can explain: what routes count
       views: new Map(),
     };
     let tailPromise = null;
@@ -197,7 +198,7 @@ export async function loadDailyPuzzle(base, dateStr, level) {
   } catch (err) {
     if (err.status !== 404) console.warn("Couldn't load puzzle file; using the seeded puzzle.", err);
   }
-  const s = seededPuzzle(ladder, seedBase(dateStr, level), levelBand(level, config));
+  const s = seededLinkedPuzzle(ladder, seedBase(dateStr, level), levelBand(level, config));
   return {
     date: dateStr, level,
     gameNumber: gameNumber(dateStr, config.launchDate),
@@ -225,10 +226,10 @@ export function chainPuzzle(ladder, level, seed) {
   const band = levelBand(level, ladder.config);
   let best = null;
   for (let attempt = 0; attempt < 20 && !(best?.rivals === 0); attempt++) {
-    const s = seededPuzzle(ladder, `practice-${Math.floor(rand() * 2 ** 32)}`, band);
+    const s = seededLinkedPuzzle(ladder, `practice-${Math.floor(rand() * 2 ** 32)}`, band);
     const goal = ladder.index.get(s.goal);
     const dist = distancesToGoal(ladder.reverse, ladder.words.length, goal);
-    const route = guideRoute(ladder.neighbors, dist, ladder.related, ladder.index.get(s.start));
+    const route = guideRoute(ladder.neighbors, dist, ladder.linked, ladder.index.get(s.start));
     let rivals = 0;
     const shown = [], hintOrder = [];
     for (let k = 1; k < route.length - 1; k++) {

@@ -17,6 +17,7 @@ MASK32 = 0xFFFFFFFF
 LEVELS = ("easy", "medium", "hard")  # every day has one puzzle per level
 RELAX_AFTER = 5_000  # seeded attempts before relaxing the route-count rule
 GIVE_UP_AFTER = 20_000  # an impossible band (e.g. par 6) must fail loudly, not hang
+LINKED_GIVE_UP = 300  # start words seeded_linked_puzzle tries before failing loudly
 
 
 # ---------------------------------------------------------------- data
@@ -42,6 +43,9 @@ class Ladder:
     # rel_key(u, v) -> (relation, start word). Used to choose and show routes whose
     # steps are real relations; never to accept or reject a step.
     related: dict[int, tuple[str, int | None]] | None = None
+    # The keys of `related` whose relation is INFORMATIVE (not RelatedTo):
+    # the links a clue can explain. Every route rule counts these only.
+    linked: frozenset[int] | None = None
     # Words no ladder may use, as a step, start or goal (config "removedSteps",
     # a file like the exclusion ones): corpus junk and words an average player
     # would never think of. Taken out at view time, so the frozen graph stays.
@@ -188,6 +192,7 @@ def load_ladder(root: Path = ROOT, config: dict | None = None,
     graph = json.loads((root / "data" / f"graph_v{v}.json").read_text(encoding="utf-8"))
     cands = json.loads((root / "data" / f"candidates_v{v}.json").read_text(encoding="utf-8"))
     words = graph["words"]
+    related = load_relations(root, config.get("relations", v))
     return Ladder(
         words=words,
         index={w: i for i, w in enumerate(words)},
@@ -198,7 +203,8 @@ def load_ladder(root: Path = ROOT, config: dict | None = None,
         base_config=config,
         all_candidates=cands["words"],
         exclusions=load_exclusions(root, config),
-        related=load_relations(root, config.get("relations", v)),
+        related=related,
+        linked=informative_keys(related),
         removed=load_removed(root, config),
     ).at(date_str)
 
@@ -242,6 +248,12 @@ def load_relations(root: Path, v: int) -> dict[int, tuple[str, int | None]] | No
     return out
 
 
+def informative_keys(related) -> frozenset[int] | None:
+    """The keys of a load_relations map whose relation a clue can explain.
+    JS twin: informativeKeys in js/seeded.js."""
+    return None if related is None else frozenset(k for k, (rel, _) in related.items() if rel in INFORMATIVE)
+
+
 def linked_steps(neighbors: list[list[int]], related, start: int, goal: int, par: int) -> int:
     """The most steps that are ConceptNet relations on any SHORTEST route
     start -> goal (undirected two-way graphs). One BFS from the goal in layers,
@@ -272,7 +284,7 @@ def linked_steps(neighbors: list[list[int]], related, start: int, goal: int, par
 def linked_from(neighbors: list[list[int]], related, start: int, dist: list[int]) -> list[int]:
     """linked_steps from `start` to EVERY word at once, given bfs_all's dist
     from start (the graph is undirected, so the count is the same either way).
-    Python only (the shortlist)."""
+    JS twin: linkedFrom in js/seeded.js."""
     order = sorted((i for i, d in enumerate(dist) if d >= 0), key=lambda i: dist[i])
     best = [0] * len(dist)
     for v in order:
@@ -476,7 +488,7 @@ def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = fr
     out = []
     for start in seeded_sample(pool, starts, f"shortlist-starts#{date_str}"):
         dist, routes, closer = bfs_all(ladder.neighbors, ladder.index[start])
-        linked = (linked_from(ladder.neighbors, ladder.related, ladder.index[start], dist)
+        linked = (linked_from(ladder.neighbors, ladder.linked, ladder.index[start], dist)
                   if "minLinkedSteps" in band else None)
         fits = [g for g in goals if g != start
                 and (linked is None or linked[ladder.index[g]] >= band["minLinkedSteps"])
@@ -634,11 +646,11 @@ def validate_pair(
         # Newer eras want a shortest route whose steps are mostly real
         # relations, so the route the game shows reads as a reason.
         if "minLinkedSteps" in band:
-            if ladder.related is None:
+            if ladder.linked is None:
                 raise ValueError("minLinkedSteps needs data/relations_vN.* (scripts/build_relations.py)")
-            n = linked_steps(ladder.neighbors, ladder.related, i, ladder.index[goal], par)
+            n = linked_steps(ladder.neighbors, ladder.linked, i, ladder.index[goal], par)
             if n < band["minLinkedSteps"]:
-                return Verdict(False, f"best route has {n} related steps, today needs "
+                return Verdict(False, f"best route has {n} linked steps, today needs "
                                       f"{band['minLinkedSteps']}", par, routes, closer)
     return Verdict(True, "ok", par, routes, closer)
 
@@ -665,3 +677,32 @@ def seeded_puzzle(ladder: Ladder, date_str: str, band: dict) -> tuple[str, str, 
         if attempt >= GIVE_UP_AFTER:
             raise RuntimeError(f"no seeded puzzle for {date_str} in {attempt} attempts; "
                                f"is the band {band} achievable?")
+
+
+def seeded_linked_puzzle(ladder: Ladder, seed_str: str, band: dict) -> dict:
+    """Deterministic puzzle whose shortest routes include one with an
+    informative link on every step. Random pairs almost never fit (0.07% at
+    par 5), so this goes start first: attempt k hashes "<seed>#k", rolls a
+    start, runs one BFS from it, collects every candidate goal at distance
+    par that is fully linked and passes the band, and rolls one of them with
+    the same PRNG. JS twin: seededLinkedPuzzle in js/seeded.js."""
+    if ladder.linked is None or not ladder.config.get("twoWay"):
+        raise ValueError("seeded_linked_puzzle needs two-way links and data/relations_vN.*")
+    nb, ix, cands, par = ladder.neighbors, ladder.index, ladder.candidates, band["par"]
+    min_in = ladder.config.get("minGoalInDegree")
+    for attempt in range(LINKED_GIVE_UP):
+        rand = mulberry32(fnv1a32(f"{seed_str}#{attempt}"))
+        start = cands[math.floor(rand() * len(cands))]
+        s = ix[start]
+        # closer here is bfs_all's first-move count; JS uses closerFirstMoves (same on two-way graphs)
+        dist, routes, closer = bfs_all(nb, s)
+        linked = linked_from(nb, ladder.linked, s, dist)
+        fits = [g for g in cands if dist[ix[g]] == par and linked[ix[g]] == par
+                and (not min_in or in_degrees(ladder)[ix[g]] >= min_in)
+                and band["minRoutes"] <= routes[ix[g]] <= band["maxRoutes"]
+                and (not wants_closer(band) or closer_fits(band, closer[ix[g]]))]
+        if fits:
+            goal = fits[math.floor(rand() * len(fits))]
+            return {"start": start, "goal": goal, "par": par, "routes": routes[ix[goal]]}
+    raise RuntimeError(f"no linked puzzle for {seed_str} in {LINKED_GIVE_UP} start words; "
+                       f"is the band {band} achievable?")

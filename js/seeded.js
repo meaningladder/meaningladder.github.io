@@ -16,6 +16,7 @@ export const ACCEPT_DEFAULTS = {
 export const levelAcceptRules = (config, level) => ({ ...ACCEPT_DEFAULTS[level], ...config?.levels?.[level] });
 const RELAX_AFTER = 5000;
 const GIVE_UP_AFTER = 20000;
+const LINKED_GIVE_UP = 300; // start words seededLinkedPuzzle tries (Python: LINKED_GIVE_UP)
 
 // ------------------------------------------------------------ seeded randomness
 // JS numbers are 64-bit floats. `>>> 0` reinterprets a value as an unsigned
@@ -181,6 +182,10 @@ export const INFORMATIVE = new Set(["IsA", "PartOf", "HasA", "UsedFor", "AtLocat
   "MotivatedByGoal", "Synonym", "SimilarTo"]); // all but RelatedTo
 export const REL_KEY = 65536;
 export const relKey = (a, b) => (a < b ? a * REL_KEY + b : b * REL_KEY + a);
+// The keys of a relations Map (relKey -> {rel, from}) whose relation a clue
+// can explain. Every route rule counts these only. Python twin: informative_keys.
+export const informativeKeys = (related) =>
+  related ? new Set([...related].filter(([, r]) => INFORMATIVE.has(r.rel)).map(([k]) => k)) : null;
 
 // The most steps that are relations on any SHORTEST route start -> goal
 // (undirected two-way graphs): BFS layers from the goal, then the best count
@@ -208,6 +213,47 @@ export function linkedSteps(neighbors, related, start, goal, par) {
     }
   }
   return best.get(start);
+}
+
+// Distance and shortest-route count from start to every word (-1 / 0 =
+// unreachable), stopped after maxDepth ripples. Python twin: bfs_all.
+export function bfsAll(neighbors, start, maxDepth = Infinity) {
+  const dist = new Int32Array(neighbors.length).fill(-1);
+  const routes = new Float64Array(neighbors.length);
+  dist[start] = 0;
+  routes[start] = 1;
+  let frontier = [start];
+  for (let d = 1; frontier.length && d <= maxDepth; d++) {
+    const next = [];
+    for (const u of frontier) {
+      for (const v of neighbors[u]) {
+        if (dist[v] === -1) { dist[v] = d; routes[v] = routes[u]; next.push(v); }
+        else if (dist[v] === d) routes[v] += routes[u];
+      }
+    }
+    frontier = next;
+  }
+  return { dist, routes };
+}
+
+// linkedSteps from start to EVERY word at once, given bfsAll's dist (two-way
+// graphs). Python twin: linked_from.
+export function linkedFrom(neighbors, related, start, dist) {
+  const layers = [];
+  dist.forEach((d, i) => { if (d > 0) (layers[d] ??= []).push(i); });
+  const best = new Int32Array(dist.length);
+  for (const layer of layers) {
+    for (const v of layer ?? []) {
+      let b = 0;
+      for (const u of neighbors[v]) {
+        if (dist[u] !== dist[v] - 1) continue;
+        const c = (related.has(relKey(u, v)) ? 1 : 0) + best[u];
+        if (c > b) b = c;
+      }
+      best[v] = b;
+    }
+  }
+  return best;
 }
 
 // Closer first moves on an UNDIRECTED graph (two-way eras): one BFS from the
@@ -279,8 +325,8 @@ function check(ladder, start, goal, band, checkRoutes, inDeg) {
   if (wantsCloser(band) && !closerFits(band, closer)) return null;
   // Newer eras want a shortest route whose steps are mostly real relations.
   if (band.minLinkedSteps != null) {
-    if (!ladder.related) throw new Error("minLinkedSteps needs data/relations_vN.*");
-    if (linkedSteps(ladder.neighbors, ladder.related, i, ladder.index.get(goal), par) < band.minLinkedSteps) return null;
+    if (!ladder.linked) throw new Error("minLinkedSteps needs data/relations_vN.*");
+    if (linkedSteps(ladder.neighbors, ladder.linked, i, ladder.index.get(goal), par) < band.minLinkedSteps) return null;
   }
   return { par, routes, closer };
 }
@@ -300,6 +346,37 @@ export function seededPuzzle(ladder, dateStr, band) {
     if (ok) return { start, goal, par: ok.par, routes: ok.routes, closer: ok.closer, attempt };
   }
   throw new Error(`no seeded puzzle for ${dateStr}`);
+}
+
+// A puzzle whose shortest routes include one with an informative link on
+// every step. Random pairs almost never fit (0.07% at par 5), so this goes
+// start first: attempt k hashes "<seed>#k", rolls a start, runs one BFS from
+// it, collects every candidate goal at distance par that is fully linked and
+// passes the band, and rolls one with the same PRNG. Python twin: seeded_linked_puzzle.
+export function seededLinkedPuzzle(ladder, seedStr, band) {
+  const { neighbors, index, candidates: cands, linked, config } = ladder;
+  if (!linked || !config.twoWay) throw new Error("seededLinkedPuzzle needs two-way links and data/relations_vN.*");
+  const par = band.par;
+  const minIn = config.minGoalInDegree;
+  const inDeg = minIn ? ladder.inDegree ?? inDegrees(neighbors) : null;
+  for (let attempt = 0; attempt < LINKED_GIVE_UP; attempt++) {
+    const rand = mulberry32(fnv1a32(`${seedStr}#${attempt}`));
+    const start = cands[Math.floor(rand() * cands.length)];
+    const s = index.get(start);
+    const { dist, routes } = bfsAll(neighbors, s, par); // deeper words can't be goals
+    const lk = linkedFrom(neighbors, linked, s, dist);
+    const fits = cands.filter((g) => {
+      const i = index.get(g);
+      return dist[i] === par && lk[i] === par && (!inDeg || inDeg[i] >= minIn)
+        && band.minRoutes <= routes[i] && routes[i] <= band.maxRoutes
+        && (!wantsCloser(band) || closerFits(band, closerFirstMoves(neighbors, s, i, par)));
+    });
+    if (fits.length) {
+      const goal = fits[Math.floor(rand() * fits.length)];
+      return { start, goal, par, routes: routes[index.get(goal)] };
+    }
+  }
+  throw new Error(`no linked puzzle for ${seedStr} in ${LINKED_GIVE_UP} start words`);
 }
 
 // ------------------------------------------------------------ chain mode
