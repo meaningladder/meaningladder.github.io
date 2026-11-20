@@ -437,6 +437,42 @@ def test_relations_file_is_consistent(ladder):
         assert u < v and (v in full[u][:40] or u in full[v][:40])
 
 
+def _read_relations(n):
+    import numpy as np
+    head = json.loads((ROOT / "data" / f"relations_v{n}.json").read_text(encoding="utf-8"))
+    blob = (ROOT / "data" / f"relations_v{n}.bin").read_bytes()
+    c = head["count"]
+    pairs = np.frombuffer(blob, "<u2", 2 * c).reshape(-1, 2)
+    labels = np.frombuffer(blob, "u1", c, 4 * c)
+    dirs = np.frombuffer(blob, "u1", c, 5 * c) if head.get("layout") == "directed" else None
+    return head, blob, pairs, labels, dirs
+
+
+def test_relations_v2_adds_only_direction():
+    import hashlib
+    import numpy as np
+    h1, _, p1, l1, _ = _read_relations(1)
+    h2, blob, p2, l2, d2 = _read_relations(2)
+    assert h2["layout"] == "directed" and len(blob) == 6 * h2["count"]
+    assert hashlib.sha256(blob).hexdigest() == h2["sha256"]
+    assert h2["relations"] == h1["relations"]
+    assert (p1 == p2).all() and (l1 == l2).all() and set(d2.tolist()) <= {0, 1, 2}
+    rels = h2["relations"]
+    sym = {"Synonym", "SimilarTo", "LocatedNear", "RelatedTo"}
+    assert all(d == 2 for r, d in zip(l2, d2) if rels[r] in sym)
+
+
+def test_relations_v2_ladder_roof_direction(ladder):
+    head, _, pairs, labels, dirs = _read_relations(2)
+    u, v = sorted((ladder.index["ladder"], ladder.index["roof"]))
+    hit = [i for i, (a, b) in enumerate(pairs.tolist()) if (a, b) == (u, v)]
+    if not hit:
+        pytest.skip("ladder-roof not a related pair")
+    i = hit[0]
+    assert head["relations"][labels[i]] == "AtLocation"
+    assert dirs[i] == (0 if u == ladder.index["ladder"] else 1)
+
+
 def test_guide_route_keeps_par_and_prefers_relations(ladder):
     """The shown route is a real shortest route (par kept, every step legal)
     with as many relation steps as any shortest route has."""
