@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-21",
+  "gameNumber": 21,
+  "level": "hard",
+  "start": "donor",
+  "goal": "bean",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "donor",
+    "sperm",
+    "egg",
+    "chicken",
+    "soup",
+    "bean"
+  ],
+  "reasons": []
+}

@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-21",
+  "gameNumber": 21,
+  "level": "easy",
+  "start": "ruler",
+  "goal": "nephew",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "ruler",
+    "monarch",
+    "prince",
+    "nephew"
+  ],
+  "reasons": []
+}
