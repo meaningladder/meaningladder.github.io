@@ -96,6 +96,35 @@
 - [ ] Test: JS Hard (par 5) finds a puzzle in under 1 s (`performance.now`).
 - [ ] Commit: `Start-first seeded pickers for fully linked puzzles`.
 
+### Task 3B: Drop weak ConceptNet links; Hard becomes par 4
+
+The user chose this after the measurements below. Sample routes had false clues ("finger means the same as toe", "mouth is found at a river", "tool means the same as use"). Every such link was a single weight-1.0 vote from Wiktionary or ConceptNet's own crowd data. Good links score higher, have several sources, or come from WordNet, OpenCyc or DBpedia.
+
+Clean links rarely chain five steps: about 30 par-5 puzzles exist in total. So Hard drops to par 4, and it is made harder by having few shortest routes.
+
+**Files:** `scripts/build_relations.py`, `data/relations_v2.*` (rebuilt; v2 is unreleased, so rebuilding it in place is fine), `puzzle_config.json`, `tests/fixtures/seeded_vectors.json` (`make fixtures`), and tests.
+
+- [ ] Change the build rule for **informative** relations only. A pair's informative relation edge counts only if at least one of these holds; otherwise the edge is ignored:
+  - it is asserted by `/d/wordnet`, `/d/opencyc` or `/d/dbpedia`
+  - it is asserted by two or more distinct datasets for that same relation and pair
+  - its max weight is at least 2.0
+
+  A pair whose only informative edges are weak falls back to its best remaining relation, which may be `RelatedTo` (never a clue), or the pair drops out.
+- [ ] Record the rule in the header: `"informativeFilter": "curated source, 2+ sources, or weight >= 2"`.
+- [ ] Rebuild v2 from the dump at `C:/Users/nanfa/AppData/Local/Temp/claude/4a59ba5a019c3f7b/4480a2a9-cd5f-4066-98b4-079ff2fe62c7/scratchpad/conceptnet/conceptnet-assertions-5.7.0.csv.gz`.
+- [ ] Test the filter against these pairs:
+  - dropped as informative: finger and toe, use and tool, mouth and river, finger and nose, road and bridge
+  - kept: leaf and tree (PartOf), golfer and athlete (IsA), toe and foot, cargo and ship, tongue and mouth, oak and tree, auto and car, actor and movie
+  - The v2 test that pairs equal v1 no longer holds. Replace it with: every v2 pair is a v1 pair, and v1 is unchanged.
+- [ ] Config levels:
+  - Easy: par 3, unchanged.
+  - Medium: par 4, `minRoutes` 4.
+  - Hard: par 4, `minRoutes` 1, `maxRoutes` 3.
+  - `minLinkedSteps` equals par for every level, and `maxPar` stays 7.
+  - Measure each band with the start-first picker over the candidates and report how many distinct puzzles exist per level (an estimate from 100 seeded starts is fine). If Medium or Hard comes out under about 200, adjust its route cutoff and report what you chose.
+- [ ] Run `make fixtures`. The parity tests must pass. The JS Hard timing must stay under 1 s.
+- [ ] Commit: `Clean link clues only; Hard is par 4 with few routes`.
+
 ### Task 4: Play rules and one game view
 
 **Files:** `js/logic.js`, `js/game.js`, `js/data.js` (`makePracticePuzzle`), `style.css`, and tests (`tests/js/chain.test.mjs` becomes `tests/js/linked.test.mjs`, plus `logic.test.mjs`).
