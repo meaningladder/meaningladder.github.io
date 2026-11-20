@@ -95,7 +95,7 @@ def _pair_listing(ladder: Ladder, start: str, goal: str, incoming: list[str]) ->
     s, g = ladder.index[start], ladder.index[goal]
     if ladder.related and ladder.config.get("twoWay"):  # the route the game will show
         route = guide_route(ladder.neighbors, ladder.related, s, g)
-        hops = [f" -[{ladder.related[rel_key(a, b)]}]-> " if rel_key(a, b) in ladder.related else " -> "
+        hops = [f" -[{ladder.related[rel_key(a, b)][0]}]-> " if rel_key(a, b) in ladder.related else " -> "
                 for a, b in zip(route, route[1:])]
         text = ladder.words[route[0]] + "".join(hop + ladder.words[b] for hop, b in zip(hops, route[1:]))
     else:

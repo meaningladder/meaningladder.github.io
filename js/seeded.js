@@ -176,6 +176,9 @@ export function twoWayNeighbors(full, k) {
 
 // ConceptNet relations between GloVe neighbors (data/relations_vN.*), one
 // key per unordered pair. Python twins: rel_key, linked_steps.
+export const INFORMATIVE = new Set(["IsA", "PartOf", "HasA", "UsedFor", "AtLocation", "MadeOf", "CapableOf", "Causes",
+  "HasPrerequisite", "CreatedBy", "LocatedNear", "ReceivesAction", "HasProperty", "HasSubevent", "Desires",
+  "MotivatedByGoal", "Synonym", "SimilarTo"]); // all but RelatedTo
 export const REL_KEY = 65536;
 export const relKey = (a, b) => (a < b ? a * REL_KEY + b : b * REL_KEY + a);
 

@@ -506,3 +506,13 @@ def test_nov_13_and_14_puzzles_play_under_the_live_rules(ladder):
         assert "mode" not in p and (p["stepLimit"], p["twoWay"]) == (10, True), path.name
         v = validate_pair(ladder, p["start"], p["goal"], level_band(p["level"], ladder.config))
         assert v.ok and v.par == p["par"], path.name
+
+
+def test_load_relations_v2_roundtrips_pairs():
+    from ladder_core import INFORMATIVE, load_relations, rel_key
+    head, _, pairs, labels, dirs = _read_relations(2)
+    got = load_relations(ROOT, 2)
+    assert len(got) == head["count"] and "RelatedTo" not in INFORMATIVE
+    for i in (0, len(pairs) // 2, len(pairs) - 1):
+        u, w = int(pairs[i][0]), int(pairs[i][1])
+        assert got[rel_key(u, w)] == (head["relations"][labels[i]], None if dirs[i] == 2 else (u, w)[dirs[i]])

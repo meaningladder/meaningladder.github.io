@@ -39,9 +39,9 @@ class Ladder:
     all_candidates: list[str] | None = None
     exclusions: dict[str, frozenset[str]] | None = None
     # ConceptNet links between GloVe neighbors (data/relations_vN.*): key
-    # rel_key(u, v) -> relation name. Used to choose and show routes whose
+    # rel_key(u, v) -> (relation, start word). Used to choose and show routes whose
     # steps are real relations; never to accept or reject a step.
-    related: dict[int, str] | None = None
+    related: dict[int, tuple[str, int | None]] | None = None
     # Words no ladder may use, as a step, start or goal (config "removedSteps",
     # a file like the exclusion ones): corpus junk and words an average player
     # would never think of. Taken out at view time, so the frozen graph stays.
@@ -198,7 +198,7 @@ def load_ladder(root: Path = ROOT, config: dict | None = None,
         base_config=config,
         all_candidates=cands["words"],
         exclusions=load_exclusions(root, config),
-        related=load_relations(root, v),
+        related=load_relations(root, config.get("relations", v)),
         removed=load_removed(root, config),
     ).at(date_str)
 
@@ -218,8 +218,16 @@ def rel_key(a: int, b: int) -> int:
     return min(a, b) * REL_KEY + max(a, b)
 
 
-def load_relations(root: Path, v: int) -> dict[int, str] | None:
-    """data/relations_vN.bin (see scripts/build_relations.py), or None if absent."""
+SYMMETRIC = {"Synonym", "SimilarTo", "LocatedNear"}
+INFORMATIVE = {"IsA", "PartOf", "HasA", "UsedFor", "AtLocation", "MadeOf", "CapableOf", "Causes",
+               "HasPrerequisite", "CreatedBy", "LocatedNear", "ReceivesAction", "HasProperty",
+               "HasSubevent", "Desires", "MotivatedByGoal", "Synonym", "SimilarTo"}  # all but RelatedTo
+
+
+def load_relations(root: Path, v: int) -> dict[int, tuple[str, int | None]] | None:
+    """data/relations_vN.bin (see scripts/build_relations.py), or None if absent.
+    key -> (relation, index of the word the edge starts at, None if symmetric).
+    v1 files carry no direction: every start is None."""
     head, blob = root / "data" / f"relations_v{v}.json", root / "data" / f"relations_v{v}.bin"
     if not head.exists() or not blob.exists():
         return None
@@ -229,7 +237,8 @@ def load_relations(root: Path, v: int) -> dict[int, str] | None:
     for i in range(n):
         u = int.from_bytes(data[4 * i:4 * i + 2], "little")
         w = int.from_bytes(data[4 * i + 2:4 * i + 4], "little")
-        out[rel_key(u, w)] = meta["relations"][data[4 * n + i]]
+        d = data[5 * n + i] if meta.get("layout") == "directed" else 2
+        out[rel_key(u, w)] = (meta["relations"][data[4 * n + i]], None if d == 2 else (u, w)[d])
     return out
 
 

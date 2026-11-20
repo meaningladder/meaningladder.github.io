@@ -31,7 +31,7 @@ async function getRows(url, count, width) {
 }
 
 // ConceptNet relations between GloVe neighbors (scripts/build_relations.py):
-// a Map relKey(u, v) -> relation name ("IsA"...), which hint routes prefer.
+// a Map relKey(u, v) -> {rel, from} ("IsA", the word index the edge starts at or null), which hint routes prefer.
 // About 120 KB, cached by name like the graph.
 async function loadRelations(v) {
   const header = await getJson(`data/relations_v${v}.json`);
@@ -41,7 +41,9 @@ async function loadRelations(v) {
   const n = header.count;
   const map = new Map();
   for (let i = 0; i < n; i++) {
-    map.set(relKey(view.getUint16(4 * i, true), view.getUint16(4 * i + 2, true)), header.relations[view.getUint8(4 * n + i)]);
+    const u = view.getUint16(4 * i, true), w = view.getUint16(4 * i + 2, true);
+    const d = header.layout === "directed" ? view.getUint8(5 * n + i) : 2;
+    map.set(relKey(u, w), { rel: header.relations[view.getUint8(4 * n + i)], from: d === 2 ? null : d === 0 ? u : w });
   }
   return map;
 }
@@ -67,7 +69,7 @@ export function loadLadder() {
     ]);
     const [head, related] = await Promise.all([
       getRows(`data/graph_v${v}_wide_head.bin`, meta.count, meta.head),
-      loadRelations(v),
+      loadRelations(config.relations ?? v),
     ]);
     const base = {
       words: meta.words,

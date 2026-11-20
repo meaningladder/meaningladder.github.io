@@ -1015,3 +1015,32 @@ export function feedbackPayload({ kind, text, context = [], website = "", openMs
     openMs: Math.max(0, Math.round(Number(openMs) || 0)),
   };
 }
+
+// Clue for the NEXT word, in terms of `cur`, never naming it. [next REL cur, cur REL next];
+// a single string means symmetric. fromCurrent: true = edge starts at cur, null = symmetric.
+const LINK_CLUES = {
+  IsA: [(c) => `A kind of ${c}`, (c) => `${c} is a kind of this`],
+  PartOf: [(c) => `Part of ${c}`, (c) => `${c} is part of this`],
+  HasA: [(c) => `Something that has ${c}`, (c) => `What ${c} has`],
+  UsedFor: [(c) => `Something used for ${c}`, (c) => `What ${c} is used for`],
+  AtLocation: [(c) => `Something you find at ${c}`, (c) => `Where you find ${c}`],
+  MadeOf: [(c) => `Something made of ${c}`, (c) => `What ${c} is made of`],
+  CapableOf: [(c) => `Something that can ${c}`, (c) => `What ${c} can do`],
+  Causes: [(c) => `Something that causes ${c}`, (c) => `What ${c} causes`],
+  HasPrerequisite: [(c) => `Something you need before you can ${c}`, (c) => `What you need to ${c}`],
+  CreatedBy: [(c) => `Something created by ${c}`, (c) => `Who or what creates ${c}`],
+  ReceivesAction: [(c) => `What you can do to ${c}`, (c) => `Something ${c} can be`],
+  HasProperty: [(c) => `Something that is ${c}`, (c) => `What ${c} is like`],
+  HasSubevent: [(c) => `Something that happens during ${c}`, (c) => `What happens during ${c}`],
+  Desires: [(c) => `Something that wants ${c}`, (c) => `What ${c} wants`],
+  MotivatedByGoal: [(c) => `Something you do because of ${c}`, (c) => `Why you ${c}`],
+  Synonym: (c) => `Means the same as ${c}`,
+  SimilarTo: (c) => `Similar to ${c}`,
+  LocatedNear: (c) => `Found near ${c}`,
+};
+
+export function linkClue(rel, fromCurrent, cur) {
+  const t = LINK_CLUES[rel];
+  if (!t) throw new Error(`linkClue: no clue for ${rel}`);
+  return typeof t === "function" ? t(cur) : t[fromCurrent ? 1 : 0](cur);
+}
