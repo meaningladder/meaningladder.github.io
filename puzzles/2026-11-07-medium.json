@@ -2,8 +2,8 @@
   "date": "2026-11-07",
   "gameNumber": 7,
   "level": "medium",
-  "start": "ingredient",
-  "goal": "champagne",
+  "start": "resident",
+  "goal": "guy",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "ingredient",
-    "staple",
-    "bread",
-    "toast",
-    "champagne"
+    "resident",
+    "citizen",
+    "person",
+    "man",
+    "guy"
   ],
   "reasons": []
 }

@@ -3,7 +3,7 @@
   "gameNumber": 21,
   "level": "hard",
   "start": "donor",
-  "goal": "bean",
+  "goal": "brake",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "donor",
-    "sperm",
-    "egg",
-    "chicken",
-    "soup",
-    "bean"
+    "organ",
+    "instrument",
+    "guitar",
+    "pedal",
+    "brake"
   ],
   "reasons": []
 }

@@ -2,8 +2,8 @@
   "date": "2026-11-21",
   "gameNumber": 21,
   "level": "medium",
-  "start": "baggage",
-  "goal": "hospital",
+  "start": "bacteria",
+  "goal": "sea",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "baggage",
-    "handlers",
-    "veterinarians",
-    "doctors",
-    "hospital"
+    "bacteria",
+    "contaminated",
+    "polluted",
+    "water",
+    "sea"
   ],
   "reasons": []
 }

@@ -250,16 +250,15 @@ export const store = {
 };
 
 // ------------------------------------------------------------ migration
-// Schema 7 (2026-11-19): par is 3/4/5 and rungs accept a wide top-N for every
-// day, and every published puzzle was re-made. Saves and results from any older
-// schema were played on different puzzles, so all of them go; preferences
-// (seenHelp etc.) stay.
+// Schema 8 (2026-11-21): the game is clue-driven and every published puzzle was
+// re-made. Saves and results from any older schema were played on different
+// puzzles, so all of them go; preferences (seenHelp etc.) stay.
 export function migrateStorage() {
-  if (store.get("schema", 1) < 7) {
+  if (store.get("schema", 1) < 8) {
     for (const key of [...store.keys("game:"), ...store.keys("practice")]) store.remove(key);
     store.remove("results");
   }
-  store.set("schema", 7);
+  store.set("schema", 8);
 }
 
 export { LEVELS };

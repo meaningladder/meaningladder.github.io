@@ -2,8 +2,8 @@
   "date": "2026-11-09",
   "gameNumber": 9,
   "level": "easy",
-  "start": "rabbit",
-  "goal": "crow",
+  "start": "satellite",
+  "goal": "spy",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "rabbit",
-    "squirrel",
-    "owl",
-    "crow"
+    "satellite",
+    "orbit",
+    "satellites",
+    "spy"
   ],
   "reasons": []
 }

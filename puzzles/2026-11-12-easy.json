@@ -2,8 +2,8 @@
   "date": "2026-11-12",
   "gameNumber": 12,
   "level": "easy",
-  "start": "supervisor",
-  "goal": "pioneer",
+  "start": "rapper",
+  "goal": "conductor",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "supervisor",
-    "technician",
-    "engineer",
-    "pioneer"
+    "rapper",
+    "musician",
+    "composer",
+    "conductor"
   ],
   "reasons": []
 }

@@ -3,7 +3,7 @@
   "gameNumber": 10,
   "level": "hard",
   "start": "activist",
-  "goal": "helm",
+  "goal": "heir",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "activist",
-    "journalist",
-    "reporter",
-    "assignment",
-    "stint",
-    "helm"
+    "rights",
+    "legal",
+    "legitimate",
+    "rightful",
+    "heir"
   ],
   "reasons": []
 }

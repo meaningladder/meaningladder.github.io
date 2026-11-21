@@ -2,8 +2,8 @@
   "date": "2026-11-19",
   "gameNumber": 19,
   "level": "easy",
-  "start": "vehicle",
-  "goal": "rider",
+  "start": "transportation",
+  "goal": "carrier",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "vehicle",
-    "driver",
-    "racer",
-    "rider"
+    "transportation",
+    "freight",
+    "cargo",
+    "carrier"
   ],
   "reasons": []
 }

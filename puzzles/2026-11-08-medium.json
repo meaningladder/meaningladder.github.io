@@ -2,8 +2,8 @@
   "date": "2026-11-08",
   "gameNumber": 8,
   "level": "medium",
-  "start": "glove",
-  "goal": "ear",
+  "start": "knife",
+  "goal": "groin",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "glove",
-    "outstretched",
-    "fingers",
-    "eyes",
-    "ear"
+    "knife",
+    "hand",
+    "arm",
+    "wrist",
+    "groin"
   ],
   "reasons": []
 }

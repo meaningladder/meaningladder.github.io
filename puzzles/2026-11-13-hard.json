@@ -2,8 +2,8 @@
   "date": "2026-11-13",
   "gameNumber": 13,
   "level": "hard",
-  "start": "cop",
-  "goal": "ambassador",
+  "start": "gate",
+  "goal": "vault",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "cop",
-    "policeman",
-    "officer",
-    "chief",
-    "negotiator",
-    "ambassador"
+    "gate",
+    "fence",
+    "yard",
+    "foot",
+    "meters",
+    "vault"
   ],
   "reasons": []
 }

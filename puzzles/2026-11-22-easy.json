@@ -2,8 +2,8 @@
   "date": "2026-11-22",
   "gameNumber": 22,
   "level": "easy",
-  "start": "salesman",
-  "goal": "pioneer",
+  "start": "doctor",
+  "goal": "pet",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "salesman",
-    "technician",
-    "engineer",
-    "pioneer"
+    "doctor",
+    "veterinarian",
+    "vet",
+    "pet"
   ],
   "reasons": []
 }

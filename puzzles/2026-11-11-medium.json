@@ -2,8 +2,8 @@
   "date": "2026-11-11",
   "gameNumber": 11,
   "level": "medium",
-  "start": "shelf",
-  "goal": "canyon",
+  "start": "policeman",
+  "goal": "user",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "shelf",
-    "ice",
-    "snow",
-    "mountain",
-    "canyon"
+    "policeman",
+    "officer",
+    "engineer",
+    "programmer",
+    "user"
   ],
   "reasons": []
 }

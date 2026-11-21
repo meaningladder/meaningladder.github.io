@@ -2,8 +2,8 @@
   "date": "2026-11-08",
   "gameNumber": 8,
   "level": "easy",
-  "start": "spokesman",
-  "goal": "lawyer",
+  "start": "scientist",
+  "goal": "physician",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "spokesman",
-    "spokeswoman",
-    "publicist",
-    "lawyer"
+    "scientist",
+    "chemist",
+    "pharmacist",
+    "physician"
   ],
   "reasons": []
 }

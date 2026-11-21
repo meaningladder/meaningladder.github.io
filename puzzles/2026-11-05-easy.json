@@ -2,8 +2,8 @@
   "date": "2026-11-05",
   "gameNumber": 5,
   "level": "easy",
-  "start": "junction",
-  "goal": "barrier",
+  "start": "car",
+  "goal": "pub",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "junction",
-    "road",
-    "crossing",
-    "barrier"
+    "car",
+    "sedan",
+    "saloon",
+    "pub"
   ],
   "reasons": []
 }

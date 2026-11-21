@@ -2,8 +2,8 @@
   "date": "2026-11-03",
   "gameNumber": 3,
   "level": "easy",
-  "start": "prey",
-  "goal": "snake",
+  "start": "coach",
+  "goal": "center",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "prey",
-    "insect",
-    "spider",
-    "snake"
+    "coach",
+    "manager",
+    "director",
+    "center"
   ],
   "reasons": []
 }

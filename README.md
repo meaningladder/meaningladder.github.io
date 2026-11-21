@@ -2,9 +2,8 @@
 
 A daily word game: climb from a **start** word to a **goal** word, one step at a
 time. Legal steps are a word's 10 nearest neighbors in meaning (GloVe word
-embeddings, links both ways). Each rung shows a clue for the next word and only
-a word one rung closer that fits it counts. Par is the shortest possible path
-over the legal steps.
+embeddings, links both ways). Par is the shortest possible path over the legal
+steps. Every rung gives you a clue for the next word.
 
 ```
 ocean → wave → signal → network → computer
@@ -25,39 +24,61 @@ per era, each with a `from` date (`rules_for` in `scripts/ladder_core.py`,
 
 Nov 1-12 were first played on top-100 one-way rules (par 3/3/4) and moved to
 top-10 two-way rules on 2026-11-16. On 2026-11-19 par became 3/4/5 for every
-day and every published puzzle from 2026-11-01 to 2026-11-20 was re-made with
-seeded picks (`--no-ai`). Saved games, Unlimited games and results were wiped
-once (storage schema 7, so streaks and stats restart); preferences stay. The
-service worker cache is `meaning-ladder-3`. With one era there is no "New
+day. On 2026-11-21 the game became clue-driven (below) and every published
+puzzle from 2026-11-01 to 2026-11-22 was re-made with seeded picks (`--no-ai`),
+keeping the same game numbers. Saved games, Unlimited games and results were
+wiped once (storage schema 8, so streaks and stats restart); preferences stay.
+The service worker cache is `meaning-ladder-5`. With one era there is no "New
 rules" notice and no "classic rules" label.
 
-**Chain mode is Unlimited only.** On 2026-11-13 and 14 the daily ladders were
-briefly chains (one hidden answer per rung); on 2026-11-14 every day went back
-to open ladders. Unlimited now uses a chain mode again (see Strict Unlimited
-below); daily ladders stay open.
+**How a rung plays (daily and Unlimited, the same code: `linkedSubmit` in
+js/logic.js).** Each rung shows one clue for the next word on a shortest route:
+
+- If the step has a clean ConceptNet link, the clue is that link
+  ("coal IS USED FOR ..."; `linkClue`).
+- Otherwise the clue is "N letters, starts with X".
+
+The next word is the puzzle's stored route while you are on it, else the best
+one-closer step from where you are (the one with the most clean links ahead,
+`plannedNext`). A guess counts when it is a legal step, exactly one rung
+closer to the goal, and fits the clue (same relation and direction, or same
+length and first letter). A wrong real word costs a move; typos and repeats
+are free. A hint reveals one more letter of the next word and costs a move;
+the last hint plays the word. The final step into the goal plays itself, so
+you never need to guess it. Par is unchanged by any of this.
+
+**At least 2 clues per puzzle.** Every puzzle must have a shortest route with at
+least 2 clean link clues on the rungs you actually see (`minLinkedSteps: 2` in
+each level, not counting the auto-played last step). The generator
+(`seeded_linked_puzzle`) enforces it and stores that route as `route`;
+`tests/test_puzzles.py` checks every published file (par 3/4/5 by level, 2+
+visible link clues).
 
 **Points.** `min(100, round(100 × par / moves))`; giving up scores 0. The score
 shows on the result card, in the share text ("🥈 80 pts"), on the home level
 buttons, and as an average per level in stats.
 
-**Strict Unlimited.** Unlimited is browser-only chain mode. The chain is as long
-as the level's par, with one hidden answer per rung on a shortest route. Each
-hidden word shows as blanks with one seeded-random letter (picked to avoid
-rival words). Only the hidden word or its plural/singular counts. A wrong guess
-or a hint costs a move (repeats and typos are free); a hint reveals one more
-letter. The first Unlimited visit shows its own help.
+**Unlimited** is the same clue game in the browser only, on seeded puzzles
+with the same three levels.
 
 **The staircase.** Climbed rungs are colored by height, not by distance: the
 start is a red sliver and each rung up is greener and fuller, up to a full
 green bar at the goal (`stairStep` in `js/logic.js`). Words that aren't a step
 up show their closeness only as a light-red fill.
 
-A "related step" is a step that ConceptNet also links with a real relation
-(cafe IS A restaurant, coal IS USED FOR fuel; `data/relations_v1.*`, built by
-`make relations`). Relations never decide whether a typed word counts on an
-open ladder: they choose the route the game shows (hints, give-up),
-always a shortest one, so par is unchanged. ConceptNet alone was measured too
+**Relations.** ConceptNet links come from `data/relations_v2.*` (directed: each
+link knows which word it starts at). The builder keeps a link only if it has a
+curated source (WordNet, OpenCyc, DBpedia), 2 or more sources, or weight of 2
+or more, which drops weak and noisy links. v1 (`relations_v1.*`) is frozen and
+no longer used. The game uses relations only to pick routes and write clues,
+never to decide that a step is legal. ConceptNet alone was measured too
 hub-heavy (everything via person, city, car) and too sparse to be the rule.
+
+To rebuild v2 you need the ConceptNet 5.7 assertions dump (about 500 MB, not
+committed; one-time download from
+https://s3.amazonaws.com/conceptnet/downloads/2019/edges/conceptnet-assertions-5.7.0.csv.gz):
+`make relations DUMP=conceptnet-assertions-5.7.0.csv.gz` (builds v2; add
+`RELVERSION=3` for a new version).
 
 A "good first move" is one of the start's legal steps that is one step closer
 to the goal (`minCloserFirstMoves` / `maxCloserFirstMoves` in a level). Par
@@ -80,25 +101,17 @@ presenters), so the generator and the seeded fallback skip them. The AI prompt
 also shows each shortlisted pair's shortest route and the goal's incoming
 words, so the theme and teaser describe the sense the graph actually uses.
 
-Each daily rung accepts a guDaily and Unlimited play the same way (`linkedSubmit` in js/logic.js). Each
-rung shows a clue for the planned next word: the puzzle's stored route while
-the player is on it, else the guide choice (the one-closer step with the most
-clean ConceptNet links ahead, `plannedNext`). The clue is that step's link
-(`linkClue`) when it is clean, else "N letters, starts with X". A guess counts
-when it is a legal step, one rung closer, and fits the clue (same relation and
-direction, or same length and first letter). A wrong real word costs a move;
-typos and repeats are free. Hints show the planned word's letters, one move
-each, and the last one plays it.(config `removedSteps`) lists 3,318 words no ladder
+The removed-steps list (config `removedSteps`) holds 3,318 words no ladder
 may use, as a step, start or goal: corpus junk ("disambiguation") and words an
 average player would never think of ("fuselage", "kph"). They are dropped from
 the legal lists at view time (`drop_steps` / `dropSteps`), so the frozen graph
 files stay as they are. Published starts and goals are never listed.
 
-If a step is rejected, it joins a Contexto-style **Tried** list with its rank
-from the current word (under the top-10 rules, #11 was very close). Ranks up
-to #100 are exact, from the graph. Ranks beyond 100 come from compact 64-d word vectors (`data/vectors_v1.bin`,
-1.3 MB, built by `make vectors`), loaded only after the first wrong guess. It's
-free feedback: it never names the right word.
+A rejected real word joins a **Tried** list. Its closeness to the goal shows
+only as a light-red fill, never the word that was right.
+
+`data/vectors_v1.*` and `scripts/build_vectors.py` (`make vectors`) are left
+over from the old Contexto-style ranks and are not used by the game any more.
 
 ## How it fits together
 
@@ -197,7 +210,7 @@ has been played its file is frozen too; later fixes need a new era.
 
 - Word vectors: [GloVe](https://nlp.stanford.edu/projects/glove/) (Wikipedia + Gigaword, 300d), via gensim.
 - Dictionary checks: [WordNet](https://wordnet.princeton.edu/) via NLTK.
-- Word relations: [ConceptNet 5.7](https://conceptnet.io), CC BY-SA 4.0. `data/relations_v1.*` is
+- Word relations: [ConceptNet 5.7](https://conceptnet.io), CC BY-SA 4.0. `data/relations_v2.*` is
   derived from it and shared under the same license; the game credits it on the home screen.
 - Icons: [Phosphor](https://phosphoricons.com/) (bold), MIT, copied into `js/icons.js`.
 - Font: [Nunito](https://github.com/googlefonts/nunito), SIL OFL 1.1, self-hosted from Fontsource.

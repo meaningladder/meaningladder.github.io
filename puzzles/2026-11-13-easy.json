@@ -2,8 +2,8 @@
   "date": "2026-11-13",
   "gameNumber": 13,
   "level": "easy",
-  "start": "curtain",
-  "goal": "lounge",
+  "start": "surface",
+  "goal": "patch",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "curtain",
-    "window",
-    "room",
-    "lounge"
+    "surface",
+    "ground",
+    "grass",
+    "patch"
   ],
   "reasons": []
 }

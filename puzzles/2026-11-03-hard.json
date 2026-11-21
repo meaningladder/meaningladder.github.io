@@ -2,8 +2,8 @@
   "date": "2026-11-03",
   "gameNumber": 3,
   "level": "hard",
-  "start": "suburb",
-  "goal": "oxygen",
+  "start": "foe",
+  "goal": "bacteria",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "suburb",
-    "residential",
-    "complexes",
-    "compounds",
-    "chlorine",
-    "oxygen"
+    "foe",
+    "enemies",
+    "kill",
+    "poison",
+    "toxin",
+    "bacteria"
   ],
   "reasons": []
 }

@@ -20,8 +20,8 @@ const game = (level) => ({
   path: ["ocean", "wave"], moves: 1, status: "playing",
 });
 
-for (const schema of [undefined, 2, 3, 4]) {
-  test(`schema ${schema ?? 1} -> 7: every save and result goes, preferences stay`, () => {
+for (const schema of [undefined, 2, 3, 4, 7]) {
+  test(`schema ${schema ?? 1} -> 8: every save and result goes, preferences stay`, () => {
     if (schema) store.set("schema", schema);
     store.set("game:2026-11-15:easy", game("easy"));
     store.set("game:2026-11-10", game("hard"));          // pre-level key
@@ -32,12 +32,12 @@ for (const schema of [undefined, 2, 3, 4]) {
     store.set("rulesSeen", "2026-11-13");
     migrateStorage();
     assert.deepEqual(store.keys().sort(), ["rulesSeen", "schema", "seenHelp"]);
-    assert.equal(store.get("schema"), 7);
+    assert.equal(store.get("schema"), 8);
   });
 }
 
-test("schema 7 wipes games and results once, keeps prefs", () => {
-  store.set("schema", 6);
+test("schema 8 wipes games and results once, keeps prefs", () => {
+  store.set("schema", 7);
   store.set("game:2026-11-18:easy", game("easy"));
   store.set("practice:easy", game("easy"));
   store.set("results", { "2026-11-18:easy": { status: "won", steps: 4, par: 4 } });
@@ -47,7 +47,7 @@ test("schema 7 wipes games and results once, keeps prefs", () => {
   assert.equal(store.get("practice:easy"), null);
   assert.equal(store.get("results"), null);
   assert.equal(store.get("seenHelp"), true);
-  assert.equal(store.get("schema"), 7);
+  assert.equal(store.get("schema"), 8);
   store.set("results", { "2026-11-19:easy": { status: "won", steps: 3, par: 3 } });
   migrateStorage();
   assert.ok(store.get("results")["2026-11-19:easy"]);

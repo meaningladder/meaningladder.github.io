@@ -2,8 +2,8 @@
   "date": "2026-11-02",
   "gameNumber": 2,
   "level": "easy",
-  "start": "floor",
-  "goal": "marble",
+  "start": "classroom",
+  "goal": "drill",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "floor",
-    "ceiling",
-    "plaster",
-    "marble"
+    "classroom",
+    "teaching",
+    "training",
+    "drill"
   ],
   "reasons": []
 }

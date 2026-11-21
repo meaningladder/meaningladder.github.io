@@ -2,8 +2,8 @@
   "date": "2026-11-01",
   "gameNumber": 1,
   "level": "medium",
-  "start": "marble",
-  "goal": "dress",
+  "start": "mortar",
+  "goal": "tube",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "marble",
-    "sculpted",
-    "silhouette",
-    "skirts",
-    "dress"
+    "mortar",
+    "shell",
+    "casing",
+    "pipe",
+    "tube"
   ],
   "reasons": []
 }

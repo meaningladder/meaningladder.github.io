@@ -2,8 +2,8 @@
   "date": "2026-11-10",
   "gameNumber": 10,
   "level": "easy",
-  "start": "beverage",
-  "goal": "consumer",
+  "start": "mouse",
+  "goal": "animal",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "beverage",
-    "packaging",
-    "product",
-    "consumer"
+    "mouse",
+    "cat",
+    "pet",
+    "animal"
   ],
   "reasons": []
 }

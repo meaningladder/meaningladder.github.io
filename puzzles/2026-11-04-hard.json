@@ -2,8 +2,8 @@
   "date": "2026-11-04",
   "gameNumber": 4,
   "level": "hard",
-  "start": "crest",
-  "goal": "pump",
+  "start": "catcher",
+  "goal": "conductor",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "crest",
-    "coat",
-    "pants",
-    "pockets",
-    "flush",
-    "pump"
+    "catcher",
+    "pitcher",
+    "rocker",
+    "musician",
+    "composer",
+    "conductor"
   ],
   "reasons": []
 }

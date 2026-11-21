@@ -2,8 +2,8 @@
   "date": "2026-11-15",
   "gameNumber": 15,
   "level": "easy",
-  "start": "universe",
-  "goal": "sun",
+  "start": "spouse",
+  "goal": "man",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "universe",
-    "earth",
-    "moon",
-    "sun"
+    "spouse",
+    "wife",
+    "woman",
+    "man"
   ],
   "reasons": []
 }

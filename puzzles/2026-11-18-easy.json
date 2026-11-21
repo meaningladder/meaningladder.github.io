@@ -2,8 +2,8 @@
   "date": "2026-11-18",
   "gameNumber": 18,
   "level": "easy",
-  "start": "leg",
-  "goal": "boot",
+  "start": "bed",
+  "goal": "frame",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "leg",
-    "thigh",
-    "heel",
-    "boot"
+    "bed",
+    "room",
+    "door",
+    "frame"
   ],
   "reasons": []
 }

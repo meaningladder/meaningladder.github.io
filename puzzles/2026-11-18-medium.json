@@ -2,8 +2,8 @@
   "date": "2026-11-18",
   "gameNumber": 18,
   "level": "medium",
-  "start": "purse",
-  "goal": "employee",
+  "start": "loop",
+  "goal": "back",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "purse",
-    "bag",
-    "baggage",
-    "attendant",
-    "employee"
+    "loop",
+    "route",
+    "path",
+    "way",
+    "back"
   ],
   "reasons": []
 }

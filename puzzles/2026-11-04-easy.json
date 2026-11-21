@@ -2,8 +2,8 @@
   "date": "2026-11-04",
   "gameNumber": 4,
   "level": "easy",
-  "start": "historian",
-  "goal": "sculptor",
+  "start": "sugar",
+  "goal": "cake",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "historian",
-    "scholar",
-    "poet",
-    "sculptor"
+    "sugar",
+    "coffee",
+    "chocolate",
+    "cake"
   ],
   "reasons": []
 }

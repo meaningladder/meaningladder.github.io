@@ -3,7 +3,7 @@
   "gameNumber": 12,
   "level": "hard",
   "start": "youth",
-  "goal": "pill",
+  "goal": "observatory",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -14,10 +14,10 @@
   "route": [
     "youth",
     "student",
-    "college",
-    "ivy",
-    "poison",
-    "pill"
+    "university",
+    "science",
+    "astronomy",
+    "observatory"
   ],
   "reasons": []
 }

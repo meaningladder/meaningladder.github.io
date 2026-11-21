@@ -2,8 +2,8 @@
   "date": "2026-11-06",
   "gameNumber": 6,
   "level": "medium",
-  "start": "tower",
-  "goal": "transport",
+  "start": "professor",
+  "goal": "chef",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "tower",
-    "building",
-    "construction",
-    "infrastructure",
-    "transport"
+    "professor",
+    "chair",
+    "table",
+    "kitchen",
+    "chef"
   ],
   "reasons": []
 }

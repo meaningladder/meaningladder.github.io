@@ -2,8 +2,8 @@
   "date": "2026-11-06",
   "gameNumber": 6,
   "level": "easy",
-  "start": "warehouse",
-  "goal": "cottage",
+  "start": "songwriter",
+  "goal": "bullpen",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "warehouse",
-    "shop",
-    "shack",
-    "cottage"
+    "songwriter",
+    "musician",
+    "rocker",
+    "bullpen"
   ],
   "reasons": []
 }

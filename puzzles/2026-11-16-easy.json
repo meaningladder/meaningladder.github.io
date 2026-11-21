@@ -2,8 +2,8 @@
   "date": "2026-11-16",
   "gameNumber": 16,
   "level": "easy",
-  "start": "field",
-  "goal": "footballer",
+  "start": "singer",
+  "goal": "piano",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "field",
-    "team",
-    "player",
-    "footballer"
+    "singer",
+    "musician",
+    "pianist",
+    "piano"
   ],
   "reasons": []
 }

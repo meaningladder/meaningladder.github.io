@@ -2,8 +2,8 @@
   "date": "2026-11-20",
   "gameNumber": 20,
   "level": "hard",
-  "start": "loop",
-  "goal": "sailor",
+  "start": "merchant",
+  "goal": "pad",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "loop",
-    "curve",
-    "horseshoe",
-    "crab",
-    "fisherman",
-    "sailor"
+    "merchant",
+    "vessel",
+    "craft",
+    "spacecraft",
+    "launch",
+    "pad"
   ],
   "reasons": []
 }

@@ -2,8 +2,8 @@
   "date": "2026-11-08",
   "gameNumber": 8,
   "level": "hard",
-  "start": "philosopher",
-  "goal": "vehicle",
+  "start": "yacht",
+  "goal": "crest",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "philosopher",
-    "thinkers",
-    "ideas",
-    "concept",
-    "hybrid",
-    "vehicle"
+    "yacht",
+    "sail",
+    "mast",
+    "flag",
+    "emblem",
+    "crest"
   ],
   "reasons": []
 }

@@ -2,8 +2,8 @@
   "date": "2026-11-01",
   "gameNumber": 1,
   "level": "hard",
-  "start": "outfielder",
-  "goal": "thumb",
+  "start": "garment",
+  "goal": "downhill",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "outfielder",
-    "fielder",
-    "rusty",
-    "nails",
-    "fingers",
-    "thumb"
+    "garment",
+    "clothing",
+    "shoes",
+    "skates",
+    "skis",
+    "downhill"
   ],
   "reasons": []
 }

@@ -2,8 +2,8 @@
   "date": "2026-11-09",
   "gameNumber": 9,
   "level": "hard",
-  "start": "universe",
-  "goal": "father",
+  "start": "tank",
+  "goal": "holder",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "universe",
-    "pageant",
-    "miss",
-    "girl",
-    "daughter",
-    "father"
+    "tank",
+    "ammunition",
+    "gun",
+    "rifle",
+    "bolt",
+    "holder"
   ],
   "reasons": []
 }

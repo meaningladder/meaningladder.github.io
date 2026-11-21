@@ -3,7 +3,7 @@
   "gameNumber": 22,
   "level": "hard",
   "start": "spa",
-  "goal": "gasoline",
+  "goal": "girlfriend",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "spa",
-    "bath",
-    "bathroom",
-    "plumbing",
-    "heating",
-    "gasoline"
+    "hotel",
+    "restaurant",
+    "diner",
+    "waitress",
+    "girlfriend"
   ],
   "reasons": []
 }

@@ -2,8 +2,8 @@
   "date": "2026-11-07",
   "gameNumber": 7,
   "level": "hard",
-  "start": "crest",
-  "goal": "undergraduate",
+  "start": "coordinator",
+  "goal": "factory",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "crest",
-    "coat",
-    "dress",
-    "prom",
-    "graduation",
-    "undergraduate"
+    "coordinator",
+    "assistant",
+    "clerk",
+    "store",
+    "shop",
+    "factory"
   ],
   "reasons": []
 }

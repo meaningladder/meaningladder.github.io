@@ -2,8 +2,8 @@
   "date": "2026-11-14",
   "gameNumber": 14,
   "level": "easy",
-  "start": "ice",
-  "goal": "juice",
+  "start": "delegate",
+  "goal": "lawmaker",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "ice",
-    "frozen",
-    "yogurt",
-    "juice"
+    "delegate",
+    "representative",
+    "congressman",
+    "lawmaker"
   ],
   "reasons": []
 }

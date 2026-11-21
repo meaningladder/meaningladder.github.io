@@ -2,8 +2,8 @@
   "date": "2026-11-17",
   "gameNumber": 17,
   "level": "medium",
-  "start": "feed",
-  "goal": "garbage",
+  "start": "son",
+  "goal": "winner",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "feed",
-    "eat",
-    "flesh",
-    "rotting",
-    "garbage"
+    "son",
+    "daughter",
+    "girl",
+    "miss",
+    "winner"
   ],
   "reasons": []
 }

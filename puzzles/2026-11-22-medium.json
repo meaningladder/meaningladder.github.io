@@ -2,8 +2,8 @@
   "date": "2026-11-22",
   "gameNumber": 22,
   "level": "medium",
-  "start": "poultry",
-  "goal": "crow",
+  "start": "tissue",
+  "goal": "cloth",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "poultry",
-    "chicken",
-    "egg",
-    "nest",
-    "crow"
+    "tissue",
+    "cord",
+    "rope",
+    "nylon",
+    "cloth"
   ],
   "reasons": []
 }

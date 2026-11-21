@@ -2,8 +2,8 @@
   "date": "2026-11-10",
   "gameNumber": 10,
   "level": "medium",
-  "start": "trash",
-  "goal": "elephant",
+  "start": "makeup",
+  "goal": "collar",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "trash",
-    "waste",
-    "manure",
-    "dung",
-    "elephant"
+    "makeup",
+    "clothes",
+    "wearing",
+    "shirt",
+    "collar"
   ],
   "reasons": []
 }

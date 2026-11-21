@@ -2,8 +2,8 @@
   "date": "2026-11-16",
   "gameNumber": 16,
   "level": "medium",
-  "start": "mask",
-  "goal": "cow",
+  "start": "exporter",
+  "goal": "clothing",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "mask",
-    "disguise",
-    "hides",
-    "animal",
-    "cow"
+    "exporter",
+    "supplier",
+    "distributor",
+    "retailer",
+    "clothing"
   ],
   "reasons": []
 }

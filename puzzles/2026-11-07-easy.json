@@ -2,8 +2,8 @@
   "date": "2026-11-07",
   "gameNumber": 7,
   "level": "easy",
-  "start": "cinema",
-  "goal": "photo",
+  "start": "statesman",
+  "goal": "activist",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "cinema",
-    "film",
-    "picture",
-    "photo"
+    "statesman",
+    "politician",
+    "legislator",
+    "activist"
   ],
   "reasons": []
 }

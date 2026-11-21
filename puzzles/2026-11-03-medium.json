@@ -3,7 +3,7 @@
   "gameNumber": 3,
   "level": "medium",
   "start": "tail",
-  "goal": "purse",
+  "goal": "muscle",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,10 +13,10 @@
   "twoWay": true,
   "route": [
     "tail",
-    "feathers",
-    "beads",
-    "necklace",
-    "purse"
+    "belly",
+    "abdomen",
+    "abdominal",
+    "muscle"
   ],
   "reasons": []
 }

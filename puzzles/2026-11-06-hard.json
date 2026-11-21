@@ -3,7 +3,7 @@
   "gameNumber": 6,
   "level": "hard",
   "start": "fan",
-  "goal": "interpreter",
+  "goal": "lock",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "fan",
-    "audience",
-    "listening",
-    "talking",
-    "speaking",
-    "interpreter"
+    "favorite",
+    "choice",
+    "option",
+    "switch",
+    "lock"
   ],
   "reasons": []
 }

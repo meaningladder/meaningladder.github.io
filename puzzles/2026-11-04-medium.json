@@ -2,8 +2,8 @@
   "date": "2026-11-04",
   "gameNumber": 4,
   "level": "medium",
-  "start": "hotel",
-  "goal": "cinema",
+  "start": "employee",
+  "goal": "volunteer",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "hotel",
-    "room",
-    "box",
-    "movie",
-    "cinema"
+    "employee",
+    "worker",
+    "firefighter",
+    "fireman",
+    "volunteer"
   ],
   "reasons": []
 }

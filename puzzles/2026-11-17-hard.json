@@ -2,8 +2,8 @@
   "date": "2026-11-17",
   "gameNumber": 17,
   "level": "hard",
-  "start": "stream",
-  "goal": "foot",
+  "start": "facial",
+  "goal": "bench",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "stream",
-    "river",
-    "valley",
-    "area",
-    "square",
-    "foot"
+    "facial",
+    "skin",
+    "body",
+    "head",
+    "coach",
+    "bench"
   ],
   "reasons": []
 }

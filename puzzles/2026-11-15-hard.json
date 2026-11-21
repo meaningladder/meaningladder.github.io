@@ -2,8 +2,8 @@
   "date": "2026-11-15",
   "gameNumber": 15,
   "level": "hard",
-  "start": "boundary",
-  "goal": "vocalist",
+  "start": "passenger",
+  "goal": "specialist",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "boundary",
-    "dividing",
-    "separated",
-    "reunited",
-    "band",
-    "vocalist"
+    "passenger",
+    "boarding",
+    "schooling",
+    "teaching",
+    "training",
+    "specialist"
   ],
   "reasons": []
 }

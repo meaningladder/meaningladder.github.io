@@ -2,8 +2,8 @@
   "date": "2026-11-20",
   "gameNumber": 20,
   "level": "medium",
-  "start": "successor",
-  "goal": "limestone",
+  "start": "cotton",
+  "goal": "helmet",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "successor",
-    "appoint",
-    "nominate",
-    "slate",
-    "limestone"
+    "cotton",
+    "wool",
+    "coat",
+    "jacket",
+    "helmet"
   ],
   "reasons": []
 }

@@ -2,8 +2,8 @@
   "date": "2026-11-13",
   "gameNumber": 13,
   "level": "medium",
-  "start": "buffer",
-  "goal": "terrain",
+  "start": "desk",
+  "goal": "skin",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "buffer",
-    "zone",
-    "region",
-    "mountainous",
-    "terrain"
+    "desk",
+    "chair",
+    "head",
+    "body",
+    "skin"
   ],
   "reasons": []
 }

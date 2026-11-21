@@ -3,7 +3,7 @@
   "gameNumber": 16,
   "level": "hard",
   "start": "king",
-  "goal": "peninsula",
+  "goal": "monastery",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "king",
-    "kingdom",
-    "territories",
-    "colony",
-    "island",
-    "peninsula"
+    "queen",
+    "lady",
+    "woman",
+    "nun",
+    "monastery"
   ],
   "reasons": []
 }

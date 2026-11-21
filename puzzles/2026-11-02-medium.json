@@ -2,8 +2,8 @@
   "date": "2026-11-02",
   "gameNumber": 2,
   "level": "medium",
-  "start": "edition",
-  "goal": "roof",
+  "start": "shoot",
+  "goal": "deer",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "edition",
-    "magazine",
-    "rolling",
-    "covered",
-    "roof"
+    "shoot",
+    "kill",
+    "killer",
+    "hunt",
+    "deer"
   ],
   "reasons": []
 }

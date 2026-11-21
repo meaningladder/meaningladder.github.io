@@ -2,8 +2,8 @@
   "date": "2026-11-12",
   "gameNumber": 12,
   "level": "medium",
-  "start": "keyboard",
-  "goal": "building",
+  "start": "carrier",
+  "goal": "coast",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "keyboard",
-    "keys",
-    "door",
-    "roof",
-    "building"
+    "carrier",
+    "cargo",
+    "ship",
+    "port",
+    "coast"
   ],
   "reasons": []
 }

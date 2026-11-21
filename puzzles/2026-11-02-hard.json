@@ -3,7 +3,7 @@
   "gameNumber": 2,
   "level": "hard",
   "start": "commune",
-  "goal": "oak",
+  "goal": "mouth",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "commune",
-    "district",
-    "county",
-    "riverside",
-    "grove",
-    "oak"
+    "village",
+    "town",
+    "valley",
+    "river",
+    "mouth"
   ],
   "reasons": []
 }

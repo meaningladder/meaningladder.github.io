@@ -3,7 +3,7 @@
   "gameNumber": 18,
   "level": "hard",
   "start": "livestock",
-  "goal": "bassist",
+  "goal": "bank",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "livestock",
-    "sheep",
-    "dolly",
-    "duet",
-    "vocals",
-    "bassist"
+    "farming",
+    "planting",
+    "trees",
+    "branches",
+    "bank"
   ],
   "reasons": []
 }

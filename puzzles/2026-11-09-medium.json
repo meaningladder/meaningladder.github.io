@@ -2,8 +2,8 @@
   "date": "2026-11-09",
   "gameNumber": 9,
   "level": "medium",
-  "start": "chairman",
-  "goal": "student",
+  "start": "portal",
+  "goal": "border",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "chairman",
-    "chief",
-    "principal",
-    "teacher",
-    "student"
+    "portal",
+    "gateway",
+    "gate",
+    "fence",
+    "border"
   ],
   "reasons": []
 }

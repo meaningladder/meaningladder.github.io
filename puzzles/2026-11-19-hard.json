@@ -3,7 +3,7 @@
   "gameNumber": 19,
   "level": "hard",
   "start": "canvas",
-  "goal": "office",
+  "goal": "official",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "canvas",
-    "paint",
-    "tile",
-    "roof",
-    "building",
-    "office"
+    "cardboard",
+    "paper",
+    "newspaper",
+    "quoted",
+    "official"
   ],
   "reasons": []
 }

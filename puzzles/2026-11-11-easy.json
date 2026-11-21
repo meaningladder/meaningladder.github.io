@@ -2,8 +2,8 @@
   "date": "2026-11-11",
   "gameNumber": 11,
   "level": "easy",
-  "start": "room",
-  "goal": "salesman",
+  "start": "stomach",
+  "goal": "tail",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "room",
-    "parlor",
-    "shop",
-    "salesman"
+    "stomach",
+    "abdomen",
+    "belly",
+    "tail"
   ],
   "reasons": []
 }

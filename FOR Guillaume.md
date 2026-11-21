@@ -554,6 +554,9 @@ published puzzles can still be finished in par under the new accept rule.
 
 ## Wider rungs, points, and a stricter Unlimited
 
+(Superseded on 2026-11-21: the wide top-40/35/30 acceptance and the blank-letter
+Unlimited chain below are gone. See the next entry. Points and par 3/4/5 stayed.)
+
 On 2026-11-19 the daily game got easier to play and harder to cheat. Each
 rung used to accept only the current word's few best steps. Now it accepts
 the top 40, 35 or 30 closest words (Easy, Medium, Hard), shrinking a little
@@ -578,3 +581,39 @@ the home buttons and as an average in stats. Unlimited also became a strict
 chain game: one hidden answer per rung, shown as blanks with a single letter,
 only that word (or its plural) counts, and a wrong guess or a hint costs a
 move.
+
+## 2026-11-21: A game driven by clues
+
+The wide-acceptance rule from Nov 19 was easy to play but felt like guessing
+at a list. So the game changed shape: every rung now gives you one clue for the
+next word, and only that word fits.
+
+How it works now, the same in the daily game and Unlimited. The clue is a real
+relationship from ConceptNet when the step has a clean one ("a coal is used
+for ..."). When it doesn't, the clue is just "7 letters, starts with F". Your
+guess counts if it is a legal step, exactly one rung closer to the goal, and
+fits the clue. A wrong real word costs a move; typos and repeats are free. A
+hint shows one more letter and costs a move. The last step into the goal plays
+itself, so you never have to guess it. Par is still the shortest path, so it
+didn't change.
+
+To make the clues good I rebuilt the relationship data as `relations_v2`. It
+remembers which direction a link goes (a cafe is a kind of restaurant, not the
+other way round), and it throws away weak links: a link is kept only if it
+comes from a curated source, or has two or more sources, or a weight of 2 or
+more. Version 1 is frozen and the game no longer uses it. The `make relations`
+target now builds v2. It needs the big ConceptNet download (about 500 MB, once;
+it is not in the repo).
+
+Every puzzle must now give you at least 2 visible clues along its route (the
+auto-played last step doesn't count), or the generator keeps looking. Lesson:
+my first count included the last step, so some puzzles looked fine on paper and
+showed only one clue in the game. A new test checks all 66 published files.
+
+Because the game changed, all puzzles from Nov 1 to Nov 22 were re-made (same
+game numbers, seeded picks, no AI) and everyone's saves, Unlimited games and
+results were wiped once (schema 8, streaks restart; preferences stay). The
+offline cache name went to `meaning-ladder-5` so browsers fetch the new files.
+`data/vectors_v1.*` and `scripts/build_vectors.py` are no longer used; I left
+them in place rather than deleting data.
+

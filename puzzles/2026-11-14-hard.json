@@ -2,8 +2,8 @@
   "date": "2026-11-14",
   "gameNumber": 14,
   "level": "hard",
-  "start": "cattle",
-  "goal": "knight",
+  "start": "nose",
+  "goal": "beef",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "cattle",
-    "cow",
-    "bull",
-    "lion",
-    "dragon",
-    "knight"
+    "nose",
+    "mouth",
+    "bite",
+    "eating",
+    "meat",
+    "beef"
   ],
   "reasons": []
 }

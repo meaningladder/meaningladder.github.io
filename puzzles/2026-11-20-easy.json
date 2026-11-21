@@ -2,8 +2,8 @@
   "date": "2026-11-20",
   "gameNumber": 20,
   "level": "easy",
-  "start": "deer",
-  "goal": "friend",
+  "start": "wife",
+  "goal": "monk",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "deer",
-    "bear",
-    "teddy",
-    "friend"
+    "wife",
+    "woman",
+    "nun",
+    "monk"
   ],
   "reasons": []
 }

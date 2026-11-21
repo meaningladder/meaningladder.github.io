@@ -3,7 +3,7 @@
   "gameNumber": 11,
   "level": "hard",
   "start": "jacket",
-  "goal": "clubhouse",
+  "goal": "commissioner",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -13,11 +13,11 @@
   "twoWay": true,
   "route": [
     "jacket",
-    "sleeve",
-    "tattoo",
-    "parlor",
-    "room",
-    "clubhouse"
+    "coat",
+    "wool",
+    "straw",
+    "secretary",
+    "commissioner"
   ],
   "reasons": []
 }

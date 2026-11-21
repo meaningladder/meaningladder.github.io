@@ -2,8 +2,8 @@
   "date": "2026-11-05",
   "gameNumber": 5,
   "level": "hard",
-  "start": "statesman",
-  "goal": "winger",
+  "start": "pilot",
+  "goal": "elevator",
   "par": 5,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,12 +12,12 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "statesman",
-    "elder",
-    "son",
-    "boy",
-    "youngster",
-    "winger"
+    "pilot",
+    "airplane",
+    "cabin",
+    "room",
+    "floor",
+    "elevator"
   ],
   "reasons": []
 }

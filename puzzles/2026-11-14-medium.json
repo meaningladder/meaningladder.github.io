@@ -2,8 +2,8 @@
   "date": "2026-11-14",
   "gameNumber": 14,
   "level": "medium",
-  "start": "man",
-  "goal": "superintendent",
+  "start": "freshman",
+  "goal": "gym",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "man",
-    "body",
-    "head",
-    "chief",
-    "superintendent"
+    "freshman",
+    "college",
+    "school",
+    "classroom",
+    "gym"
   ],
   "reasons": []
 }

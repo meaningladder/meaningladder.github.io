@@ -5,7 +5,7 @@
 //   everything else (page, code, styles, config, puzzles)    -> network first,
 //                                                               cache only as an offline fallback
 // Only same-origin GET requests are touched.
-const CACHE = "meaning-ladder-4"; // -4: night-climb theme removed, Nunito back (-3: par 3/4/5, re-made puzzles)
+const CACHE = "meaning-ladder-5"; // -5: clue-driven game, puzzles re-made (-4: night-climb theme removed, Nunito back)
 // The app shell, saved at install. The page that registers the worker was
 // fetched before the worker existed, so without this the very first visit
 // could never reload offline. Still network-first: these only serve offline.

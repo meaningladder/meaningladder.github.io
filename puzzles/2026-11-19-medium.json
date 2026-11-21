@@ -2,8 +2,8 @@
   "date": "2026-11-19",
   "gameNumber": 19,
   "level": "medium",
-  "start": "anime",
-  "goal": "user",
+  "start": "heavyweight",
+  "goal": "downhill",
   "par": 4,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,11 +12,11 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "anime",
-    "animation",
-    "graphics",
-    "computer",
-    "user"
+    "heavyweight",
+    "wrestler",
+    "athlete",
+    "skier",
+    "downhill"
   ],
   "reasons": []
 }

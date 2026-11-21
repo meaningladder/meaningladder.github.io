@@ -18,6 +18,7 @@ PY    ?= $(VENV_BIN)/python
 GH    ?= $(shell command -v gh 2>/dev/null || echo '"/c/Program Files/GitHub CLI/gh.exe"')
 REPO  ?= meaningladder/meaningladder.github.io
 PORT  ?= 8000
+RELVERSION ?= 2
 DATE  ?=
 NOAI  ?=
 UI_FILES := index.html style.css js/game.js js/data.js js/seeded.js js/icons.js
@@ -84,9 +85,9 @@ era-exclude: ## Rebuild the 2026-11-13 era's start/goal exclusions after editing
 graph-bin: ## Split the graph into the files the browser loads (data/graph_v1_wide{_head,_tail}.bin + _wide.json)
 	$(PY) scripts/build_graph_bin.py
 
-relations: ## Rebuild data/relations_v1.* from ConceptNet: make relations DUMP=conceptnet-assertions-5.7.0.csv.gz
-	@test -n "$(DUMP)" || { echo "usage: make relations DUMP=path/to/conceptnet-assertions-5.7.0.csv.gz"; exit 1; }
-	$(PY) scripts/build_relations.py $(DUMP)
+relations: ## Rebuild data/relations_v2.* (the game's) from ConceptNet: make relations DUMP=conceptnet-assertions-5.7.0.csv.gz [RELVERSION=2]
+	@test -n "$(DUMP)" || { echo "usage: make relations DUMP=path/to/conceptnet-assertions-5.7.0.csv.gz [RELVERSION=2]"; exit 1; }
+	$(PY) scripts/build_relations.py $(DUMP) --version $(RELVERSION)
 
 vectors: ## Build data/vectors_v1.bin, the compact vectors behind wrong-guess ranks
 	$(PY) scripts/build_vectors.py

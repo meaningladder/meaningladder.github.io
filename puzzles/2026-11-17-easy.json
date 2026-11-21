@@ -2,8 +2,8 @@
   "date": "2026-11-17",
   "gameNumber": 17,
   "level": "easy",
-  "start": "wheat",
-  "goal": "sauce",
+  "start": "apartment",
+  "goal": "inside",
   "par": 3,
   "theme": "Daily ladder",
   "teaser": "",
@@ -12,10 +12,10 @@
   "stepLimit": 10,
   "twoWay": true,
   "route": [
-    "wheat",
-    "corn",
-    "soy",
-    "sauce"
+    "apartment",
+    "bedroom",
+    "room",
+    "inside"
   ],
   "reasons": []
 }
