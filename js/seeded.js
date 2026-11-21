@@ -4,18 +4,6 @@
 //   python scripts/make_fixtures.py && pytest -q && node --test tests/js/
 
 export const LEVELS = ["easy", "medium", "hard"]; // every day has one puzzle per level
-// Wide accept list: how many of a word's similar words count at the start of a
-// puzzle, and how fast that shrinks per rung. Config levels override these.
-export const ACCEPT_WIDTH = 40; // the widest acceptStart: readyFor loads this many neighbors
-export const ACCEPT_DEFAULTS = {
-  easy: { acceptStart: 40, acceptStep: 5 },
-  medium: { acceptStart: 35, acceptStep: 5 },
-  hard: { acceptStart: 30, acceptStep: 4 },
-};
-// A level's accept rules: config values override the defaults field by field.
-export const levelAcceptRules = (config, level) => ({ ...ACCEPT_DEFAULTS[level], ...config?.levels?.[level] });
-const RELAX_AFTER = 5000;
-const GIVE_UP_AFTER = 20000;
 const LINKED_GIVE_UP = 300; // start words seededLinkedPuzzle tries (Python: LINKED_GIVE_UP)
 
 // ------------------------------------------------------------ seeded randomness
@@ -301,53 +289,6 @@ export const closerFits = (band, closer) =>
 export const seedBase = (dateStr, level) => `${dateStr}:${level}`;
 
 // ------------------------------------------------------------ seeded puzzle
-// ladder = { index: Map(word -> i), neighbors, candidates (sorted), config,
-//            inDegree? (precomputed per view; counted here if missing) }
-function check(ladder, start, goal, band, checkRoutes, inDeg) {
-  const { config } = ladder;
-  if (start === goal) return null;
-  if (inDeg && inDeg[ladder.index.get(goal)] < config.minGoalInDegree) return null;
-  const i = ladder.index.get(start);
-  const twoWay = Boolean(config.twoWay);
-  if (wantsCloser(band) && !twoWay && ladder.neighbors[i].length > MAX_TRACKED_FIRST_MOVES) {
-    // Python counts any number; the two must agree, so refuse like Python does.
-    throw new Error(`closer-first-move bands need stepLimit <= ${MAX_TRACKED_FIRST_MOVES}`);
-  }
-  // Depth capped at band.par: deeper pairs fail the par check below anyway, so
-  // the chosen puzzle is the same as Python's uncapped validate_pair picks.
-  const stats = bfsRouteStats(ladder.neighbors, i, ladder.index.get(goal), band.par);
-  const { par, routes } = stats;
-  if (par === null || par < config.minPar || par > config.maxPar) return null;
-  if (par !== band.par) return null;
-  if (checkRoutes && (routes < band.minRoutes || routes > band.maxRoutes)) return null;
-  // Never relaxed (unlike routes): it is what keeps the level label honest.
-  const closer = twoWay ? closerFirstMoves(ladder.neighbors, i, ladder.index.get(goal), par) : stats.closer;
-  if (wantsCloser(band) && !closerFits(band, closer)) return null;
-  // Newer eras want a shortest route whose steps are mostly real relations.
-  if (band.minLinkedSteps != null) {
-    if (!ladder.linked) throw new Error("minLinkedSteps needs data/relations_vN.*");
-    if (linkedSteps(ladder.neighbors, ladder.linked, i, ladder.index.get(goal), par) < band.minLinkedSteps) return null;
-  }
-  return { par, routes, closer };
-}
-
-export function seededPuzzle(ladder, dateStr, band) {
-  const cands = ladder.candidates;
-  const n = cands.length;
-  // Counted once per call at most, never per pair. Older eras have no
-  // minGoalInDegree, so they skip the check exactly like Python does.
-  const inDeg = ladder.config.minGoalInDegree
-    ? ladder.inDegree ?? inDegrees(ladder.neighbors) : null;
-  for (let attempt = 0; attempt < GIVE_UP_AFTER; attempt++) {
-    const rand = mulberry32(fnv1a32(`${dateStr}#${attempt}`));
-    const start = cands[Math.floor(rand() * n)];
-    const goal = cands[Math.floor(rand() * n)];
-    const ok = check(ladder, start, goal, band, attempt < RELAX_AFTER, inDeg);
-    if (ok) return { start, goal, par: ok.par, routes: ok.routes, closer: ok.closer, attempt };
-  }
-  throw new Error(`no seeded puzzle for ${dateStr}`);
-}
-
 // A puzzle whose shortest routes include one with an informative link on
 // every step. Random pairs almost never fit (0.07% at par 5), so this goes
 // start first: attempt k hashes "<seed>#k", rolls a start, runs one BFS from
@@ -379,8 +320,8 @@ export function seededLinkedPuzzle(ladder, seedStr, band) {
   throw new Error(`no linked puzzle for ${seedStr} in ${LINKED_GIVE_UP} start words`);
 }
 
-// ------------------------------------------------------------ chain mode
-// Strict Unlimited (browser only, no Python twin): one hidden answer per rung.
+// ------------------------------------------------------------ wrong-word ranks
+// Browser only, no Python twin.
 
 // The better of b's place in a's list and a's in b's, 1 = most similar
 // (null = in neither): how close a wrong guess was to the hidden word.
@@ -388,20 +329,4 @@ export function chainRank(ladder, a, b) {
   const full = ladder.fullNeighbors ?? ladder.neighbors;
   const ranks = [full[a].indexOf(b), full[b].indexOf(a)].filter((r) => r >= 0).map((r) => r + 1);
   return ranks.length ? Math.min(...ranks) : null;
-}
-
-// Every word's close words both ways (top 40), built once per ladder view:
-// the words a player could reasonably try for a rung.
-export function chainWide(ladder) {
-  const full = ladder.fullNeighbors ?? ladder.neighbors;
-  if (ladder._wide?.full !== full) ladder._wide = { full, rows: twoWayNeighbors(full, 40) };
-  return ladder._wide.rows;
-}
-
-// Close words of `prev` that fit the target's pattern too: same length and
-// the same letter at `pos`, other than the target itself.
-export function patternRivals(ladder, prev, target, pos) {
-  const w = ladder.words[target];
-  return chainWide(ladder)[prev].filter((u) => u !== target
-    && ladder.words[u].length === w.length && ladder.words[u][pos] === w[pos]);
 }

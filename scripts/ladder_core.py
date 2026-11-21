@@ -15,8 +15,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 MASK32 = 0xFFFFFFFF
 LEVELS = ("easy", "medium", "hard")  # every day has one puzzle per level
-RELAX_AFTER = 5_000  # seeded attempts before relaxing the route-count rule
-GIVE_UP_AFTER = 20_000  # an impossible band (e.g. par 6) must fail loudly, not hang
 LINKED_GIVE_UP = 300  # start words seeded_linked_puzzle tries before failing loudly
 
 
@@ -653,30 +651,6 @@ def validate_pair(
                 return Verdict(False, f"best route has {n} linked steps, today needs "
                                       f"{band['minLinkedSteps']}", par, routes, closer)
     return Verdict(True, "ok", par, routes, closer)
-
-
-def seeded_puzzle(ladder: Ladder, date_str: str, band: dict) -> tuple[str, str, Verdict, int]:
-    """Deterministic fallback: same seed text -> same puzzle, in Python and in JS.
-
-    `date_str` is the seed base, normally seed_base(date, level), e.g.
-    "2026-11-12:hard". Try attempt 0, 1, 2...: hash "<base>#attempt", seed the
-    PRNG with it, roll a start and a goal, keep the first pair that fits the band.
-    """
-    cands = ladder.candidates
-    n = len(cands)
-    attempt = 0
-    while True:
-        rand = mulberry32(fnv1a32(f"{date_str}#{attempt}"))
-        start = cands[math.floor(rand() * n)]
-        goal = cands[math.floor(rand() * n)]
-        verdict = validate_pair(ladder, start, goal, band,
-                                check_routes=attempt < RELAX_AFTER)
-        if verdict.ok:
-            return start, goal, verdict, attempt
-        attempt += 1
-        if attempt >= GIVE_UP_AFTER:
-            raise RuntimeError(f"no seeded puzzle for {date_str} in {attempt} attempts; "
-                               f"is the band {band} achievable?")
 
 
 def seeded_linked_puzzle(ladder: Ladder, seed_str: str, band: dict) -> dict:

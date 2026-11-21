@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { puzzleFile } from "../../js/seeded.js";
-import { bfsAll, bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, dropSteps, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, INFORMATIVE, levelBand, linkedFrom, linkedSteps, mulberry32, relKey, rulesFor, seedBase, seededLinkedPuzzle, seededPuzzle } from "../../js/seeded.js";
+import { bfsAll, bfsRouteStats, bfsRoutes, candidatePool, closerFits, closerFirstMoves, cutNeighbors, dropSteps, excludedWords, twoWayNeighbors, fnv1a32, gameNumber, inDegrees, INFORMATIVE, levelBand, linkedFrom, linkedSteps, mulberry32, relKey, rulesFor, seedBase, seededLinkedPuzzle } from "../../js/seeded.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -128,24 +128,24 @@ test("seededLinkedPuzzle: every level has 2+ linked steps, Hard in under 1 s", (
   assert.throws(() => seededLinkedPuzzle(ladder, "x", { ...levelBand("easy", ladder.config), maxRoutes: 0 }), /no linked puzzle/);
 });
 
-test("inDegrees counts legal steps into each word, and seededPuzzle skips thin goals", () => {
-  const nb = [[1, 2], [3], [3], [4], [0], [0]]; // same graph as tests/test_core.py
-  assert.deepEqual([...inDegrees(nb)], [2, 1, 1, 2, 1, 0]);
-  const words = ["a", "b", "c", "d", "e", "f"];
+test("inDegrees counts legal steps into each word, and seededLinkedPuzzle skips thin goals", () => {
+  assert.deepEqual([...inDegrees([[1, 2], [3], [3], [4], [0], [0]])], [2, 1, 1, 2, 1, 0]);
+  // Two-way: a-b, a-c, b-c, c-d. c has 3 links in, a and b 2, d 1.
+  const words = ["a", "b", "c", "d"];
+  const nb = [[1, 2], [0, 2], [0, 1, 3], [2]];
   const ladder = (extra) => ({
     index: new Map(words.map((w, i) => [w, i])), neighbors: nb, candidates: words,
-    config: { minPar: 1, maxPar: 6, ...extra },
+    linked: new Set(), config: { twoWay: true, ...extra },
   });
-  const band = { par: 3, minRoutes: 1, maxRoutes: 100 };
-  // Only a and d have 2 links in; every other par-3 goal (b, c, e) has 1.
+  const band = { par: 1, minLinkedSteps: 0, minRoutes: 1, maxRoutes: 100 };
   for (const seed of ["t", "u", "v", "w"]) {
-    assert.ok(["a", "d"].includes(seededPuzzle(ladder({ minGoalInDegree: 2 }), seed, band).goal));
+    assert.equal(seededLinkedPuzzle(ladder({ minGoalInDegree: 3 }), seed, band).goal, "c");
     // A view's precomputed count is used as is (data.js builds one per view).
-    const view = { ...ladder({ minGoalInDegree: 2 }), inDegree: Int32Array.from([0, 9, 9, 0, 9, 9]) };
-    assert.ok(["b", "c", "e"].includes(seededPuzzle(view, seed, band).goal));
+    const view = { ...ladder({ minGoalInDegree: 3 }), inDegree: Int32Array.from([9, 9, 0, 9]) };
+    assert.notEqual(seededLinkedPuzzle(view, seed, band).goal, "c");
   }
   // No field (older eras): no check, same as Python.
-  assert.equal(seededPuzzle(ladder({}), "t", band).par, 3);
+  assert.equal(seededLinkedPuzzle(ladder({}), "t", band).par, 1);
 });
 
 test("two-way links: own top k first, then reverse links by the rank they give", () => {
@@ -201,14 +201,4 @@ test("an open game saved on Nov 13 or 14 keeps the top-10 two-way steps it was m
     }
   }
   assert.ok(checked > 0);
-});
-
-test("levelAcceptRules: config levels without accept fields get the defaults, fields override one by one", async () => {
-  const { levelAcceptRules } = await import("../../js/seeded.js");
-  assert.deepEqual(levelAcceptRules({ levels: { easy: { label: "Easy", par: 3 } } }, "easy"),
-    { acceptStart: 40, acceptStep: 5, label: "Easy", par: 3 });
-  const r = levelAcceptRules({ levels: { hard: { acceptStart: 22 } } }, "hard");
-  assert.equal(r.acceptStart, 22);
-  assert.equal(r.acceptStep, 4);
-  assert.equal(levelAcceptRules({}, "medium").acceptStart, 35);
 });

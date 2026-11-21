@@ -20,13 +20,13 @@ self.addEventListener("install", (event) => {
     await Promise.allSettled(SHELL.map((url) => cache.add(url)));
     // Plus what a game needs to start, for the current data version.
     try {
-      const { graphVersion: v, rules = [], removedSteps } = await (await fetch("puzzle_config.json")).json();
+      const { graphVersion: v, relations: r = v, rules = [], removedSteps } = await (await fetch("puzzle_config.json")).json();
       // Each era's start/goal exclusion file too: loadLadder needs all of them.
       // They don't match VERSIONED, so they stay network-first like the config.
       const excludes = rules.map((e) => e.excludeCandidates).filter(Boolean);
       if (removedSteps) excludes.push(removedSteps); // the removed-words file, network-first too
       await Promise.allSettled([`data/graph_v${v}_wide.json`, `data/graph_v${v}_wide_head.bin`,
-        `data/candidates_v${v}.json`, `data/relations_v${v}.json`, `data/relations_v${v}.bin`, ...excludes].map((url) => cache.add(url)));
+        `data/candidates_v${v}.json`, `data/relations_v${r}.json`, `data/relations_v${r}.bin`, ...excludes].map((url) => cache.add(url)));
     } catch { /* offline during install: they get cached on first use instead */ }
     await self.skipWaiting();
   })());

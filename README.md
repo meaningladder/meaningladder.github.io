@@ -2,9 +2,9 @@
 
 A daily word game: climb from a **start** word to a **goal** word, one step at a
 time. Legal steps are a word's 10 nearest neighbors in meaning (GloVe word
-embeddings, links both ways), but each rung of a daily ladder accepts a wider
-top N from the schedule below, as long as it is one rung closer or level. Par is
-the shortest possible path over the legal steps.
+embeddings, links both ways). Each rung shows a clue for the next word and only
+a word one rung closer that fits it counts. Par is the shortest possible path
+over the legal steps.
 
 ```
 ocean → wave → signal → network → computer
@@ -80,17 +80,15 @@ presenters), so the generator and the seeded fallback skip them. The AI prompt
 also shows each shortlisted pair's shortest route and the goal's incoming
 words, so the theme and teaser describe the sense the graph actually uses.
 
-Each daily rung accepts a guess if it is in the current word's top N (from the
-full top-100 list minus removed words) and one rung closer or level, never
-skipping a rung (`acceptCap`, `acceptedSteps`, `playWord` in js/logic.js;
-`levelAcceptRules` in js/seeded.js). Every legal top-10 step still counts.
-N = max(1, `acceptStart` − `acceptStep` × rungs climbed): Easy 40/5, Medium
-35/5, Hard 30/4 (config levels). Legal steps (the graph) stay top 10 both ways,
-so par is unchanged. A same-distance word is a level step: it costs a move but
-doesn't climb. Any other close word joins the Tried list marked "not top N" (no
-move charged).
-
-`data/removed_steps.json` (config `removedSteps`) lists 3,318 words no ladder
+Each daily rung accepts a guDaily and Unlimited play the same way (`linkedSubmit` in js/logic.js). Each
+rung shows a clue for the planned next word: the puzzle's stored route while
+the player is on it, else the guide choice (the one-closer step with the most
+clean ConceptNet links ahead, `plannedNext`). The clue is that step's link
+(`linkClue`) when it is clean, else "N letters, starts with X". A guess counts
+when it is a legal step, one rung closer, and fits the clue (same relation and
+direction, or same length and first letter). A wrong real word costs a move;
+typos and repeats are free. Hints show the planned word's letters, one move
+each, and the last one plays it.(config `removedSteps`) lists 3,318 words no ladder
 may use, as a step, start or goal: corpus junk ("disambiguation") and words an
 average player would never think of ("fuselage", "kph"). They are dropped from
 the legal lists at view time (`drop_steps` / `dropSteps`), so the frozen graph

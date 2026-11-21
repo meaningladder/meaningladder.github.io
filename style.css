@@ -234,6 +234,10 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   text-align: center; font-size: var(--fs-xs); letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--muted); font-weight: 700;
 }
+/* The clue for the next word, under the par and moves line. */
+.clue { text-align: center; margin-top: 10px; font-size: var(--fs-md); line-height: 1.35; }
+.clue-label { color: var(--muted); font-size: var(--fs-sm); font-weight: 700; }
+.clue-letters { display: block; margin-top: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; font-weight: 700; }
 .theme { text-align: center; margin-top: 10px; font-size: var(--fs-sm); }
 .theme strong { font-weight: 800; }
 .theme span { color: var(--muted); }
@@ -344,11 +348,8 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
 .rung.ghost { min-height: 42px; color: var(--muted); }
 .rung .num { font-variant-numeric: tabular-nums; }
 /* Rungs you have climbed keep their color, so the ladder fills in below you. */
-/* Unlimited chain ladders: hidden words show their blanks and letters. */
+/* After giving up: the words you didn't find. */
 .bar.ghost-word { border: 1.5px dashed var(--line); }
-.rung.chain-rung { min-height: 42px; }
-.pattern { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.06em; font-size: var(--fs-base); font-weight: 700; color: var(--muted); }
-.rung.chain-rung.next .pattern { color: var(--text); }
 .ladder .bar.passed { font-weight: 600; }
 .ladder-extra { list-style: none; padding: 0; margin: 6px 18px 0; display: grid; gap: 6px; }
 .ladder-extra .bar.off { border: 1.5px dashed var(--far); }

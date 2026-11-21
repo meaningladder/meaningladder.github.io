@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, autoGoal, bottleneckRoute, buildReverse, GENTLE_RANK, worstRank, checkStep, closeness, computeStats, costsToGoal, distancesToGoal, formOf, oneEdit,
-  hintStep, playWord, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, stairStep, STEP_COST, upgradeMoves,
+  hintStep, localDateStr, medalFor, naturalRoute, resultMedal, scoreOf, shareText, shortestRoute, squareFor, stairStep, STEP_COST, upgradeMoves,
 } from "../../js/logic.js";
 
 test("stairStep: a red sliver at the start, a full green bar at the goal", () => {
@@ -614,49 +614,6 @@ test("the real exclusion file covers the reported words and only drops real cand
   for (const w of excluded) assert.ok(cands.has(w), `${w} is not a candidate`);
 });
 
-test("accept cap: starts per level, shrinks per rung, never below 1", async () => {
-  const { acceptCap } = await import("../../js/logic.js");
-  assert.deepEqual([0, 1, 2].map((r) => acceptCap({ acceptStart: 40, acceptStep: 5 }, r)), [40, 35, 30]);
-  assert.deepEqual([0, 4].map((r) => acceptCap({ acceptStart: 30, acceptStep: 4 }, r)), [30, 14]);
-  assert.equal(acceptCap({ acceptStart: 30, acceptStep: 4 }, 9), 1);
-});
-
-test("accepted steps: wide top N, no farther, closer first", async () => {
-  const { acceptedSteps } = await import("../../js/logic.js");
-  // dist: 0:3 1:3 2:2 3:4 4:2 5:-1 6:3 7:2 8:1 9:0
-  const dist = [3, 3, 2, 4, 2, -1, 3, 2, 1, 0];
-  const legal = [[2], [], [], [], [], [], [], [], [9], []];
-  const wide = [[1, 2, 3, 4, 5, 6, 7], [], [], [], [], [], [], [], [9, 2], []];
-  assert.deepEqual(acceptedSteps(legal, wide, dist, 0, 40), [2, 4, 7, 1, 6]);
-  assert.deepEqual(acceptedSteps(legal, wide, dist, 0, 2), [2, 1]);   // cap cuts the wide list only
-  assert.deepEqual(acceptedSteps(legal, wide, dist, 8, 40), [9]);     // one out: only the goal
-  assert.deepEqual(acceptedSteps(legal, wide, dist, 9, 40), []);
-  assert.deepEqual(acceptedSteps(legal, wide, dist, 5, 40), []);
-});
-
-test("rejectReason: top N, wrong way, too far ahead", async () => {
-  const { rejectReason } = await import("../../js/logic.js");
-  const dist = [3, 3, 2, 4, 2, -1, 3, 1, 1, 0];
-  const legal = [[2], [], [], [], [], [], [], [], [9], []];
-  const wide = [[1, 2, 3, 4, 5, 6, 7], [], [], [], [], [], [], [], [9, 2], []];
-  assert.equal(rejectReason(legal, wide, dist, 0, 2, 4), "notTop");    // outside top 2
-  assert.equal(rejectReason(legal, wide, dist, 0, 40, 3), "wrongWay"); // farther
-  assert.equal(rejectReason(legal, wide, dist, 0, 40, 5), "wrongWay"); // no route
-  assert.equal(rejectReason(legal, wide, dist, 0, 40, 7), "tooFar");   // skips a rung
-});
-
-test("accepted steps: never skips a rung", async () => {
-  const { acceptedSteps } = await import("../../js/logic.js");
-  // 0 is 3 out; 1 is 1 out (two rungs closer) and must not count.
-  assert.deepEqual(acceptedSteps([[]], [[1, 2]], [3, 1, 2], 0, 40), [2]);
-});
-
-test("accepted steps: keeps every step the old rule accepted", async () => {
-  const { acceptedSteps } = await import("../../js/logic.js");
-  // Legal closer step 3 sits at wide rank 4, past a cap of 2: still accepted.
-  assert.deepEqual(acceptedSteps([[3]], [[1, 2, 4, 3]], [5, 9, 9, 4, 9], 0, 2), [3]);
-});
-
 test("a singular counts as its plural when the plural is the legal step", () => {
   const ws = ["sea", "ship", "ships", "town", "city", "cities", "tow", "tower", "rope", "dock"];
   const I = Object.fromEntries(ws.map((w, i) => [w, i]));
@@ -673,31 +630,6 @@ test("a singular counts as its plural when the plural is the legal step", () => 
   assert.match(checkStep(g, ["rope"], "tow").error, /isn't one of rope's/);
   // The plural must still be a fresh step.
   assert.match(checkStep(g, ["sea", "ships", "dock"], "ship").error, /isn't one of dock's/);
-});
-
-// playWord: wide top-N words. hub -> goal is 2 rungs; "near" is one rung closer but only in the wide list.
-const pw = ["start", "mid", "goal", "near", "far"];
-const P = Object.fromEntries(pw.map((w, i) => [w, i]));
-const pwLadder = {
-  words: pw, index: new Map(pw.map((w, i) => [w, i])),
-  neighbors: [[P.mid], [P.goal], [], [], []],
-  wide: [[P.mid, P.near, P.far], [P.goal], [], [], []],
-  config: { stepLimit: 1 },
-};
-const pwDist = [2, 1, 0, 1, 3];
-
-test("playWord plays a wide word that isn't a legal step", () => {
-  assert.deepEqual(playWord(pwLadder, pwDist, ["start"], "near", "goal", 40), { ok: true, word: "near" });
-});
-
-test("playWord marks a close but not accepted word noCloser", () => {
-  assert.deepEqual(playWord(pwLadder, pwDist, ["start"], "far", "goal", 40), { ok: false, noCloser: true, word: "far" });
-  // cap 1 cuts "near" (second in the wide row) too.
-  assert.equal(playWord(pwLadder, pwDist, ["start"], "near", "goal", 1).noCloser, true);
-});
-
-test("playWord keeps checkStep's typo errors", () => {
-  assert.match(playWord(pwLadder, pwDist, ["start"], "zzzz", "goal", 40).error, /isn't in our/);
 });
 
 import { pointsFor, resultPoints } from "../../js/logic.js";

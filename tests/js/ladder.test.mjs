@@ -89,28 +89,3 @@ test("a puzzle file's route is used only while it is a real shortest route", () 
   const longer = { start: "a", goal: "d", par: 3 };
   assert.equal(checkedRoute(["a", "b", "a", "d"], longer, ladder, dist), null); // not shortest
 });
-
-
-// Wide accept list: removed words never come back, and the widest accept start is loaded.
-const wideBase = (extra) => {
-  const names = ["a", "b", "c", "d"];
-  return {
-    words: names, index: new Map(names.map((w, i) => [w, i])), neighbors: names.map(() => [1, 2, 3]),
-    candidates: names, views: new Map(), removed: new Set(["c"]),
-    config: { launchDate: "2026-11-01", rules: [{ from: "2026-11-01", stepLimit: 2, minPar: 1, maxPar: 6, levels: {} }] },
-    ...extra,
-  };
-};
-
-test("wide list drops removed words", async () => {
-  const { ladderAt } = await import("../../js/data.js");
-  const view = ladderAt(wideBase(), "2026-11-05");
-  assert.ok(view.wide.length === 4 && view.wide.every((row) => !row.includes(2)));
-});
-
-test("readyFor loads at least the widest accept start", async () => {
-  const { readyFor } = await import("../../js/data.js");
-  const base = wideBase({ complete: false, neighbors: [[1]], loadFull: async () => { base.complete = true; base.neighbors = Array.from({ length: 4 }, () => Array(100).fill(0)); } });
-  await readyFor(base, { date: "2026-11-05" });
-  assert.ok(base.neighbors[0].length >= 40);
-});

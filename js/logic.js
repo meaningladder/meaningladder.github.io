@@ -1,5 +1,6 @@
 // Pure game rules. No DOM, no fetch, no localStorage, so Node can test
 // every function here (tests/js/logic.test.mjs).
+import { INFORMATIVE, relKey } from "./seeded.js";
 
 // ------------------------------------------------------------ graph helpers
 // Reverse adjacency in "CSR" form: one flat array of edges plus an offsets
@@ -286,19 +287,6 @@ export function checkStep(ladder, path, typed, goal = null) {
   return { ok: true, word };
 }
 
-// checkStep, then the wide accept list: a known word that is a legal step or a
-// near miss is played when it is one of this rung's accepted steps (see
-// acceptedSteps), else it gets noCloser. Other errors (typos, repeats) pass through.
-export function playWord(ladder, dist, path, typed, goal, cap) {
-  const res = checkStep(ladder, path, typed, goal);
-  if (!res.ok && !res.nearMiss) return res;
-  const word = res.ok ? res.word : normalize(typed);
-  const idx = ladder.index.get(word);
-  const cur = ladder.index.get(path[path.length - 1]);
-  if (acceptedSteps(ladder.neighbors, ladder.wide, dist, cur, cap).includes(idx)) return res.ok ? res : { ok: true, word };
-  return { ok: false, noCloser: true, word };
-}
-
 // Would `word` be accepted as is: a known word, new to the path, and one of
 // the current word's legal steps?
 function isLegal(ladder, path, word) {
@@ -336,31 +324,89 @@ export function autoGoal(ladder, current, goal) {
   return cur !== undefined && g !== undefined && current !== goal && ladder.neighbors[cur].includes(g);
 }
 
-// ------------------------------------------------------------ chain mode
-// Strict Unlimited: puzzle.route is the one chain; route[k + 1] is hidden word
-// k, shown as blanks with puzzle.shown[k] filled in. state.rungs[k] holds its
-// wrong guesses and hints. Moves: every word played, wrong guess and hint.
-export const chainStart = (puzzle) => ({
-  puzzle, path: [puzzle.start], moves: 0, hints: 0, status: "playing",
-  rungs: puzzle.shown.map(() => ({ misses: [], hints: 0 })),
-});
+// ------------------------------------------------------------ linked play
+// One game for Daily and Unlimited. Each rung shows a clue for the PLANNED
+// next word: its ConceptNet link to the current word (linkClue) when that
+// link is clean, else "N letters, starts with X". A word counts when it is a
+// legal step, one rung closer, and fits the clue (same relation and
+// direction, or same length and first letter). Every word played, wrong real
+// word and hint is a move; the goal plays itself one rung before the top, so
+// a perfect game equals par.
 
-// Letter positions on view for hidden word k: the shown one, then one per hint.
-export const chainLetters = (state, k) =>
-  [state.puzzle.shown[k].pos, ...state.puzzle.hintOrder[k].slice(0, state.rungs[k].hints)];
+// The clean (informative) link between two words, or null.
+export function linkOf(related, a, b) {
+  const r = related?.get(relKey(a, b));
+  return r && INFORMATIVE.has(r.rel) ? r : null;
+}
 
-// Only `target` counts, or its plural/singular. Typos, unknown words, words
-// already on the ladder (path or goal) and repeat misses are free and keep
-// checkStep's messages; any other real word is `wrong` (a move). A typo is
-// never answered with the target itself: only hints give letters away.
-export function chainGuess(ladder, path, typed, target, goal, misses = []) {
+// For every word, the most clean links on a shortest path to the goal
+// (-1 = no route). Layer by layer outwards from the goal, like guideRoute.
+export function linkedToGoal(neighbors, related, dist, goal) {
+  const to = new Int32Array(dist.length).fill(-1);
+  to[goal] = 0;
+  const order = [...dist.keys()].filter((i) => dist[i] > 0).sort((a, b) => dist[a] - dist[b]);
+  for (const u of order) {
+    for (const v of neighbors[u]) {
+      if (dist[v] === dist[u] - 1 && to[v] >= 0) to[u] = Math.max(to[u], (linkOf(related, u, v) ? 1 : 0) + to[v]);
+    }
+  }
+  return to;
+}
+
+// The next route word while `cur` is on the stored route (word indexes);
+// otherwise guideRoute's choice: the one-closer step with the most clean
+// links ahead, ties to the more similar word. -1 at the goal.
+export function plannedNext(ladder, related, dist, toGoal, route, cur) {
+  const k = route ? route.indexOf(cur) : -1;
+  if (k >= 0 && k < route.length - 1) return route[k + 1];
+  let best = -1, score = -1;
+  for (const v of ladder.neighbors[cur]) {
+    if (dist[v] !== dist[cur] - 1) continue;
+    const c = (linkOf(related, cur, v) ? 1 : 0) + toGoal[v];
+    if (c > score) { best = v; score = c; }
+  }
+  return best;
+}
+
+const capital = (t) => t[0].toUpperCase() + t.slice(1);
+
+// The clue for the step cur -> planned. `from` null means either reading is
+// true (symmetric, or the same relation both ways): linkClue reads it as is.
+export function rungClue(ladder, related, cur, planned) {
+  const link = linkOf(related, cur, planned);
+  if (link) {
+    const text = linkClue(link.rel, link.from == null ? null : link.from === cur, ladder.words[cur]);
+    return { kind: "link", text: capital(text), rel: link.rel, from: link.from };
+  }
+  const w = ladder.words[planned];
+  return { kind: "letters", text: `${w.length} letters, starts with ${w[0].toUpperCase()}`, length: w.length, first: w[0] };
+}
+
+// Does `v` fit the clue shown at `cur`? A link clue reads "next REL cur"
+// unless its edge starts at cur; v fits with the same relation read the same
+// way (a both-ways link reads either way).
+function fitsClue(ladder, related, cur, clue, v) {
+  if (clue.kind === "letters") return ladder.words[v].length === clue.length && ladder.words[v][0] === clue.first;
+  const l = linkOf(related, cur, v);
+  return Boolean(l) && l.rel === clue.rel && (l.from == null || (l.from === cur) === (clue.from === cur));
+}
+
+// Typos, unknown words, words already on the ladder and repeat misses are
+// free and say why; any other real word that doesn't count is `wrong` (a move).
+// A typo is never answered with the planned word: only hints give letters away.
+export function linkedGuess(ladder, related, dist, toGoal, path, typed, goal, planned, misses = []) {
   const word = normalize(typed);
   if (!word) return { ok: false, error: "Type a word first." };
   if (!/^[a-z]+$/.test(word)) return { ok: false, error: "Letters only, please." };
-  if (word === target) return { ok: true, word };
-  if (pluralPair(word, target)) return { ok: true, word: target, note: `Counted as ${target}.` };
+  const cur = ladder.index.get(path[path.length - 1]);
+  const clue = rungClue(ladder, related, cur, planned);
+  const fits = ladder.neighbors[cur].filter((v) => dist[v] === dist[cur] - 1 && fitsClue(ladder, related, cur, clue, v))
+    .map((v) => ladder.words[v]);
+  if (fits.includes(word)) return { ok: true, word };
+  const form = fits.find((w) => pluralPair(word, w));
+  if (form) return { ok: true, word: form, note: `Counted as ${form}.` };
   if (!ladder.index.has(word)) {
-    const suggestion = didYouMean(ladder, path, word, target);
+    const suggestion = didYouMean(ladder, path, word, ladder.words[planned]);
     if (suggestion) return { ok: false, error: `Did you mean ${suggestion}?`, suggestion };
     const size = ladder.words.length.toLocaleString("en-US");
     return { ok: false, error: `${word} isn't in our ${size}-word list. Try a more common word.` };
@@ -370,37 +416,74 @@ export function chainGuess(ladder, path, typed, target, goal, misses = []) {
   return { ok: false, wrong: true, word };
 }
 
-// The next hidden word is played (its move is the caller's). After the last
-// one the goal follows and costs its move, like autoGoal on a daily ladder.
-function chainPlay(state) {
-  const { route } = state.puzzle;
-  state.path.push(route[state.path.length]);
-  if (state.path.length === route.length - 1) {
-    state.path.push(route[route.length - 1]);
-    state.moves++;
-    state.status = "won";
-  }
+// What a game needs besides the save: distances, clean links ahead, and the
+// puzzle's stored route if it is still a real shortest route.
+export function linkedGame(ladder, puzzle) {
+  const goal = ladder.index.get(puzzle.goal);
+  const dist = distancesToGoal(ladder.reverse ?? buildReverse(ladder.neighbors), ladder.words.length, goal);
+  return {
+    ladder, related: ladder.related, dist,
+    toGoal: linkedToGoal(ladder.neighbors, ladder.related, dist, goal),
+    route: checkedRoute(puzzle.route, puzzle, ladder, dist),
+  };
 }
 
-export function chainSubmit(ladder, state, typed) {
+// state.rungs[k]: the wrong words and hints at path word k.
+export const linkedStart = (puzzle) => ({
+  mode: "linked", puzzle, path: [puzzle.start], moves: 0, hints: 0, status: "playing", rungs: [],
+});
+
+// The rung being climbed: its index k, word, planned next word, clue and record.
+export function linkedRung(game, state) {
   const k = state.path.length - 1;
-  const r = state.rungs[k];
-  const res = chainGuess(ladder, state.path, typed, state.puzzle.route[k + 1], state.puzzle.goal, r.misses.map((m) => m.word));
+  const cur = game.ladder.index.get(state.path[k]);
+  const planned = plannedNext(game.ladder, game.related, game.dist, game.toGoal, game.route, cur);
+  state.rungs[k] ??= { misses: [], hints: 0 };
+  return { k, cur, planned, clue: rungClue(game.ladder, game.related, cur, planned), r: state.rungs[k] };
+}
+
+// Letter positions hints reveal, left to right; a letters clue already gave the first.
+const hintOrder = (word, clue) => [...word].map((_, i) => i).filter((i) => clue.kind !== "letters" || i > 0);
+
+// The planned word as letters and "_" for the ones not shown yet.
+export function shownLetters(game, state) {
+  const { planned, clue, r } = linkedRung(game, state);
+  const word = game.ladder.words[planned];
+  const shown = new Set(hintOrder(word, clue).slice(0, r.hints));
+  if (clue.kind === "letters") shown.add(0);
+  return [...word].map((c, i) => (shown.has(i) ? c : "_"));
+}
+
+// The word is played (its move is the caller's). One rung below the goal,
+// the goal follows for one more move.
+function linkedPlay(game, state, word) {
+  state.path.push(word);
+  if (game.dist[game.ladder.index.get(word)] === 1) {
+    state.path.push(state.puzzle.goal);
+    state.moves++;
+  }
+  if (state.path[state.path.length - 1] === state.puzzle.goal) state.status = "won";
+}
+
+export function linkedSubmit(game, state, typed) {
+  const { planned, r } = linkedRung(game, state);
+  const res = linkedGuess(game.ladder, game.related, game.dist, game.toGoal, state.path, typed,
+    state.puzzle.goal, planned, r.misses.map((m) => m.word));
   if (res.ok || res.wrong) state.moves++;
   if (res.wrong) r.misses.push({ word: res.word, rank: null }); // the caller fills in rank
-  if (res.ok) chainPlay(state);
+  if (res.ok) linkedPlay(game, state, res.word);
   return res;
 }
 
-// One more letter of the current hidden word, for one move. The hint that
-// fills the last blank plays the word (no extra move for that).
-export function chainHint(state) {
-  const k = state.path.length - 1;
-  const r = state.rungs[k];
+// One more letter of the planned word, for one move. The hint that shows
+// the last letter plays the word (no extra move for that).
+export function linkedHint(game, state) {
+  const { planned, clue, r } = linkedRung(game, state);
+  const word = game.ladder.words[planned];
   r.hints++;
   state.hints++;
   state.moves++;
-  if (r.hints >= state.puzzle.hintOrder[k].length) chainPlay(state);
+  if (r.hints >= hintOrder(word, clue).length) linkedPlay(game, state, word);
 }
 
 // Regular English inflection endings, as [ending, replacement]: a rough
@@ -944,37 +1027,6 @@ export function guideRoute(neighbors, dist, related, from) {
     route.push(u);
   }
   return route;
-}
-
-// ------------------------------------------------------------ accepted steps
-// A rung accepts a wide top-N of the current word's similar words, not just
-// its legal steps. The cap starts at acceptStart (40 Easy, 35 Medium, 30 Hard)
-// and drops by acceptStep per rung climbed, never below 1. Accepted words must
-// stay on the route: never skip a rung (dist >= dist[cur] - 1), never go
-// farther (dist <= dist[cur]). A same-distance word is a level step. One rung
-// from the goal only the goal counts. Every legal step that passes the window
-// stays accepted even past the cap. dist = steps to the goal, -1 = no route.
-export function acceptCap(levelRules, rungsClimbed) {
-  return Math.max(1, levelRules.acceptStart - levelRules.acceptStep * rungsClimbed);
-}
-
-// Closer first, then legal-list order, then wide-list order (stable sort).
-export function acceptedSteps(legal, wide, dist, cur, cap) {
-  const d = dist[cur];
-  if (!(d > 0)) return [];
-  const top = d === 1 ? 0 : d;
-  return [...new Set([...legal[cur], ...wide[cur].slice(0, cap)])]
-    .filter((v) => dist[v] >= d - 1 && dist[v] <= top)
-    .sort((a, b) => dist[a] - dist[b]);
-}
-
-// Why a close word `v` was refused at `cur`: outside the top `cap`, farther from
-// the goal, or skipping a rung.
-export function rejectReason(legal, wide, dist, cur, cap, v) {
-  if (!legal[cur].includes(v) && !wide[cur].slice(0, cap).includes(v)) return "notTop";
-  const d = dist[cur];
-  if (dist[v] < 0 || dist[v] > (d === 1 ? 0 : d)) return "wrongWay";
-  return dist[v] < d - 1 ? "tooFar" : "notTop";
 }
 
 // ------------------------------------------------------------ feedback
