@@ -44,7 +44,7 @@ test("rulesFor picks each date's era, like Python's rules_for", () => {
   for (const d of ["2026-11-01", "2026-11-12", "2026-11-13", null]) {
     assert.equal(rulesFor(config, d).stepLimit, 10);
     assert.equal(rulesFor(config, d).twoWay, true);
-    assert.equal(rulesFor(config, d).levels.hard.par, 4);
+    assert.equal(rulesFor(config, d).levels.hard.par, 5);
   }
   assert.equal(rulesFor(config, "2026-11-13").rules, undefined);
   assert.deepEqual(cutNeighbors([[3, 1, 2], [0]], 2), [[3, 1], [0]]);
@@ -110,7 +110,7 @@ test("seeded linked puzzles and game numbers match Python for every fixture seed
   }
 });
 
-test("seededLinkedPuzzle: every level fully linked, Hard in under 1 s", () => {
+test("seededLinkedPuzzle: every level has 2+ linked steps, Hard in under 1 s", () => {
   const { ladder } = live;
   for (const level of ["easy", "medium", "hard"]) {
     const band = levelBand(level, ladder.config);
@@ -120,10 +120,10 @@ test("seededLinkedPuzzle: every level fully linked, Hard in under 1 s", () => {
     if (level === "hard") assert.ok(ms < 1000, `Hard took ${ms.toFixed(0)} ms`);
     const [s, g] = [ladder.index.get(got.start), ladder.index.get(got.goal)];
     assert.equal(got.par, band.par);
-    assert.equal(linkedSteps(ladder.neighbors, ladder.linked, s, g, got.par), got.par, level);
+    assert.ok(linkedSteps(ladder.neighbors, ladder.linked, s, g, got.par) >= 2, level);
     // linkedFrom (all goals) agrees with linkedSteps (one goal).
     const { dist } = bfsAll(ladder.neighbors, s, got.par);
-    assert.equal(linkedFrom(ladder.neighbors, ladder.linked, s, dist)[g], got.par);
+    assert.equal(linkedFrom(ladder.neighbors, ladder.linked, s, dist)[g], linkedSteps(ladder.neighbors, ladder.linked, s, g, got.par));
   }
   assert.throws(() => seededLinkedPuzzle(ladder, "x", { ...levelBand("easy", ladder.config), maxRoutes: 0 }), /no linked puzzle/);
 });

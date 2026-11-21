@@ -367,7 +367,7 @@ export function seededLinkedPuzzle(ladder, seedStr, band) {
     const lk = linkedFrom(neighbors, linked, s, dist);
     const fits = cands.filter((g) => {
       const i = index.get(g);
-      return dist[i] === par && lk[i] === par && (!inDeg || inDeg[i] >= minIn)
+      return dist[i] === par && lk[i] >= (band.minLinkedSteps ?? par) && (!inDeg || inDeg[i] >= minIn)
         && band.minRoutes <= routes[i] && routes[i] <= band.maxRoutes
         && (!wantsCloser(band) || closerFits(band, closerFirstMoves(neighbors, s, i, par)));
     });

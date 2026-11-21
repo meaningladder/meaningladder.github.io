@@ -470,7 +470,7 @@ def incoming_words(ladder: "Ladder", goals: list[str], limit: int = 10) -> dict[
 
 
 def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = frozenset(),
-              starts: int = 40, per_start: int = 3) -> list[tuple[str, str, int]]:
+              starts: int = 12, per_start: int = 3) -> list[tuple[str, str, int]]:
     """Pairs that already satisfy today's band, for the AI to choose from.
 
     The AI can't see our graph, so on hard days (par 4 with a narrow route
@@ -681,10 +681,10 @@ def seeded_puzzle(ladder: Ladder, date_str: str, band: dict) -> tuple[str, str, 
 
 def seeded_linked_puzzle(ladder: Ladder, seed_str: str, band: dict) -> dict:
     """Deterministic puzzle whose shortest routes include one with an
-    informative link on every step. Random pairs almost never fit (0.07% at
-    par 5), so this goes start first: attempt k hashes "<seed>#k", rolls a
+    at least band["minLinkedSteps"] informative link steps. Random pairs rarely
+    fit, so this goes start first: attempt k hashes "<seed>#k", rolls a
     start, runs one BFS from it, collects every candidate goal at distance
-    par that is fully linked and passes the band, and rolls one of them with
+    par with enough linked steps and passes the band, and rolls one of them with
     the same PRNG. JS twin: seededLinkedPuzzle in js/seeded.js."""
     if ladder.linked is None or not ladder.config.get("twoWay"):
         raise ValueError("seeded_linked_puzzle needs two-way links and data/relations_vN.*")
@@ -697,7 +697,7 @@ def seeded_linked_puzzle(ladder: Ladder, seed_str: str, band: dict) -> dict:
         # closer here is bfs_all's first-move count; JS uses closerFirstMoves (same on two-way graphs)
         dist, routes, closer = bfs_all(nb, s)
         linked = linked_from(nb, ladder.linked, s, dist)
-        fits = [g for g in cands if dist[ix[g]] == par and linked[ix[g]] == par
+        fits = [g for g in cands if dist[ix[g]] == par and linked[ix[g]] >= band.get("minLinkedSteps", par)
                 and (not min_in or in_degrees(ladder)[ix[g]] >= min_in)
                 and band["minRoutes"] <= routes[ix[g]] <= band["maxRoutes"]
                 and (not wants_closer(band) or closer_fits(band, closer[ix[g]]))]

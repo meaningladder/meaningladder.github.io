@@ -32,8 +32,8 @@ function realLadder() {
 const ladder = realLadder();
 const made = Object.fromEntries(["easy", "medium", "hard"].map((lv) => [lv, chainPuzzle(ladder, lv, 12345)]));
 
-test("Easy/Medium/Hard chains hide 2/3/3 words, each step legal and one rung closer", () => {
-  for (const [lv, hidden] of [["easy", 2], ["medium", 3], ["hard", 3]]) {
+test("Easy/Medium/Hard chains hide 2/3/4 words, each step legal and one rung closer", () => {
+  for (const [lv, hidden] of [["easy", 2], ["medium", 3], ["hard", 4]]) {
     const p = made[lv];
     assert.equal(p.mode, "chain");
     assert.equal(p.route.length, hidden + 2, lv);

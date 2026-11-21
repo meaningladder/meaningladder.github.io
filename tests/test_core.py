@@ -122,10 +122,10 @@ def test_levels_cover_easy_medium_hard():
     cfg = load_config()
     assert LEVELS == ("easy", "medium", "hard")
     # One set of rules for every day since 2026-11-16 (Nov 1-12 used to be
-    # top 100 with par 3/3/4): open top-10 ladders, Easy 3, Medium 4, Hard 4.
+    # top 100 with par 3/3/4): open top-10 ladders, Easy 3, Medium 4, Hard 5.
     assert len(cfg["rules"]) == 1
     for day in ("2026-11-01", "2026-11-12", "2026-11-13", None):
-        assert [level_band(lv, rules_for(cfg, day))["par"] for lv in LEVELS] == [3, 4, 4]
+        assert [level_band(lv, rules_for(cfg, day))["par"] for lv in LEVELS] == [3, 4, 5]
     easy = level_band("easy", rules_for(cfg, "2026-11-12"))
     assert easy["level"] == "easy" and easy["label"] == "Easy"
     assert seed_base("2026-11-12", "hard") == "2026-11-12:hard"
@@ -299,21 +299,22 @@ def test_era_exclusion_file_is_up_to_date():
 def test_seeded_linked_puzzle_same_seed_same_puzzle(ladder):
     from ladder_core import guide_route, rel_key, seeded_linked_puzzle
 
-    ladder = ladder.at(None)  # the live rules: every step linked
+    ladder = ladder.at(None)  # the live rules: at least 2 clean link clues
     band = level_band("medium", ladder.config)
     first = seeded_linked_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
     assert first == seeded_linked_puzzle(ladder, seed_base("2026-11-17", "medium"), band)
-    assert first["par"] == band["par"] == band["minLinkedSteps"]
+    assert first["par"] == band["par"] and band["minLinkedSteps"] == 2
     # Each level of a day is an independent puzzle.
     hard = seeded_linked_puzzle(ladder, seed_base("2026-11-17", "hard"), level_band("hard", ladder.config))
-    assert (hard["start"], hard["goal"]) != (first["start"], first["goal"]) and hard["par"] == 4
+    assert (hard["start"], hard["goal"]) != (first["start"], first["goal"]) and hard["par"] == 5
     for p, lv in ((first, "medium"), (hard, "hard")):
         v = validate_pair(ladder, p["start"], p["goal"], level_band(lv, ladder.config))
         assert v.ok and (v.par, v.routes) == (p["par"], p["routes"])
-        # The route a puzzle file stores has an informative link on every step.
+        # The route a puzzle file stores has at least 2 informative steps.
         route = guide_route(ladder.neighbors, ladder.linked, ladder.index[p["start"]], ladder.index[p["goal"]])
         assert len(route) == p["par"] + 1
-        assert all(ladder.related[rel_key(a, b)][0] != "RelatedTo" for a, b in zip(route, route[1:]))
+        clean = sum(ladder.related.get(rel_key(a, b), ("RelatedTo",))[0] != "RelatedTo" for a, b in zip(route, route[1:]))
+        assert clean >= 2
 
 
 def test_seeded_linked_puzzle_fails_loudly(ladder, monkeypatch):
@@ -345,8 +346,10 @@ def test_validate_pair_needs_an_informative_link_on_every_step(ladder):
     dist = bfs_all(ladder.neighbors, s)[0]
     assert dist[g] == 3 and linked_from(ladder.neighbors, ladder.related, s, dist)[g] == 3
     assert linked_steps(ladder.neighbors, ladder.linked, s, g, 3) == 2
-    v = validate_pair(ladder, "abbey", "priest", level_band("easy", ladder.config))
+    strict = {**level_band("easy", ladder.config), "minLinkedSteps": 3}
+    v = validate_pair(ladder, "abbey", "priest", strict)
     assert not v.ok and "2 linked steps" in v.reason
+    assert validate_pair(ladder, "abbey", "priest", level_band("easy", ladder.config)).ok
 
 
 def test_bfs_all_matches_pairwise_bfs():

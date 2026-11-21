@@ -19,7 +19,7 @@
         "easy": {
           "label": "Easy",
           "par": 3,
-          "minLinkedSteps": 3,
+          "minLinkedSteps": 2,
           "acceptStart": 40,
           "acceptStep": 5,
           "minRoutes": 1,
@@ -29,21 +29,21 @@
         "medium": {
           "label": "Medium",
           "par": 4,
-          "minLinkedSteps": 4,
+          "minLinkedSteps": 2,
           "acceptStart": 35,
           "acceptStep": 5,
-          "minRoutes": 4,
+          "minRoutes": 1,
           "maxRoutes": 100000,
           "minCloserFirstMoves": 3
         },
         "hard": {
           "label": "Hard",
-          "par": 4,
-          "minLinkedSteps": 4,
+          "par": 5,
+          "minLinkedSteps": 2,
           "acceptStart": 30,
           "acceptStep": 4,
           "minRoutes": 1,
-          "maxRoutes": 8
+          "maxRoutes": 100000
         }
       }
     }
