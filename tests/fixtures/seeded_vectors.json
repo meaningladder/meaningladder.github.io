@@ -51,8 +51,8 @@
       "level": "easy",
       "stepLimit": 10,
       "gameNumber": 13,
-      "start": "prosecutor",
-      "goal": "courthouse",
+      "start": "surface",
+      "goal": "patch",
       "par": 3,
       "routes": 3
     },
@@ -62,9 +62,9 @@
       "stepLimit": 10,
       "gameNumber": 13,
       "start": "desk",
-      "goal": "ship",
+      "goal": "skin",
       "par": 4,
-      "routes": 4
+      "routes": 3
     },
     {
       "date": "2026-11-13",
@@ -72,7 +72,7 @@
       "stepLimit": 10,
       "gameNumber": 13,
       "start": "gate",
-      "goal": "urine",
+      "goal": "vault",
       "par": 5,
       "routes": 12
     },
@@ -92,9 +92,9 @@
       "stepLimit": 10,
       "gameNumber": 134,
       "start": "powder",
-      "goal": "hollow",
+      "goal": "fertilizer",
       "par": 4,
-      "routes": 4
+      "routes": 5
     },
     {
       "date": "2027-03-14",
@@ -102,19 +102,19 @@
       "stepLimit": 10,
       "gameNumber": 134,
       "start": "president",
-      "goal": "field",
+      "goal": "generator",
       "par": 5,
-      "routes": 27
+      "routes": 5
     },
     {
       "date": "2028-02-29",
       "level": "easy",
       "stepLimit": 10,
       "gameNumber": 486,
-      "start": "brook",
-      "goal": "salt",
+      "start": "leaf",
+      "goal": "sun",
       "par": 3,
-      "routes": 8
+      "routes": 3
     },
     {
       "date": "2028-02-29",
@@ -132,9 +132,9 @@
       "stepLimit": 10,
       "gameNumber": 486,
       "start": "courtroom",
-      "goal": "vinyl",
+      "goal": "wheel",
       "par": 5,
-      "routes": 11
+      "routes": 21
     }
   ]
 }

@@ -254,8 +254,9 @@ def informative_keys(related) -> frozenset[int] | None:
 
 def linked_steps(neighbors: list[list[int]], related, start: int, goal: int, par: int) -> int:
     """The most steps that are ConceptNet relations on any SHORTEST route
-    start -> goal (undirected two-way graphs). One BFS from the goal in layers,
-    then best[u] = max over the next layer's v of linked(u, v) + best[v].
+    start -> goal (undirected two-way graphs), not counting the last step: the
+    goal plays itself, so its clue is never shown. One BFS from the goal in
+    layers, then best[u] = max over the next layer's v of linked(u, v) + best[v].
     JS twin: linkedSteps in js/seeded.js."""
     if par < 1:
         return 0
@@ -274,7 +275,7 @@ def linked_steps(neighbors: list[list[int]], related, start: int, goal: int, par
     best = {goal: 0}
     for d in range(1, par + 1):
         for u in layers[d]:
-            best[u] = max((rel_key(u, v) in related) + best[v]
+            best[u] = max((v != goal and rel_key(u, v) in related) + best[v]
                           for v in neighbors[u] if dist.get(v) == d - 1)
     return best[start]
 
@@ -282,20 +283,23 @@ def linked_steps(neighbors: list[list[int]], related, start: int, goal: int, par
 def linked_from(neighbors: list[list[int]], related, start: int, dist: list[int]) -> list[int]:
     """linked_steps from `start` to EVERY word at once, given bfs_all's dist
     from start (the graph is undirected, so the count is the same either way).
+    best counts every step to v; the result drops the last one (into the goal).
     JS twin: linkedFrom in js/seeded.js."""
     order = sorted((i for i, d in enumerate(dist) if d >= 0), key=lambda i: dist[i])
     best = [0] * len(dist)
+    shown = [0] * len(dist)
     for v in order:
         if v == start:
             continue
-        best[v] = max(((rel_key(u, v) in related) + best[u]
-                       for u in neighbors[v] if dist[u] == dist[v] - 1), default=0)
-    return best
+        prev = [u for u in neighbors[v] if dist[u] == dist[v] - 1]
+        shown[v] = max((best[u] for u in prev), default=0)
+        best[v] = max(((rel_key(u, v) in related) + best[u] for u in prev), default=0)
+    return shown
 
 
 def guide_route(neighbors: list[list[int]], related, start: int, goal: int) -> list[int] | None:
-    """A shortest route with the most ConceptNet-relation steps (ties: the
-    more similar neighbor first). For the AI prompt; the browser builds its
+    """A shortest route with the most ConceptNet-relation steps, not counting
+    the last (the goal plays itself), ties: the more similar neighbor first. For the AI prompt; the browser builds its
     own with guideRoute in js/logic.js."""
     dist = {goal: 0}
     frontier = [goal]
@@ -313,14 +317,14 @@ def guide_route(neighbors: list[list[int]], related, start: int, goal: int) -> l
 
     def best(u: int) -> int:
         if u not in memo:
-            memo[u] = max((rel_key(u, v) in related) + best(v)
+            memo[u] = max((v != goal and rel_key(u, v) in related) + best(v)
                           for v in neighbors[u] if dist.get(v) == dist[u] - 1)
         return memo[u]
 
     route, u = [start], start
     while u != goal:
         u = max((v for v in neighbors[u] if dist.get(v) == dist[u] - 1),
-                key=lambda v: (rel_key(u, v) in related) + best(v))
+                key=lambda v: (v != goal and rel_key(u, v) in related) + best(v))
         route.append(u)
     return route
 
@@ -654,8 +658,9 @@ def validate_pair(
 
 
 def seeded_linked_puzzle(ladder: Ladder, seed_str: str, band: dict) -> dict:
-    """Deterministic puzzle whose shortest routes include one with an
-    at least band["minLinkedSteps"] informative link steps. Random pairs rarely
+    """Deterministic puzzle whose shortest routes include one with at least
+    band["minLinkedSteps"] informative link steps the player sees (linked_from
+    skips the goal step, which plays itself). Random pairs rarely
     fit, so this goes start first: attempt k hashes "<seed>#k", rolls a
     start, runs one BFS from it, collects every candidate goal at distance
     par with enough linked steps and passes the band, and rolls one of them with

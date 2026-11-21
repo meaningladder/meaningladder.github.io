@@ -807,11 +807,15 @@ function gameView(ladder, state, saveKey, date) {
     justMissed = false;
   }
 
+  let clueShown = null; // rung, text and letters last drawn: redrawing re-announces the live region
   function renderClue(playing) {
     clue.hidden = !playing;
     if (!playing) return;
-    const { clue: c, r } = linkedRung(game, state);
+    const { k, clue: c, r } = linkedRung(game, state);
     const letters = r.hints ? shownLetters(game, state) : null;
+    const key = `${k}|${c.text}|${letters?.join("")}`;
+    if (key === clueShown) return;
+    clueShown = key;
     clue.replaceChildren(h("span", { class: "clue-label" }, "Next word: "), h("b", {}, c.text),
       h("span", { class: "clue-letters", hidden: !letters },
         letters && [srOnly(", letters so far: "),

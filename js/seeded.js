@@ -176,8 +176,9 @@ export const informativeKeys = (related) =>
   related ? new Set([...related].filter(([, r]) => INFORMATIVE.has(r.rel)).map(([k]) => k)) : null;
 
 // The most steps that are relations on any SHORTEST route start -> goal
-// (undirected two-way graphs): BFS layers from the goal, then the best count
-// per word from the layer below.
+// (undirected two-way graphs), not counting the last step: the goal plays
+// itself, so its clue is never shown. BFS layers from the goal, then the
+// best count per word from the layer below. Python twin: linked_steps.
 export function linkedSteps(neighbors, related, start, goal, par) {
   if (par < 1) return 0;
   const dist = new Map([[goal, 0]]);
@@ -194,7 +195,7 @@ export function linkedSteps(neighbors, related, start, goal, par) {
       let b = -1;
       for (const v of neighbors[u]) {
         if (dist.get(v) !== d - 1) continue;
-        const c = (related.has(relKey(u, v)) ? 1 : 0) + best.get(v);
+        const c = (v !== goal && related.has(relKey(u, v)) ? 1 : 0) + best.get(v);
         if (c > b) b = c;
       }
       best.set(u, b);
@@ -225,23 +226,27 @@ export function bfsAll(neighbors, start, maxDepth = Infinity) {
 }
 
 // linkedSteps from start to EVERY word at once, given bfsAll's dist (two-way
-// graphs). Python twin: linked_from.
+// graphs). best counts every step to v; the result drops the last one (into
+// the goal). Python twin: linked_from.
 export function linkedFrom(neighbors, related, start, dist) {
   const layers = [];
   dist.forEach((d, i) => { if (d > 0) (layers[d] ??= []).push(i); });
   const best = new Int32Array(dist.length);
+  const shown = new Int32Array(dist.length);
   for (const layer of layers) {
     for (const v of layer ?? []) {
-      let b = 0;
+      let b = 0, s = 0;
       for (const u of neighbors[v]) {
         if (dist[u] !== dist[v] - 1) continue;
         const c = (related.has(relKey(u, v)) ? 1 : 0) + best[u];
         if (c > b) b = c;
+        if (best[u] > s) s = best[u];
       }
       best[v] = b;
+      shown[v] = s;
     }
   }
-  return best;
+  return shown;
 }
 
 // Closer first moves on an UNDIRECTED graph (two-way eras): one BFS from the
@@ -289,11 +294,12 @@ export const closerFits = (band, closer) =>
 export const seedBase = (dateStr, level) => `${dateStr}:${level}`;
 
 // ------------------------------------------------------------ seeded puzzle
-// A puzzle whose shortest routes include one with an informative link on
-// every step. Random pairs almost never fit (0.07% at par 5), so this goes
-// start first: attempt k hashes "<seed>#k", rolls a start, runs one BFS from
-// it, collects every candidate goal at distance par that is fully linked and
-// passes the band, and rolls one with the same PRNG. Python twin: seeded_linked_puzzle.
+// A puzzle whose shortest routes include one with at least band.minLinkedSteps
+// link clues the player sees (the goal step plays itself). Random pairs rarely
+// fit, so this goes start first: attempt k hashes "<seed>#k", rolls a start,
+// runs one BFS from it, collects every candidate goal at distance par with
+// enough links that passes the band, and rolls one with the same PRNG.
+// Python twin: seeded_linked_puzzle.
 export function seededLinkedPuzzle(ladder, seedStr, band) {
   const { neighbors, index, candidates: cands, linked, config } = ladder;
   if (!linked || !config.twoWay) throw new Error("seededLinkedPuzzle needs two-way links and data/relations_vN.*");

@@ -10,7 +10,8 @@ import { ladderAt, practicePuzzle } from "../../js/data.js";
 import {
   linkedGame, linkedGuess, linkedHint, linkedRung, linkedStart, linkedSubmit, linkedToGoal, plannedNext, rungClue, shownLetters,
 } from "../../js/logic.js";
-import { excludedWords, informativeKeys, relKey } from "../../js/seeded.js";
+import { bfsAll, excludedWords, informativeKeys, levelBand, linkedFrom, linkedSteps, relKey, seededLinkedPuzzle } from "../../js/seeded.js";
+import { buildReverse, distancesToGoal, guideRoute } from "../../js/logic.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJson = (p) => JSON.parse(readFileSync(root + p, "utf8"));
@@ -128,7 +129,7 @@ test("a repeat miss, a typo and an unknown word are free", () => {
 });
 
 test("a typo never gets the planned word as its suggestion", () => {
-  const res = linkedGuess(tiny, related, game().dist, null, ["jeep"], "truk", "port", I.truck, []);
+  const res = linkedGuess(tiny, related, game().dist, ["jeep"], "truk", "port", I.truck, []);
   assert.equal(res.ok, false);
   assert.doesNotMatch(res.error, /truck/);
 });
@@ -145,6 +146,25 @@ test("hints reveal letters for a move each, and the last hint plays the word", (
   assert.deepEqual(shownLetters(g, s), ["t", "_", "_", "_", "_", "_"]);
   linkedHint(g, s);
   assert.deepEqual(shownLetters(g, s), ["t", "a", "_", "_", "_", "_"]);
+});
+
+test("a link on the goal step counts for nothing: the goal plays itself", () => {
+  // Two-way s-a-b-g and s-c-d-g (par 3). Clean links s-a and b-g on the
+  // first route, c-d on the second: a player sees at most 1 link clue.
+  const ws = ["s", "a", "b", "c", "d", "g"];
+  const [S, A, B, C, D, G] = ws.keys();
+  const n = [[A, C], [S, B], [A, G], [S, D], [C, G], [B, D]];
+  const rel = new Map([[relKey(S, A), { rel: "IsA", from: S }], [relKey(B, G), { rel: "IsA", from: B }], [relKey(C, D), { rel: "IsA", from: C }]]);
+  const linked = informativeKeys(rel);
+  assert.equal(linkedSteps(n, linked, S, G, 3), 1);
+  assert.equal(linkedFrom(n, linked, S, bfsAll(n, S).dist)[G], 1);
+  const lad = { words: ws, index: new Map(ws.map((w, i) => [w, i])), neighbors: n, candidates: ["g", "s"], linked, related: rel, config: { twoWay: true } };
+  assert.throws(() => seededLinkedPuzzle(lad, "x", { par: 3, minRoutes: 1, maxRoutes: 10, minLinkedSteps: 2 }), /no linked puzzle/);
+  const dist = distancesToGoal(buildReverse(n), ws.length, G);
+  assert.deepEqual(guideRoute(n, dist, linked, S), [S, A, B, G]); // a 1-1 tie: the more similar neighbor
+  const to = linkedToGoal(n, rel, dist, G);
+  assert.deepEqual([to[S], to[A], to[C], to[B], to[D]], [1, 0, 1, 0, 0]);
+  assert.equal(plannedNext(lad, rel, dist, to, null, S), A);
 });
 
 // ---- the real word map
@@ -186,5 +206,26 @@ test("playing the planned word every rung is a perfect game", () => {
     const g = linkedGame(ladder, p), s = linkedStart(p);
     while (s.status === "playing") assert.equal(linkedSubmit(g, s, ladder.words[linkedRung(g, s).planned]).ok, true);
     assert.deepEqual([s.path, s.moves], [p.route, p.par]);
+  }
+});
+
+test("every picked fixture puzzle shows at least minLinkedSteps link clues on the rungs players see", () => {
+  const fx = readJson("tests/fixtures/seeded_vectors.json");
+  for (const f of fx.puzzles) {
+    const band = levelBand(f.level, ladder.config); // one era: the fixture dates share the live view
+    const dist = distancesToGoal(ladder.reverse, ladder.words.length, ladder.index.get(f.goal));
+    const stored = guideRoute(ladder.neighbors, dist, ladder.linked, ladder.index.get(f.start)).map((i) => ladder.words[i]);
+    // With the route a file stores, and without one (a seeded daily): play every planned word.
+    for (const route of [stored, undefined]) {
+      const p = { start: f.start, goal: f.goal, par: f.par, route };
+      const g = linkedGame(ladder, p), s = linkedStart(p);
+      let links = 0;
+      while (s.status === "playing") {
+        const { clue, planned } = linkedRung(g, s);
+        if (clue.kind === "link") links++;
+        linkedSubmit(g, s, ladder.words[planned]);
+      }
+      assert.ok(links >= band.minLinkedSteps, `${f.date} ${f.level}: ${links} link clues`);
+    }
   }
 });

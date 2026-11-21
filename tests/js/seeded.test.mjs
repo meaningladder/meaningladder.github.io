@@ -110,7 +110,7 @@ test("seeded linked puzzles and game numbers match Python for every fixture seed
   }
 });
 
-test("seededLinkedPuzzle: every level has 2+ linked steps, Hard in under 1 s", () => {
+test("seededLinkedPuzzle: every level shows minLinkedSteps link clues, Hard in under 1 s", () => {
   const { ladder } = live;
   for (const level of ["easy", "medium", "hard"]) {
     const band = levelBand(level, ladder.config);
@@ -120,7 +120,7 @@ test("seededLinkedPuzzle: every level has 2+ linked steps, Hard in under 1 s", (
     if (level === "hard") assert.ok(ms < 1000, `Hard took ${ms.toFixed(0)} ms`);
     const [s, g] = [ladder.index.get(got.start), ladder.index.get(got.goal)];
     assert.equal(got.par, band.par);
-    assert.ok(linkedSteps(ladder.neighbors, ladder.linked, s, g, got.par) >= 2, level);
+    assert.ok(linkedSteps(ladder.neighbors, ladder.linked, s, g, got.par) >= band.minLinkedSteps, level);
     // linkedFrom (all goals) agrees with linkedSteps (one goal).
     const { dist } = bfsAll(ladder.neighbors, s, got.par);
     assert.equal(linkedFrom(ladder.neighbors, ladder.linked, s, dist)[g], linkedSteps(ladder.neighbors, ladder.linked, s, g, got.par));

@@ -310,11 +310,12 @@ def test_seeded_linked_puzzle_same_seed_same_puzzle(ladder):
     for p, lv in ((first, "medium"), (hard, "hard")):
         v = validate_pair(ladder, p["start"], p["goal"], level_band(lv, ladder.config))
         assert v.ok and (v.par, v.routes) == (p["par"], p["routes"])
-        # The route a puzzle file stores has at least 2 informative steps.
+        # The route a puzzle file stores shows at least 2 link clues (the
+        # last step plays itself, so it doesn't count).
         route = guide_route(ladder.neighbors, ladder.linked, ladder.index[p["start"]], ladder.index[p["goal"]])
         assert len(route) == p["par"] + 1
-        clean = sum(ladder.related.get(rel_key(a, b), ("RelatedTo",))[0] != "RelatedTo" for a, b in zip(route, route[1:]))
-        assert clean >= 2
+        clean = sum(ladder.related.get(rel_key(a, b), ("RelatedTo",))[0] != "RelatedTo" for a, b in zip(route, route[1:-1]))
+        assert clean >= level_band(lv, ladder.config)["minLinkedSteps"]
 
 
 def test_seeded_linked_puzzle_fails_loudly(ladder, monkeypatch):
@@ -336,20 +337,64 @@ def test_seeded_puzzles_match_fixture(ladder):
         assert got == {k: p[k] for k in ("start", "goal", "par", "routes")}
 
 
-def test_validate_pair_needs_an_informative_link_on_every_step(ladder):
-    """abbey -> priest is par 3 with ConceptNet links on all 3 steps of some
-    shortest route, but one is RelatedTo, which a clue can't explain."""
+def test_validate_pair_counts_only_informative_links(ladder):
+    """abbey -> priest is par 3 with ConceptNet links on both shown steps of
+    some shortest route (the third plays itself), but one is RelatedTo,
+    which a clue can't explain."""
     from ladder_core import bfs_all, linked_from, linked_steps
 
     ladder = ladder.at(None)
     s, g = ladder.index["abbey"], ladder.index["priest"]
     dist = bfs_all(ladder.neighbors, s)[0]
-    assert dist[g] == 3 and linked_from(ladder.neighbors, ladder.related, s, dist)[g] == 3
-    assert linked_steps(ladder.neighbors, ladder.linked, s, g, 3) == 2
-    strict = {**level_band("easy", ladder.config), "minLinkedSteps": 3}
-    v = validate_pair(ladder, "abbey", "priest", strict)
-    assert not v.ok and "2 linked steps" in v.reason
-    assert validate_pair(ladder, "abbey", "priest", level_band("easy", ladder.config)).ok
+    assert dist[g] == 3 and linked_from(ladder.neighbors, ladder.related, s, dist)[g] == 2
+    assert linked_steps(ladder.neighbors, ladder.linked, s, g, 3) == 1
+    easy = level_band("easy", ladder.config)
+    v = validate_pair(ladder, "abbey", "priest", {**easy, "minLinkedSteps": 2})
+    assert not v.ok and "1 linked steps" in v.reason
+    assert validate_pair(ladder, "abbey", "priest", {**easy, "minLinkedSteps": 1}).ok
+
+
+def test_a_link_on_the_goal_step_does_not_count():
+    """The goal plays itself, so its step's clue is never shown. Two-way
+    s-a-b-g and s-c-d-g (par 3): s-a and b-g are clean links on the first
+    route, c-d on the second, so a player sees at most 1 link clue."""
+    from ladder_core import bfs_all, guide_route, linked_from, linked_steps, rel_key, seeded_linked_puzzle
+
+    words = ["s", "a", "b", "c", "d", "g"]
+    S, A, B, C, D, G = range(6)
+    nb = [[A, C], [S, B], [A, G], [S, D], [C, G], [B, D]]
+    linked = frozenset({rel_key(S, A), rel_key(B, G), rel_key(C, D)})
+    lad = Ladder(words=words, index={w: i for i, w in enumerate(words)}, neighbors=nb,
+                 candidates=["g", "s"], candidate_set={"s", "g"},
+                 config={"minPar": 3, "maxPar": 3, "twoWay": True}, linked=linked)
+    assert linked_steps(nb, linked, S, G, 3) == 1
+    assert linked_from(nb, linked, S, bfs_all(nb, S)[0])[G] == 1
+    band = {"par": 3, "minRoutes": 1, "maxRoutes": 10, "minLinkedSteps": 2}
+    v = validate_pair(lad, "s", "g", band)
+    assert not v.ok and "1 linked steps" in v.reason
+    assert validate_pair(lad, "s", "g", {**band, "minLinkedSteps": 1}).ok
+    with pytest.raises(RuntimeError, match="no linked puzzle"):
+        seeded_linked_puzzle(lad, "x", band)
+    # Route choice ignores the hidden link too: both routes show 1 clue, so
+    # the tie goes to the more similar first neighbor either way.
+    assert guide_route(nb, linked, S, G) == [S, A, B, G]
+    assert guide_route([[C, A], *nb[1:]], linked, S, G) == [S, C, D, G]
+
+
+def test_fixture_puzzles_show_enough_link_clues(ladder):
+    """Every picked fixture puzzle's stored route (guide_route, as a puzzle
+    file stores it) shows at least minLinkedSteps link clues on the rungs a
+    player sees: every step but the last."""
+    from ladder_core import guide_route, rel_key
+
+    fx = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    for p in fx["puzzles"]:
+        dated = ladder.at(p["date"])
+        ix = dated.index
+        route = guide_route(dated.neighbors, dated.linked, ix[p["start"]], ix[p["goal"]])
+        assert len(route) == p["par"] + 1
+        shown = sum(rel_key(a, b) in dated.linked for a, b in zip(route[:-2], route[1:-1]))
+        assert shown >= level_band(p["level"], dated.config)["minLinkedSteps"], p
 
 
 def test_bfs_all_matches_pairwise_bfs():
@@ -528,7 +573,7 @@ def test_relations_v2_direction_on_real_asymmetric_pairs(ladder):
 
 def test_guide_route_keeps_par_and_prefers_relations(ladder):
     """The shown route is a real shortest route (par kept, every step legal)
-    with as many relation steps as any shortest route has."""
+    with as many relation steps as any shortest route shows (all but the last)."""
     from ladder_core import bfs_all, guide_route, linked_from, linked_steps, rel_key
 
     nb, rel, ix = ladder.neighbors, ladder.related, ladder.index
@@ -537,13 +582,13 @@ def test_guide_route_keeps_par_and_prefers_relations(ladder):
         route = guide_route(nb, rel, ix[s], ix[g])
         assert len(route) - 1 == par and route[0] == ix[s] and route[-1] == ix[g]
         assert all(route[k + 1] in nb[route[k]] for k in range(par))
-        linked = sum(rel_key(route[k], route[k + 1]) in rel for k in range(par))
+        linked = sum(rel_key(route[k], route[k + 1]) in rel for k in range(par - 1))
         assert linked == linked_steps(nb, rel, ix[s], ix[g], par)
         # The all-goals version used by the shortlist agrees.
         dist = bfs_all(nb, ix[s])[0]
         assert linked_from(nb, rel, ix[s], dist)[ix[g]] == linked
-    # cafe -> fuel: 4 of its 5 steps are real relations (restaurant, grill, stove, kerosene).
-    assert linked_steps(nb, rel, ix["cafe"], ix["fuel"], 5) == 4
+    # cafe -> fuel: 3 of the 4 steps a player sees are real relations.
+    assert linked_steps(nb, rel, ix["cafe"], ix["fuel"], 5) == 3
 
 
 def test_nov_13_and_14_puzzles_play_under_the_live_rules(ladder):
