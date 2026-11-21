@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-22",
+  "gameNumber": 22,
+  "level": "easy",
+  "start": "salesman",
+  "goal": "pioneer",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "salesman",
+    "technician",
+    "engineer",
+    "pioneer"
+  ],
+  "reasons": []
+}

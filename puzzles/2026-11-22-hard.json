@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-22",
+  "gameNumber": 22,
+  "level": "hard",
+  "start": "spa",
+  "goal": "gasoline",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "spa",
+    "bath",
+    "bathroom",
+    "plumbing",
+    "heating",
+    "gasoline"
+  ],
+  "reasons": []
+}
