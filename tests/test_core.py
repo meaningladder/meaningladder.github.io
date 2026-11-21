@@ -483,8 +483,9 @@ def _read_relations(n):
 
 def test_relations_v2_is_a_filtered_subset_of_v1():
     import hashlib
-    h1, _, p1, _, _ = _read_relations(1)
+    h1, blob1, p1, _, _ = _read_relations(1)
     h2, blob, p2, l2, d2 = _read_relations(2)
+    assert hashlib.sha256(blob1).hexdigest() == h1["sha256"]  # v1 is frozen
     assert h1.get("layout") is None and "informativeFilter" not in h1
     assert h2["layout"] == "directed" and len(blob) == 6 * h2["count"]
     assert h2["informativeFilter"] == "curated source, 2+ sources, or weight >= 2"
@@ -511,15 +512,18 @@ def test_relations_v2_drops_weak_informative_links(ladder):
         assert rel(a, b) in INFORMATIVE, (a, b)
 
 
-def test_relations_v2_ladder_roof_direction(ladder):
+def test_relations_v2_direction_on_real_asymmetric_pairs(ladder):
+    """The edge starts at the first word (toe is PART OF foot), whichever
+    of the two has the smaller index. Missing pair = fail, not skip."""
     head, _, pairs, labels, dirs = _read_relations(2)
-    u, v = sorted((ladder.index["ladder"], ladder.index["roof"]))
-    hit = [i for i, (a, b) in enumerate(pairs.tolist()) if (a, b) == (u, v)]
-    if not hit:
-        pytest.skip("ladder-roof not a related pair")
-    i = hit[0]
-    assert head["relations"][labels[i]] == "AtLocation"
-    assert dirs[i] == (0 if u == ladder.index["ladder"] else 1)
+    where = {(int(a), int(b)): i for i, (a, b) in enumerate(pairs.tolist())}
+    for first, second, rel in [("toe", "foot", "PartOf"), ("leaf", "tree", "PartOf"),
+                               ("golfer", "athlete", "IsA"), ("cargo", "ship", "AtLocation")]:
+        f, t = ladder.index[first], ladder.index[second]
+        u, v = sorted((f, t))
+        i = where[(u, v)]  # KeyError if the filter lost the pair
+        assert head["relations"][labels[i]] == rel, (first, second)
+        assert dirs[i] == (0 if u == f else 1), (first, second)
 
 
 def test_guide_route_keeps_par_and_prefers_relations(ladder):
