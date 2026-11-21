@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-22",
+  "gameNumber": 22,
+  "level": "medium",
+  "start": "poultry",
+  "goal": "crow",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "poultry",
+    "chicken",
+    "egg",
+    "nest",
+    "crow"
+  ],
+  "reasons": []
+}
