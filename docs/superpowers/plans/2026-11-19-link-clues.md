@@ -19,12 +19,17 @@
 
 - Legal steps are unchanged: graph v1, two-way top 10. Par stays Easy 3, Medium 4, Hard 5. `medalFor` and `pointsFor` are unchanged.
 - **Informative relations** are every relation in the relations header except `RelatedTo`. The list is defined once per language: `ladder_core.py` and `js/seeded.js`.
-- A puzzle is valid only if some shortest route from start to goal has an informative link on **every** step. The band rule is `minLinkedSteps = par`.
+- **(Revised 2026-11-21, user's choice.) The clue appears where it is clean, with a fallback elsewhere.**
+  - A puzzle is valid if some shortest route has at least **2** steps with a clean informative link: band `minLinkedSteps = 2` for every level. Par is back to Easy 3, Medium 4, Hard 5, with the original route and closer bands.
+  - The stored route is `guide_route` over informative links, so it has the most clued steps.
+  - A rung whose planned step has a clean link shows the link clue.
+  - Any other rung shows the fallback clue for the planned next word: "N letters, starts with X".
 - A guess `v` from `cur` counts iff all of these hold:
   - `v` is a legal step
   - `dist[v] === dist[cur] - 1`
-  - the link `cur–v` has the same relation **and** direction as the shown clue
-  - `v` is fully linked: its best informative-linked count to the goal equals `dist[v]`
+  - it fits the shown clue:
+    - on a link-clue rung, the link `cur–v` has the same relation **and** direction as the clue
+    - on a fallback rung, `v` has the same length and first letter as the planned word
 - A plural or singular of an accepted word counts as that word.
 - A wrong real word costs a move. Typos, unknown words, and a repeat of a missed word on the same rung are free.
 - Hints reveal letters of the planned next word, one move each. The hint that fills the last letter plays the word. The goal auto-plays when it's one step away. A perfect game equals par.
@@ -35,7 +40,7 @@
 ## Review Focus
 
 1. **Direction.** A word with the same relation in the reverse direction must be rejected, and its clue must read the right way round.
-2. **Dead ends.** A word that fits the clue but has no fully linked continuation must be rejected. Otherwise the next rung would have no clue.
+2. **Every rung has a clue.** Off route, the planned next word is the guide choice from the current word, with the most informative links, and its rung shows either the link clue or the fallback. It is never blank.
 3. **Off-route answer.** A fitting word that isn't the planned route word must be accepted, and the next clue must follow from it.
 4. **Parity.** Python `seeded_linked_puzzle` and JS `seededLinkedPuzzle` must pick the same puzzle for the same seed string, checked against the fixtures.
 5. **Speed.** Unlimited Hard (par 5) must find a puzzle in the browser in about a second, not by trying 20,000 random pairs.
@@ -125,13 +130,33 @@ Clean links rarely chain five steps: about 30 par-5 puzzles exist in total. So H
 - [ ] Run `make fixtures`. The parity tests must pass. The JS Hard timing must stay under 1 s.
 - [ ] Commit: `Clean link clues only; Hard is par 4 with few routes`.
 
+### Task 3C: Back to par 3/4/5 with at least 2 clean clues per puzzle
+
+Requiring a clean link on every rung left only 374/238/204 puzzles. The user chose "clue where clean, fallback elsewhere". The Task 3B weak-link filter stays.
+
+**Files:** `puzzle_config.json`, `scripts/ladder_core.py` / `scripts/generate_puzzle.py` (shortlist starts, if still needed), `tests/fixtures/seeded_vectors.json` (`make fixtures`), and tests.
+
+- [ ] Config levels go back to the pre-3B shape:
+  - Easy: par 3, `minRoutes` 1, `maxRoutes` 100000, `minCloserFirstMoves` 3.
+  - Medium: par 4, same route limits, `minCloserFirstMoves` 3.
+  - Hard: par 5, `minRoutes` 1, `maxRoutes` 100000.
+  - Every level gets `minLinkedSteps` 2.
+  - Check `git show a853cd2:puzzle_config.json` for the exact earlier level fields, and restore any that are missing.
+- [ ] The pickers (`seeded_linked_puzzle` / `seededLinkedPuzzle`) stay start-first and parity-tested. Keep the 300-start give-up.
+- [ ] Revert tests that Task 3B changed for "Hard par 4" so they expect par 5 again: Hard chains hide 4 words, plus the par tables.
+- [ ] Test: a picked puzzle's stored route has at least 2 informative steps.
+- [ ] Test: JS Hard stays under 1 s.
+- [ ] Report the exact count of valid puzzles per level, computed the same way as Task 3B.
+- [ ] Commit: `Par 3/4/5 again; puzzles need at least 2 clean link clues`.
+
 ### Task 4: Play rules and one game view
 
 **Files:** `js/logic.js`, `js/game.js`, `js/data.js` (`makePracticePuzzle`), `style.css`, and tests (`tests/js/chain.test.mjs` becomes `tests/js/linked.test.mjs`, plus `logic.test.mjs`).
 
 **Interfaces:**
 - `linkedToGoal(neighbors, related, dist, goal) -> Int array`: for each word, the most informative links on a shortest path to the goal (reverse BFS layers).
-- `plannedNext(ladder, related, dist, toGoal, route, cur) -> index`: the next route word when `cur` is on the route. Otherwise it is the most-similar legal next word with `dist == d-1`, an informative link, and `toGoal == dist`.
+- `plannedNext(ladder, related, dist, toGoal, route, cur) -> index`: the next route word when `cur` is on the route. Otherwise it is the legal next word with `dist == d-1` that has the highest value of (informative link from `cur` ? 1 : 0) + `toGoal[v]`, with ties going to the more similar word. This is the guide-route choice.
+- `rungClue(...) -> {kind: "link", text, rel, from} | {kind: "letters", text, length, first}`. It returns `linkClue` when `cur–planned` has an informative link. Otherwise it returns the fallback `"N letters, starts with X"`, written without dashes.
 - `linkedGuess(ladder, related, dist, toGoal, path, typed, goal, planned, misses) -> {ok, word} | {ok:false, wrong:true, word} | {ok:false, error}`. Follow the Global Constraints rule, and keep the form handling and `didYouMean` behavior of `chainGuess`, including never suggesting the planned word.
 - Hints use the `chainHint` letter machinery on `planned`.
 
@@ -145,7 +170,8 @@ Clean links rarely chain five steps: about 30 par-5 puzzles exist in total. So H
 - [ ] Help: one How to play for both modes. It explains the clue, which word counts, that a wrong word costs a move, and that hints show letters. `seenChainHelp` merges into `seenHelp`.
 - [ ] Tests:
   - a wrong-direction word is rejected
-  - a dead-end fitting word is rejected
+  - on a fallback rung, a word with the right length and first letter that is one rung closer is accepted, and the wrong first letter costs a move
+  - every rung, on route or off, has a clue
   - a fitting off-route word is accepted, and `plannedNext` follows from it
   - a repeat miss is free
   - hints reveal letters, and the last hint plays the word
