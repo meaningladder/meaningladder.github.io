@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-23",
+  "gameNumber": 23,
+  "level": "medium",
+  "start": "warrior",
+  "goal": "dust",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "warrior",
+    "rainbow",
+    "sky",
+    "clouds",
+    "dust"
+  ],
+  "reasons": []
+}

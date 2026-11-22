@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-23",
+  "gameNumber": 23,
+  "level": "hard",
+  "start": "engineer",
+  "goal": "recipient",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "engineer",
+    "programmer",
+    "software",
+    "server",
+    "sender",
+    "recipient"
+  ],
+  "reasons": []
+}

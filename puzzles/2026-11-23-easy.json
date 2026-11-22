@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-23",
+  "gameNumber": 23,
+  "level": "easy",
+  "start": "county",
+  "goal": "castle",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "county",
+    "city",
+    "town",
+    "castle"
+  ],
+  "reasons": []
+}
