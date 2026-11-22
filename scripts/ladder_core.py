@@ -472,13 +472,16 @@ def incoming_words(ladder: "Ladder", goals: list[str], limit: int = 10) -> dict[
 
 
 def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = frozenset(),
-              starts: int = 12, per_start: int = 3) -> list[tuple[str, str, int]]:
+              starts: int = 12, per_start: int = 3, min_pairs: int = 5,
+              max_starts: int = 60) -> list[tuple[str, str, int]]:
     """Pairs that already satisfy today's band, for the AI to choose from.
 
     The AI can't see our graph, so on hard days (par 4 with a narrow route
     range, ~1-3% of random pairs) it almost never guesses a valid pair. Instead
     we find valid ones first: one full BFS per sampled start word reveals every
-    goal that fits. Deterministic for a given date.
+    goal that fits. Deterministic for a given date. If the first `starts` give
+    fewer than `min_pairs`, keep going down the same seeded order (at most
+    `max_starts` in all), so a sparse day still gets a full shortlist.
     """
     pool = [w for w in ladder.candidates if w not in recent]
     # Goals validate_pair would reject anyway; filtering here keeps every
@@ -488,7 +491,9 @@ def shortlist(ladder: "Ladder", date_str: str, band: dict, recent: set[str] = fr
         w for w in pool if in_degrees(ladder)[ladder.index[w]] >= min_in]
     rand = mulberry32(fnv1a32(f"shortlist#{date_str}"))
     out = []
-    for start in seeded_sample(pool, starts, f"shortlist-starts#{date_str}"):
+    for i, start in enumerate(seeded_sample(pool, max_starts, f"shortlist-starts#{date_str}")):
+        if i >= starts and len(out) >= min_pairs:
+            break
         dist, routes, closer = bfs_all(ladder.neighbors, ladder.index[start])
         linked = (linked_from(ladder.neighbors, ladder.linked, ladder.index[start], dist)
                   if "minLinkedSteps" in band else None)

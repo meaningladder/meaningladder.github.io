@@ -48,10 +48,10 @@ async function loadRelations(v) {
   return map;
 }
 
-// The word map, in two parts. The head (each word's 20 closest words,
-// ~0.8 MB) is all today's rules need, so a game starts after that alone.
-// The tail (ranks 21-100, ~3 MB) loads only when something needs it: an
-// archive game from the top-100 era, or exact ranks in the Tried list.
+// The word map, in two parts. The head (each word's 40 closest words,
+// ~1.6 MB) is all today's rules need, so a game starts after that alone.
+// The tail (ranks 41-100, ~2.4 MB) loads only for a legacy puzzle whose rules
+// need a step limit above 40; current games never fetch it.
 let ladderPromise = null;
 export function loadLadder() {
   return (ladderPromise ??= (async () => {
@@ -109,7 +109,7 @@ async function ensureWidth(base, k) {
 // ------------------------------------------------------------ rules views
 // The base ladder holds every word's full top-100 list. A view applies one
 // era's rules: neighbor lists cut to stepLimit (the legal steps), a reverse
-// index for those, the full lists kept for exact near-miss ranks, and the
+// index for those, the head lists kept for near-miss ranks (top 40 only), and the
 // merged config (levels, par range). Cached per era, since cutting and
 // reversing 20k lists takes a few tens of ms.
 function viewOf(base, rules) {

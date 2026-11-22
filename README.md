@@ -50,7 +50,8 @@ you never need to guess it. Par is unchanged by any of this.
 **At least 2 clues per puzzle.** Every puzzle must have a shortest route with at
 least 2 clean link clues on the rungs you actually see (`minLinkedSteps: 2` in
 each level, not counting the auto-played last step). The generator
-(`seeded_linked_puzzle`) enforces it and stores that route as `route`;
+(`seeded_linked_puzzle` for the seeded pick, `validate_pair` for the AI) enforces it, and
+`shown_route` in `generate_puzzle.py` stores that route as `route`;
 `tests/test_puzzles.py` checks every published file (par 3/4/5 by level, 2+
 visible link clues).
 
@@ -90,7 +91,7 @@ of each (already sorted) list, so no data file changes. New puzzle files record
 their `stepLimit`; files without one are from the top-100 era.
 
 The top-10 two-way open rules (`twoWay`, planned for 2026-11-13, see above): a
-step counts if either word is among the other's 10 closest. Playtests found the one-way top 20 too strict
+step counts if either word is among the other's 10 closest. Playtest history (not the current rule): playtests found the one-way top 20 too strict
 (champ to dress needed "reigning" from a list of boxing words) and top 40 both
 ways too short (mostly 3 steps); top 25 and top 15 were still asked to be
 longer. Top 10 both ways makes most ladders 4-6 steps (champ to dress is par 5).
@@ -107,8 +108,8 @@ average player would never think of ("fuselage", "kph"). They are dropped from
 the legal lists at view time (`drop_steps` / `dropSteps`), so the frozen graph
 files stay as they are. Published starts and goals are never listed.
 
-A rejected real word joins a **Tried** list. Its closeness to the goal shows
-only as a light-red fill, never the word that was right.
+A rejected real word joins a **Tried** list. Its closeness to the word the
+route planned for that rung shows only as a light-red fill, never the word that was right.
 
 `data/vectors_v1.*` and `scripts/build_vectors.py` (`make vectors`) are left
 over from the old Contexto-style ranks and are not used by the game any more.
@@ -121,7 +122,8 @@ ONE TIME (offline, scripts/build_graph.py)
   → data/graph_v1.json, data/candidates_v1.json            (frozen, versioned)
   → scripts/build_graph_bin.py (make graph-bin): the same graph split for the browser
     graph_v1_wide.json + graph_v1_wide_head.bin (top 40, ~1.6 MB) + graph_v1_wide_tail.bin
-    (ranks 41-100, ~2.4 MB, loaded only for top-100-era games and exact Tried ranks)
+    (ranks 41-100, ~2.4 MB, no longer loaded in practice: every era uses stepLimit 10, so only a
+    legacy puzzle with no stepLimit would fetch it; Tried ranks beyond 40 show as unknown)
 
 BROWSER (static, GitHub Pages)
   sw.js caches the frozen data files and keeps a copy of the app for offline play;

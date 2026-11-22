@@ -95,8 +95,10 @@ def _pair_listing(ladder: Ladder, start: str, goal: str, incoming: list[str]) ->
     s, g = ladder.index[start], ladder.index[goal]
     if ladder.linked and ladder.config.get("twoWay"):  # the route the game will show
         route = guide_route(ladder.neighbors, ladder.linked, s, g)
-        hops = [f" -[{ladder.related[rel_key(a, b)][0]}]-> " if rel_key(a, b) in ladder.related else " -> "
-                for a, b in zip(route, route[1:])]
+        last = len(route) - 2  # the step into the goal plays itself: never bracketed
+        hops = [f" -[{ladder.related[rel_key(a, b)][0]}]-> "
+                if i < last and rel_key(a, b) in ladder.linked and rel_key(a, b) in ladder.related else " -> "
+                for i, (a, b) in enumerate(zip(route, route[1:]))]
         text = ladder.words[route[0]] + "".join(hop + ladder.words[b] for hop, b in zip(hops, route[1:]))
     else:
         route = shortest_route(ladder.neighbors, s, g)
@@ -120,6 +122,8 @@ def build_request(ladder: Ladder, date_str: str, band: dict, recent: set[str]) -
             f"Date: {date_str}. Level: {band['label']}.\n\n"
             f"Verified pairs (choose only from these):\n{listing}"
         )
+    if "minLinkedSteps" in band:  # a free pick almost never has the link clues: let the seeded pick run now
+        raise AIUnavailable(f"only {len(pairs)} verified pairs for {band['level']}")
     # Fallback: free choice from a word sample (validated afterwards as always).
     sample = seeded_sample(ladder.candidates, ladder.config["promptSampleSize"],
                            f"sample#{date_str}")

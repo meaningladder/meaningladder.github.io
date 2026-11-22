@@ -254,3 +254,59 @@ def test_ai_must_explain_every_step(ladder, good_pair):
     view = ladder.at(DAY.isoformat())
     assert all(view.index[b] in view.neighbors[view.index[a]]
                for a, b in zip(puzzle["route"], puzzle["route"][1:]))
+
+
+# ---- linked (current-rules) days: shortlist top-up and prompt clues
+@pytest.mark.parametrize("d", ["2026-11-27", "2026-12-05", "2026-12-10", "2026-12-20"])
+def test_easy_shortlist_is_full_with_real_recent_words(d):
+    from ai_suggest import PAIRS_PER_ROUND
+    from ladder_core import ROOT, shortlist
+
+    ld = load_ladder(date_str=d)
+    band = level_band("easy", ld.config)
+    recent = recent_words(ROOT / "puzzles", date.fromisoformat(d), ld.config["recentDays"])
+    pairs = shortlist(ld, f"{d}:easy", band, recent)
+    assert len(pairs) >= PAIRS_PER_ROUND
+    assert pairs == shortlist(ld, f"{d}:easy", band, recent)  # deterministic
+    assert all(validate_pair(ld, s, g, band).ok for s, g, _ in pairs)
+
+
+def test_shortlist_top_up_is_bounded():
+    from ladder_core import shortlist
+
+    ld = load_ladder(date_str="2026-12-05")
+    band = level_band("easy", ld.config)
+    assert shortlist(ld, "x", band, min_pairs=10**6, max_starts=15) == shortlist(
+        ld, "x", band, min_pairs=0, starts=15)
+
+
+def test_linked_band_never_gets_the_free_choice_prompt(ladder_linked):
+    from ai_suggest import AIUnavailable, build_request
+
+    band = level_band("easy", ladder_linked.config)
+    everything = {w for w in ladder_linked.candidates}  # nothing left to shortlist
+    with pytest.raises(AIUnavailable):
+        build_request(ladder_linked, "2026-12-05", band, everything)
+
+
+def test_prompt_brackets_only_clean_clues_never_the_last_hop(ladder_linked):
+    import re
+
+    from ai_suggest import build_request
+
+    band = level_band("easy", ladder_linked.config)
+    prompt = build_request(ladder_linked, "2026-11-27", band, set())
+    for line in re.findall(r"shortest route: (.*)", prompt):
+        hops = re.findall(r" -(\[[A-Za-z]+\])?-?> ", line)
+        assert not hops[-1]  # the step into the goal is never a clue
+    ld = ladder_linked
+    for line in re.findall(r"shortest route: (.*)", prompt):
+        for a, rel, b in re.findall(r"(\w+) -\[(\w+)\]-> (\w+)", line):
+            assert rel != "RelatedTo"
+            from ladder_core import rel_key
+            assert rel_key(ld.index[a], ld.index[b]) in ld.linked
+
+
+@pytest.fixture(scope="module")
+def ladder_linked():
+    return load_ladder(date_str="2026-11-27")
