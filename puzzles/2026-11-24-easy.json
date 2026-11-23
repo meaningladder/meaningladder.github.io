@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-24",
+  "gameNumber": 24,
+  "level": "easy",
+  "start": "apparel",
+  "goal": "makeup",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "apparel",
+    "clothing",
+    "wardrobe",
+    "makeup"
+  ],
+  "reasons": []
+}

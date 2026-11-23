@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-24",
+  "gameNumber": 24,
+  "level": "hard",
+  "start": "judge",
+  "goal": "resort",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "judge",
+    "courtroom",
+    "courthouse",
+    "mansion",
+    "hotel",
+    "resort"
+  ],
+  "reasons": []
+}

@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-24",
+  "gameNumber": 24,
+  "level": "medium",
+  "start": "quarterback",
+  "goal": "draw",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "quarterback",
+    "touchdown",
+    "score",
+    "match",
+    "draw"
+  ],
+  "reasons": []
+}
