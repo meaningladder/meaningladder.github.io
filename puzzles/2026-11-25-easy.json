@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-25",
+  "gameNumber": 25,
+  "level": "easy",
+  "start": "bus",
+  "goal": "rover",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "bus",
+    "car",
+    "vehicle",
+    "rover"
+  ],
+  "reasons": []
+}

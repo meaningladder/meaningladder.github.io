@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-25",
+  "gameNumber": 25,
+  "level": "hard",
+  "start": "reservation",
+  "goal": "magazine",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "reservation",
+    "land",
+    "area",
+    "section",
+    "article",
+    "magazine"
+  ],
+  "reasons": []
+}

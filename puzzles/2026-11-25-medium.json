@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-25",
+  "gameNumber": 25,
+  "level": "medium",
+  "start": "girlfriend",
+  "goal": "ambulance",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "girlfriend",
+    "nanny",
+    "nurse",
+    "hospital",
+    "ambulance"
+  ],
+  "reasons": []
+}
