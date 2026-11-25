@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-26",
+  "gameNumber": 26,
+  "level": "easy",
+  "start": "ranch",
+  "goal": "meat",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "ranch",
+    "farm",
+    "dairy",
+    "meat"
+  ],
+  "reasons": []
+}

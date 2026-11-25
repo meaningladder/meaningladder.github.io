@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-26",
+  "gameNumber": 26,
+  "level": "hard",
+  "start": "finger",
+  "goal": "strategist",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "finger",
+    "hand",
+    "head",
+    "chief",
+    "adviser",
+    "strategist"
+  ],
+  "reasons": []
+}

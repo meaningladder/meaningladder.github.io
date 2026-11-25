@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-26",
+  "gameNumber": 26,
+  "level": "medium",
+  "start": "fluid",
+  "goal": "butter",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "fluid",
+    "liquid",
+    "mixture",
+    "paste",
+    "butter"
+  ],
+  "reasons": []
+}
