@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-27",
+  "gameNumber": 27,
+  "level": "medium",
+  "start": "jet",
+  "goal": "asteroid",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "jet",
+    "aircraft",
+    "craft",
+    "spacecraft",
+    "asteroid"
+  ],
+  "reasons": []
+}

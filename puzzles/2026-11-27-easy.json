@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-27",
+  "gameNumber": 27,
+  "level": "easy",
+  "start": "surgeon",
+  "goal": "animal",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "surgeon",
+    "doctor",
+    "veterinarian",
+    "animal"
+  ],
+  "reasons": []
+}

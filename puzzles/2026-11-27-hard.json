@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-27",
+  "gameNumber": 27,
+  "level": "hard",
+  "start": "draw",
+  "goal": "grandmother",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "draw",
+    "tie",
+    "pair",
+    "couple",
+    "wife",
+    "grandmother"
+  ],
+  "reasons": []
+}
