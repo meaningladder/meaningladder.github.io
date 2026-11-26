@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   addDays, buildReverse, computeStats, distancesToGoal, localDateStr, medalFor, oneEdit, resultMedal, scoreOf,
-  shareText, squareFor, stairStep,
+  shareSquares, shareText, stairStep,
 } from "../../js/logic.js";
 
 test("stairStep: a red sliver at the start, a full green bar at the goal", () => {
@@ -67,29 +67,31 @@ test("medals", () => {
   assert.equal(medalFor(9, 4).id, "finished");
 });
 
-test("squares show the change in distance, not the distance", () => {
-  assert.equal(squareFor(6, 5), "🟩"); // progress, even though still far away
-  assert.equal(squareFor(3, 3), "🟨"); // no closer
-  assert.equal(squareFor(2, 4), "🟥"); // farther
-  assert.equal(squareFor(2, -1), "🟥"); // dead end
-  assert.equal(squareFor(-1, 3), "🟩"); // back onto a route
-  assert.equal(squareFor(1, 0), "✅"); // goal
+test("share squares: one per rung, by how it was solved", () => {
+  const clean = { misses: [], hints: 0 };
+  const missed = { misses: [{ word: "x" }], hints: 0 };
+  const hinted = { misses: [], hints: 1 };
+  const revealed = { misses: [], hints: 4, revealed: true };
+  const path = ["a", "b", "c", "d", "e", "goal"]; // the goal follows the last word for free
+  assert.equal(shareSquares({ path, rungs: [clean, missed, hinted, revealed, undefined], status: "won" }), "🟩🟨🟨⬜✅");
+  // Gave up mid-rung: that rung shows ⬜ only if something was tried on it.
+  assert.equal(shareSquares({ path: ["a", "b"], rungs: [clean, missed], status: "gaveUp" }), "🟩⬜");
+  assert.equal(shareSquares({ path: ["a", "b"], rungs: [clean, clean], status: "gaveUp" }), "🟩");
+  assert.equal(shareSquares({ path: ["a"], rungs: [], status: "gaveUp" }), "");
 });
 
-test("share text: level, medal, moves/par, one square per step, no words", () => {
-  const text = shareText({ label: "#13 Hard", moves: 7, par: 6, distances: [6, 5, 4, 4, 3, 2, 1, 0] });
-  assert.equal(text, "Meaning Ladder #13 Hard 🥈 86 pts\n7 moves · par 6\n🟩🟩🟨🟩🟩🟩✅");
-  assert.equal(shareText({ label: "#1 Easy", moves: 2, par: 2, distances: [2, 1, 0] }),
+test("share text: level, medal, moves/par, squares, no words", () => {
+  assert.equal(shareText({ label: "#13 Hard", moves: 7, par: 6, squares: "🟩🟨🟩🟩🟩✅" }),
+    "Meaning Ladder #13 Hard 🥈 86 pts\n7 moves · par 6\n🟩🟨🟩🟩🟩✅");
+  assert.equal(shareText({ label: "#1 Easy", moves: 2, par: 2, squares: "🟩✅" }),
     "Meaning Ladder #1 Easy 🥇 100 pts\n2 moves · par 2\n🟩✅");
-  assert.equal(shareText({ label: "#2 Medium", moves: 6, par: 3, distances: [3, 4, 2, 2, 1, -1, 0] }),
-    "Meaning Ladder #2 Medium 🏁 50 pts\n6 moves · par 3\n🟥🟩🟨🟩🟥✅");
 });
 
 test("gave-up share has no medal and still reads clearly", () => {
-  const text = shareText({ label: "#3 Hard", moves: 3, par: 3, distances: [3, 4, 4], gaveUp: true, url: "https://x.test/" });
-  assert.equal(text, "Meaning Ladder #3 Hard\nGave up after 3 moves · par 3\n🟥🟨\nhttps://x.test/");
+  const text = shareText({ label: "#3 Hard", moves: 3, par: 3, squares: "🟨⬜", gaveUp: true, url: "https://x.test/" });
+  assert.equal(text, "Meaning Ladder #3 Hard\nGave up after 3 moves · par 3\n🟨⬜\nhttps://x.test/");
   // Giving up before any step: no empty squares line.
-  assert.equal(shareText({ label: "#3 Hard", moves: 0, par: 3, distances: [3], gaveUp: true }),
+  assert.equal(shareText({ label: "#3 Hard", moves: 0, par: 3, gaveUp: true }),
     "Meaning Ladder #3 Hard\nGave up after 0 moves · par 3");
 });
 

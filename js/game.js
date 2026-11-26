@@ -10,7 +10,7 @@
 
 import { ladderFor, loadConfig, loadDailyPuzzle, loadLadder, makePracticePuzzle, migrateStorage, readyFor, store } from "./data.js";
 import {
-  addDays, computeStats, localDateStr, rankFill, stairStep, triedOrder, medalFor, pointsFor, resultPoints, shareText,
+  addDays, computeStats, localDateStr, rankFill, stairStep, triedOrder, medalFor, pointsFor, resultPoints, shareSquares, shareText,
   classicLabel, isClassicDay, newestEra, playedDates, rulesNoticeDue, rulesNoticeText, betterMedal, resultMedal, scoreOf,
   linkedGame, linkedHint, linkedRung, linkedStart, linkedSubmit, shownLetters,
   FEEDBACK_KINDS, FEEDBACK_MAX, feedbackPayload, feedbackUrl,
@@ -874,7 +874,7 @@ function gameView(ladder, state, saveKey, date) {
   async function share(toast) {
     const text = shareText({
       label, moves: state.moves, par: puzzle.par, gaveUp: state.status === "gaveUp",
-      distances: state.path.map((_, i) => puzzle.par - i), // every played word is one rung up
+      squares: shareSquares(state),
       url: location.origin + location.pathname,
     });
     await copyShare(text, toast);

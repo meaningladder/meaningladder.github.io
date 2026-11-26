@@ -136,16 +136,24 @@ test("a typo never gets the planned word as its suggestion", () => {
 
 test("hints reveal letters for a move each, and the last hint plays the word", () => {
   const g = game(), s = linkedStart(puzzle);
+  const shown = (word) => [...shownLetters(g, s)].map((c, i) => [c, i]).filter(([c]) => c !== "_")
+    .map(([c, i]) => { assert.equal(c, word[i]); return i; });
   linkedHint(g, s);
-  assert.deepEqual(shownLetters(g, s), ["t", "_", "_", "_", "_"]);
-  for (let i = 0; i < 3; i++) linkedHint(g, s);
-  assert.deepEqual([s.path, s.moves, s.hints], [["jeep"], 4, 4]);
-  linkedHint(g, s); // the fifth letter of truck: played, no extra move
-  assert.deepEqual([s.path, s.moves], [["jeep", "truck"], 5]);
-  // A letters rung already shows the first letter, so hints start at the second.
+  const first = shown("truck");
+  assert.equal(first.length, 1); // one letter, never the first one
+  assert.notEqual(first[0], 0);
+  assert.deepEqual(shown("truck"), first); // same letter on reload
+  for (let i = 0; i < 2; i++) linkedHint(g, s);
+  assert.deepEqual([s.path, s.moves, s.hints], [["jeep"], 3, 3]);
+  linkedHint(g, s); // the last hidden letter (not the first) plays truck, no extra move
+  assert.deepEqual([s.path, s.moves], [["jeep", "truck"], 4]);
+  // A letters rung already shows the first letter; a hint adds one more.
   assert.deepEqual(shownLetters(g, s), ["t", "_", "_", "_", "_", "_"]);
   linkedHint(g, s);
-  assert.deepEqual(shownLetters(g, s), ["t", "a", "_", "_", "_", "_"]);
+  const word = g.ladder.words[linkedRung(g, s).planned];
+  const two = shown(word);
+  assert.equal(two.length, 2);
+  assert.equal(two[0], 0);
 });
 
 test("a link on the goal step counts for nothing: the goal plays itself", () => {
