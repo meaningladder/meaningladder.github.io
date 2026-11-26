@@ -143,7 +143,7 @@ function showHelp() {
       h("li", {}, "Get from the ", h("b", {}, "start"), " word to the ", h("b", {}, "goal"), ", one rung at a time."),
       h("li", {}, "Each rung shows a ", h("b", {}, "clue"), " for the next word, like “A kind of dog” or “5 letters, starts with T”. A word counts if it fits the clue and gets you one rung closer to the goal. Its plural counts too."),
       h("li", {}, "A wrong word costs a ", h("b", {}, "move"), ". Typos and repeats are free."),
-      h("li", {}, "A ", h("b", {}, "hint"), " shows a letter of the next word for one move; the last letter plays the word. Every word and hint is a move: finish in ",
+      h("li", {}, "A ", h("b", {}, "hint"), " shows a letter of the next word (never the first) for one move; the last hint plays the word. Every word and hint is a move: finish in ",
         h("b", {}, "par"), " for gold.")),
     h("p", { class: "sub example-caption" }, "Example: after dog, the clue says “Dog is a kind of this”. “cat”? Not it, one move. “animal”: yes."),
     h("p", { class: "sub example-caption" }, "Three new ladders every day: Easy, Medium and Hard. Unlimited has as many as you like."))
