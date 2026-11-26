@@ -210,7 +210,10 @@ export function linkedHint(game, state) {
   r.hints++;
   state.hints++;
   state.moves++;
-  if (r.hints >= hintOrder(word, clue).length) linkedPlay(game, state, word);
+  if (r.hints >= hintOrder(word, clue).length) {
+    r.revealed = true;
+    linkedPlay(game, state, word);
+  }
 }
 
 // Regular English inflection endings, as [ending, replacement]: a rough
@@ -336,28 +339,24 @@ export function stairStep(rung, par) {
   return { hue: Math.round(130 * t), fill: Math.round(8 + 92 * t) };
 }
 
-// One square per step, colored by how the step changed the distance to the
-// goal (not by the absolute distance): on a par-6 ladder every early word is
-// far away, so absolute colors made good opening moves look like mistakes.
-// -1 means "no route to the goal from here".
-export function squareFor(from, to) {
-  if (to === 0) return "✅";
-  if (to < 0) return "🟥";
-  if (from < 0) return "🟩"; // back onto a route after a dead end is progress
-  if (to < from) return "🟩";
-  if (to === from) return "🟨";
-  return "🟥";
+// One square per rung, read from state.rungs: 🟩 first guess, 🟨 after wrong
+// words or hints, ⬜ revealed by hints (or the rung given up on), ✅ the goal.
+export function shareSquares({ path, rungs, status }) {
+  const sq = path.slice(1).map((_, k) => {
+    if (k === path.length - 2 && status === "won") return "✅";
+    const r = rungs[k];
+    return !r ? "🟩" : r.revealed ? "⬜" : r.misses.length || r.hints ? "🟨" : "🟩";
+  });
+  const r = rungs[path.length - 1]; // the unfinished rung
+  if (status === "gaveUp" && r && (r.misses.length || r.hints)) sq.push("⬜");
+  return sq.join("");
 }
 
-// Spoiler-free share text: no words, just colored steps.
-// `distances` starts with the START word's distance, so the first step's
-// change is known; there is one square per step after it. Undone words count
-// as moves (see movesOf), e.g.
+// Spoiler-free share text: no words, just colored rungs (see shareSquares), e.g.
 //   Meaning Ladder #13 Hard 🥈 86 pts
-//   7 steps · par 6
-//   🟩🟩🟨🟩🟩🟩✅
-export function shareText({ label, moves, par, distances, gaveUp = false, url = "" }) {
-  const squares = distances.slice(1).map((d, i) => squareFor(distances[i], d)).join("");
+//   7 moves · par 6
+//   🟩🟨🟩🟩⬜✅
+export function shareText({ label, moves, par, squares = "", gaveUp = false, url = "" }) {
   // Gave-up games get no medal: the 🏁 "finished" emoji would read as a finish.
   const badge = gaveUp ? "" : ` ${medalFor(moves, par).emoji} ${pointsFor(moves, par)} pts`;
   const n = `${moves} move${moves === 1 ? "" : "s"}`;
