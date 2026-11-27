@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-28",
+  "gameNumber": 28,
+  "level": "medium",
+  "start": "hamstring",
+  "goal": "leather",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "hamstring",
+    "tendon",
+    "heel",
+    "boot",
+    "leather"
+  ],
+  "reasons": []
+}

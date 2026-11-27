@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-28",
+  "gameNumber": 28,
+  "level": "hard",
+  "start": "medalist",
+  "goal": "brick",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "medalist",
+    "bronze",
+    "sculpture",
+    "fountain",
+    "courtyard",
+    "brick"
+  ],
+  "reasons": []
+}

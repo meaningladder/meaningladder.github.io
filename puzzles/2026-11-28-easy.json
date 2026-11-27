@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-28",
+  "gameNumber": 28,
+  "level": "easy",
+  "start": "sister",
+  "goal": "fellow",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "sister",
+    "brother",
+    "friend",
+    "fellow"
+  ],
+  "reasons": []
+}
