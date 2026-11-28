@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-29",
+  "gameNumber": 29,
+  "level": "hard",
+  "start": "scout",
+  "goal": "pier",
+  "par": 5,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "scout",
+    "camping",
+    "canoe",
+    "boat",
+    "ferry",
+    "pier"
+  ],
+  "reasons": []
+}

@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-29",
+  "gameNumber": 29,
+  "level": "medium",
+  "start": "resident",
+  "goal": "architect",
+  "par": 4,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "resident",
+    "worker",
+    "contractor",
+    "builder",
+    "architect"
+  ],
+  "reasons": []
+}

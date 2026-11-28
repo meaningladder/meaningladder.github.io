@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-29",
+  "gameNumber": 29,
+  "level": "easy",
+  "start": "boulevard",
+  "goal": "sidewalk",
+  "par": 3,
+  "theme": "Daily ladder",
+  "teaser": "",
+  "source": "seeded",
+  "graphVersion": 1,
+  "stepLimit": 10,
+  "twoWay": true,
+  "route": [
+    "boulevard",
+    "avenue",
+    "street",
+    "sidewalk"
+  ],
+  "reasons": []
+}
