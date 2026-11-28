@@ -75,7 +75,7 @@ const dateOfGame = (n, config) => addDays(config.launchDate, n - 1);
 
 // ------------------------------------------------------------ saved results
 const LEVEL_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
-const OTHER_GAME = "https://lereplacey.vercel.app/";
+const OTHER_GAME = "https://pasapas.vercel.app/";
 const WORDTOMIND = "https://wordtomind.vercel.app/";
 // One Unlimited save per level, so switching levels never discards a game.
 const practiceKey = (level) => `practice:${level}`;
@@ -399,8 +399,8 @@ async function showHome() {
     h("a", { class: "btn btn-quiet btn-wide home-archive", href: "#/archive" }, "Previous games"),
     // Our other daily word game, black and orange so it stands out.
     h("a", { class: "btn btn-wide other-game-link", href: OTHER_GAME, target: "_blank", rel: "noopener" },
-      "Play LeReplacey, our other word game"),
-    // Our third game: a quiet button, so LeReplacey stays the one that stands out.
+      "Play pasApas, our other word game"),
+    // Our third game: a quiet button, so pasApas stays the one that stands out.
     h("a", { class: "btn btn-quiet btn-wide other-game-quiet", href: WORDTOMIND, target: "_blank", rel: "noopener" },
       "Play wordToMind, our daily word race"),
     practice,
