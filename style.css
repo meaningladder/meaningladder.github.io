@@ -167,6 +167,7 @@ button:disabled { cursor: not-allowed; opacity: var(--disabled); }
   min-height: 52px; font-size: var(--fs-base); margin-bottom: 14px;
   background: var(--promo-bg); color: #ff8a2a; border: 2px solid #ff8a2a;
 }
+.other-game-quiet { margin-bottom: 14px; }
 
 .icon-btn {
   width: 44px; height: 44px; display: grid; place-items: center;
